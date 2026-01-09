@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Caja - Rojas Super</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+    <header class="header-sistema">
+        <div class="header-izquierda">
+            <button class="btn-hamburguesa" id="btnToggleMenu" aria-label="Menú">
+                <span class="linea linea-1"></span>
+                <span class="linea linea-2"></span>
+                <span class="linea linea-3"></span>
+            </button>
+            <div class="logo-contenedor">
+                <img src="/img/img/LogoYapeRojas.png" class="logo-sistema" alt="Rojas Super">
+            </div>
+        </div>
+
+        <div class="header-derecha">
+            <div class="info-usuario">
+                <span class="nombre-cajero">Cajero: Admin</span>
+                <span class="turno-actual">Turno: Mañana</span>
+            </div>
+            <button class="btn-cerrar-sesion" id="btnCerrarSesion">
+                <span class="icono-btn">🚪</span> Cerrar Sesión
+            </button>
+        </div>
+    </header>
+
+    <div class="contenedor-principal">
+        
+        <nav class="sidebar" id="sidebar">
+            <ul class="lista-menu">
+                <li class="titulo-seccion-menu">OPERACIONES</li>
+                <li class="item-menu activo" data-target="vista-yape">
+                    <a href="#">
+                        <div class="icono-wrapper"><img src="/img/icon/codigo-qr-icon.png" class="icon-foto"></div>
+                        <span class="texto-menu">Gestión Pago Yape</span>
+                    </a>
+                </li>
+                <li class="item-menu" data-target="vista-tarjeta">
+                    <a href="#">
+                        <div class="icono-wrapper"><img src="/img/icon/tarjeta-icon.png" class="icon-foto"></div>
+                        <span class="texto-menu">Gestión Pago Tarjeta</span>
+                    </a>
+                </li>
+                <li class="item-menu" data-target="vista-anulacion">
+                    <a href="#">
+                        <div class="icono-wrapper"><img src="/img/icon/anular-icon.png" class="icon-foto"></div>
+                        <span class="texto-menu">Anulación Transacción</span>
+                    </a>
+                </li>
+
+                <li class="titulo-seccion-menu admin">ADMINISTRACIÓN</li>
+                
+                <li class="item-menu" data-target="vista-reportes">
+                    <a href="#">
+                        <div class="icono-wrapper">📄</div> <span class="texto-menu">Reportes</span>
+                    </a>
+                </li>
+                <li class="item-menu" data-target="vista-roles">
+                    <a href="#">
+                        <div class="icono-wrapper">👥</div>
+                        <span class="texto-menu">Gestión de Usuarios</span>
+                    </a>
+                </li>
+                <li class="item-menu" data-target="vista-financiero">
+                    <a href="#">
+                        <div class="icono-wrapper">📈</div>
+                        <span class="texto-menu">Estado Financiero</span>
+                    </a>
+                </li>
+                
+                <li class="item-menu cierre" data-target="vista-cierre">
+                    <a href="#">
+                        <div class="icono-wrapper"><img src="/img/icon/cierreTurno-icon.png" class="icon-foto"></div>
+                        <span class="texto-menu">Cierre de Turno</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <main class="area-trabajo">
+            
+            <section id="vista-yape" class="vista-seccion activa">
+                <div class="contenedor-formulario-yape layout-split">
+                    <div class="panel-seleccion">
+                        <div class="cabecera-simple"><h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--/-- --:--</span></div>
+                        <div class="grid-familias-moderna" id="selectorFamilia">
+                            <button type="button" class="card-familia" data-value="Bebidas"><span class="emoji">🥤</span><span class="label">Bebidas</span></button>
+                            <button type="button" class="card-familia" data-value="Comestible"><span class="emoji">🍞</span><span class="label">Comestibles</span></button>
+                            <button type="button" class="card-familia" data-value="Frescos"><span class="emoji">🥦</span><span class="label">Frescos</span></button>
+                            <button type="button" class="card-familia" data-value="Licores"><span class="emoji">🍷</span><span class="label">Licores</span></button>
+                            <button type="button" class="card-familia" data-value="Limpieza"><span class="emoji">🧹</span><span class="label">Limpieza</span></button>
+                            <button type="button" class="card-familia" data-value="Plasticara"><span class="emoji">🧴</span><span class="label">Plásticos</span></button>
+                            <button type="button" class="card-familia" data-value="Libreria"><span class="emoji">✏️</span><span class="label">Librería</span></button>
+                            <button type="button" class="card-familia" data-value="Bazar"><span class="emoji">🛍️</span><span class="label">Bazar</span></button>
+                        </div>
+                        <input type="hidden" id="inputFamilia">
+                    </div>
+                    <div class="panel-transaccion">
+                        <form id="formYape">
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
+                            <div class="selector-bancos" id="selectorDestino">
+                                <button type="button" class="chip-banco seleccionado" data-value="BCP"><span class="dot bcp"></span> BCP</button>
+                                <button type="button" class="chip-banco" data-value="BBVA"><span class="dot bbva"></span> BBVA</button>
+                                <button type="button" class="chip-banco" data-value="Personal"><span class="dot personal"></span> Personal</button>
+                                <input type="hidden" id="inputDestino" value="BCP">
+                            </div>
+                            <div class="input-operacion-wrapper"><label># Operación</label><input type="text" id="numOperacion" placeholder="123456" required></div>
+                            <div class="selector-tipo" id="selectorComprobante">
+                                <button type="button" class="segmento seleccionado" data-value="Boleta">Boleta</button>
+                                <button type="button" class="segmento" data-value="Factura">Factura</button>
+                                <button type="button" class="segmento" data-value="NotaVenta">Nota</button>
+                                <input type="hidden" id="inputComprobante" value="Boleta">
+                            </div>
+                            <button type="submit" class="btn-registrar-grande">CONFIRMAR PAGO <span class="flecha">→</span></button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-tarjeta" class="vista-seccion">
+                <div class="contenedor-formulario-yape layout-split">
+                    <div class="panel-seleccion">
+                        <div class="cabecera-simple"><h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--/-- --:--</span></div>
+                        <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
+                            <button type="button" class="card-familia" data-value="Bebidas"><span class="emoji">🥤</span><span class="label">Bebidas</span></button>
+                            <button type="button" class="card-familia" data-value="Comestible"><span class="emoji">🍞</span><span class="label">Comestibles</span></button>
+                            <button type="button" class="card-familia" data-value="Frescos"><span class="emoji">🥦</span><span class="label">Frescos</span></button>
+                            <button type="button" class="card-familia" data-value="Licores"><span class="emoji">🍷</span><span class="label">Licores</span></button>
+                            <button type="button" class="card-familia" data-value="Limpieza"><span class="emoji">🧹</span><span class="label">Limpieza</span></button>
+                            <button type="button" class="card-familia" data-value="Plasticara"><span class="emoji">🧴</span><span class="label">Plásticos</span></button>
+                            <button type="button" class="card-familia" data-value="Libreria"><span class="emoji">✏️</span><span class="label">Librería</span></button>
+                            <button type="button" class="card-familia" data-value="Bazar"><span class="emoji">🛍️</span><span class="label">Bazar</span></button>
+                        </div>
+                        <input type="hidden" id="inputFamiliaTarjeta">
+                    </div>
+                    <div class="panel-transaccion">
+                        <form id="formTarjeta">
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
+                            <label class="label-separador">Seleccione Tarjeta:</label>
+                            <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
+                                <button type="button" class="chip-banco seleccionado" data-value="BCP"><span class="dot bcp"></span> BCP</button>
+                                <button type="button" class="chip-banco" data-value="BBVA"><span class="dot bbva"></span> BBVA</button>
+                                <button type="button" class="chip-banco" data-value="Interbank"><span class="dot interbank"></span> Interbank</button>
+                                <button type="button" class="chip-banco" data-value="Regalo"><span class="dot regalo"></span> T. Regalo</button>
+                                <input type="hidden" id="inputBancoTarjeta" value="BCP">
+                            </div>
+                            <div style="flex-grow: 1;"></div>
+                            <button type="submit" class="btn-registrar-grande">PROCESAR TARJETA <span class="flecha">💳</span></button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-anulacion" class="vista-seccion">
+                <div class="contenedor-tabla-registro">
+                    <div class="cabecera-tabla">
+                        <div class="titulo-seccion"><h2>🚫 Historial</h2><p>Visualiza y gestiona los pagos.</p></div>
+                        <div class="buscador-wrapper"><span class="lupa">🔍</span><input type="text" id="buscadorTransaccion" placeholder="Buscar por N° Operación..."></div>
+                    </div>
+                    <div class="tabla-responsive">
+                        <table class="tabla-transacciones">
+                            <thead><tr><th>Tipo</th><th>Familia</th><th>Ref / Op</th><th>Monto</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+                            <tbody id="cuerpoTablaTransacciones"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-reportes" class="vista-seccion">
+                <div class="contenedor-tabla-registro" style="background: transparent; box-shadow: none; border: none; padding: 0;">
+                    
+                    <h2 style="color: var(--color-primario); margin-bottom: 1.5rem;">📊 Centro de Reportes</h2>
+
+                    <div class="card-reporte">
+                        <div class="cabecera-reporte">
+                            <h3>📅 Reporte por Rangos</h3>
+                            <p>Ventas detalladas entre fechas específicas.</p>
+                        </div>
+                        <div class="cuerpo-reporte">
+                            <div class="filtros-reporte">
+                                <div class="input-fecha-wrapper"><label>Desde:</label><input type="date" id="fechaInicio"></div>
+                                <div class="input-fecha-wrapper"><label>Hasta:</label><input type="date" id="fechaFin"></div>
+                                <button class="btn-generar-reporte" onclick="generarReporte('RANGO')">🔍 Consultar</button>
+                            </div>
+                            <div id="resultadoReporte" style="display: none; margin-top: 1rem;">
+                                <span class="badge-estado completado">Resultados Generados (Simulado)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-reporte">
+                        <div class="cabecera-reporte">
+                            <h3>👤 Reporte por Cajero / Punto</h3>
+                            <p>Desempeño individual y cierre por usuario.</p>
+                        </div>
+                        <div class="cuerpo-reporte">
+                            <div class="filtros-reporte">
+                                <div class="input-fecha-wrapper" style="flex-grow: 1;">
+                                    <label>Seleccionar Cajero:</label>
+                                    <select class="input-select-reporte">
+                                        <option>Todos</option>
+                                        <option>Admin</option>
+                                        <option>Cajero 1</option>
+                                    </select>
+                                </div>
+                                <button class="btn-generar-reporte" onclick="generarReporte('CAJERO')">📊 Ver Desempeño</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-reporte">
+                        <div class="cabecera-reporte">
+                            <h3>📑 Reporte General Completo</h3>
+                            <p>Consolidado total de todas las operaciones históricas.</p>
+                        </div>
+                        <div class="cuerpo-reporte">
+                            <button class="btn-generar-reporte total" onclick="generarReporte('GENERAL')">📥 Descargar Reporte General</button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="vista-roles" class="vista-seccion">
+                <div class="contenedor-tabla-registro">
+                    <div class="cabecera-tabla">
+                        <div class="titulo-seccion">
+                            <h2>👥 Gestión de Usuarios</h2>
+                            <p>Administra cuentas de cajeros y administradores.</p>
+                        </div>
+                        <button class="btn-nuevo-usuario" onclick="abrirModalUsuario()">+ Nuevo Usuario</button>
+                    </div>
+                    <div class="tabla-responsive">
+                        <table class="tabla-transacciones">
+                            <thead><tr><th>ID</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+                            <tbody id="cuerpoTablaUsuarios"></tbody>
+                        </table>
+                        <div id="mensajeSinUsuarios" style="text-align: center; padding: 2rem; color: #888;">No hay usuarios registrados.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-financiero" class="vista-seccion">
+                <div class="contenedor-tabla-registro">
+                    <div class="cabecera-tabla">
+                        <div class="titulo-seccion">
+                            <h2>📈 Estado Financiero Visual</h2>
+                            <p>Análisis en tiempo real.</p>
+                        </div>
+                    </div>
+                    <div class="grid-graficos">
+                        <div class="card-grafico">
+                            <h3>Ingresos por Método</h3>
+                            <div class="canvas-wrapper"><canvas id="graficoPastel"></canvas></div>
+                        </div>
+                        <div class="card-grafico">
+                            <h3>Ventas de la Semana</h3>
+                            <div class="canvas-wrapper"><canvas id="graficoBarras"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-cierre" class="vista-seccion">
+                <div class="contenedor-cierre">
+                    <div class="cabecera-cierre">
+                        <div class="titulo-cierre"><h2>🔒 Cierre de Turno</h2><p>Resumen de operaciones del día</p></div>
+                        <div class="fecha-cierre"><span id="fechaCierre">--/--/----</span></div>
+                    </div>
+                    <div class="grid-resumen-cierre">
+                        <div class="card-dato"><span class="label">Total Yape/Plin</span><span class="valor" id="totalYape">S/ 0.00</span></div>
+                        <div class="card-dato"><span class="label">Total Tarjetas</span><span class="valor" id="totalTarjeta">S/ 0.00</span></div>
+                        <div class="card-dato anulado"><span class="label">Anulaciones</span><span class="valor" id="totalAnulado">S/ 0.00</span></div>
+                        <div class="card-dato total"><span class="label">TOTAL GENERAL</span><span class="valor" id="totalGeneral">S/ 0.00</span></div>
+                    </div>
+                    <div class="accion-cierre">
+                        <button class="btn-imprimir-cierre" onclick="imprimirCierre()"><span class="icono-imprimir">🖨️</span> IMPRIMIR CIERRE DE CAJA</button>
+                    </div>
+                    
+                    <div id="ticketImpresion" class="ticket-oculto">
+                        <div class="ticket-header">
+                            <h3>ROJAS SUPER S.A.C.</h3><p>RUC: 20601234567</p>
+                            <hr class="dashed"><h4>CIERRE DE TURNO</h4>
+                            <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
+                            <p>Cajero: Admin - Turno: Mañana</p><hr class="dashed">
+                        </div>
+                        <div class="ticket-body">
+                            <div class="fila-ticket"><span>Total YAPE/PLIN:</span><span id="ticketYape">S/ 0.00</span></div>
+                            <div class="fila-ticket"><span>Total TARJETAS:</span><span id="ticketTarjeta">S/ 0.00</span></div>
+                            <div class="fila-ticket"><span>(-) Anulaciones:</span><span id="ticketAnulado">S/ 0.00</span></div>
+                            <hr class="solid"><div class="fila-ticket total"><span>TOTAL TURNO:</span><span id="ticketTotal">S/ 0.00</span></div><hr class="dashed">
+                        </div>
+                        <div class="ticket-footer">
+                            <p>Total Operaciones: <span id="ticketOps">0</span></p><p>__________________________</p><p>Firma Cajero</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="modalUsuario" class="modal">
+        <div class="modal-contenido-bonito">
+            <div class="modal-header">
+                <h2 id="tituloModalUsuario">Nuevo Usuario</h2>
+                <span class="cerrar-modal" onclick="cerrarModalUsuario()">&times;</span>
+            </div>
+            <form id="formUsuario">
+                <input type="hidden" id="idUsuarioEdicion"> <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="nombreUsuario" placeholder="Ej: Juan Perez" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <select id="rolUsuario" class="input-select-modal">
+                            <option value="Cajero">Cajero</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="estadoUsuario" class="input-select-modal">
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="text" id="passUsuario" placeholder="Contraseña de acceso" required>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Guardar Datos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
