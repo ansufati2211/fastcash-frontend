@@ -1375,3 +1375,35 @@ input[type="date"] {
 .btn-guardar:hover {
     background: var(--color-secundario);
 }
+
+.btn-abrir-caja {
+    background-color: #2ecc71; /* Verde */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin-right: 15px; /* Separación del botón de cerrar sesión */
+    margin-left: 15px;  /* Separación del texto del turno */
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-abrir-caja:hover {
+    background-color: #27ae60;
+}
+
+/* Estilo para cuando la caja ya está abierta (deshabilitado) */
+.btn-abrir-caja.caja-abierta {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* EFECTO DE SISTEMA BLOQUEADO */
+.sistema-bloqueado {
+    opacity: 0.5; /* Se ve transparente */
+    pointer-events: none; /* No permite clics en nada */
+    filter: grayscale(100%); /* Se pone en blanco y negro (opcional) */
+    user-select: none;
+}

@@ -1,431 +1,478 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ==========================================
-    // 1. RELOJ EN TIEMPO REAL
-    // ==========================================
-    const spansFechaHora = document.querySelectorAll('.fecha-hora-reloj');
-    const spanFechaCierre = document.getElementById('fechaCierre');
+    // CONFIGURACIÓN
+    const BASE_URL = 'http://localhost:8080/api';
+    
+    // VARIABLE GLOBAL DE ESTADO
+    let CAJA_ABIERTA = false; 
 
-    function actualizarReloj() {
-        const ahora = new Date();
-        
-        // Formato largo: 08/01/2026, 10:30 a. m.
-        const opcionesCompleta = { 
-            day: '2-digit', month: '2-digit', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
-        };
-        
-        // Formato corto: 08/01/2026
-        const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
-
-        try {
-            const fechaTextoCompleta = ahora.toLocaleString('es-PE', opcionesCompleta);
-            const fechaTextoSimple = ahora.toLocaleDateString('es-PE', opcionesFecha);
-
-            if(spansFechaHora.length > 0) {
-                spansFechaHora.forEach(span => span.textContent = fechaTextoCompleta);
-            }
-            if(spanFechaCierre) {
-                spanFechaCierre.textContent = fechaTextoSimple;
-            }
-        } catch (e) {
-            console.error("Error en reloj:", e);
-        }
+    // 0. VERIFICACIÓN DE SESIÓN
+    const usuarioData = localStorage.getItem('usuarioSesion');
+    if (!usuarioData) {
+        // En producción descomenta la siguiente línea:
+        // window.location.href = '../html/login.html'; 
+        return;
     }
     
-    // Iniciar reloj
-    setInterval(actualizarReloj, 1000);
-    actualizarReloj();
+    const usuario = JSON.parse(usuarioData);
+
+    // Header Info
+    const nombreCajeroEl = document.querySelector('.nombre-cajero');
+    if (nombreCajeroEl) {
+        nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
+    }
+
+    // PERMISOS
+    const rolUsuario = (usuario.Rol || 'CAJERO').toUpperCase();
+    const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
+
+    if (rolUsuario !== 'ADMINISTRADOR') {
+        itemsAdmin.forEach(item => item.style.display = 'none');
+    }
+
+    // =========================================================
+    // 1. CONTROL DE ESTADO DE CAJA (Sincronización con BD)
+    // =========================================================
+    const btnAbrirCaja = document.getElementById('btnAbrirCaja');
+    const areaTrabajo = document.querySelector('.area-trabajo');
+
+    function actualizarEstadoVisualCaja(estaAbierta) {
+        CAJA_ABIERTA = estaAbierta;
+        
+        if (estaAbierta) {
+            if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
+            areaTrabajo.style.opacity = "1";
+            areaTrabajo.style.pointerEvents = "all"; 
+        } else {
+            if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
+        }
+    }
+
+    async function verificarEstadoCaja() {
+        try {
+            const uid = usuario.UsuarioID || usuario.usuarioID;
+            const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
+            
+            if (res.ok) {
+                const data = await res.json();
+                actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
+            } else {
+                actualizarEstadoVisualCaja(false);
+            }
+        } catch (e) {
+            console.error("Error conexión API:", e);
+            actualizarEstadoVisualCaja(false);
+        }
+    }
+
+    verificarEstadoCaja();
+
+    // LÓGICA ABRIR CAJA
+    if(btnAbrirCaja) {
+        btnAbrirCaja.addEventListener('click', async () => {
+            if(!confirm("¿Deseas abrir la caja para iniciar tu turno?")) return;
+
+            const originalText = btnAbrirCaja.innerHTML;
+            btnAbrirCaja.innerHTML = "Abriendo...";
+            btnAbrirCaja.disabled = true;
+
+            try {
+                const payload = {
+                    usuarioID: usuario.UsuarioID || usuario.usuarioID,
+                    saldoInicial: 0.00
+                };
+
+                const res = await fetch(`${BASE_URL}/caja/abrir`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    alert("✅ Caja Abierta Correctamente. ¡Buen turno!");
+                    actualizarEstadoVisualCaja(true);
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Error al abrir caja");
+                }
+            } catch (error) {
+                alert("❌ Error: " + error.message);
+            } finally {
+                btnAbrirCaja.innerHTML = originalText;
+                btnAbrirCaja.disabled = false;
+            }
+        });
+    }
 
     // ==========================================
-    // 2. NAVEGACIÓN (SIDEBAR Y VISTAS)
+    // 2. LÓGICA DE CIERRE DE SESIÓN
     // ==========================================
+    const btnLogout = document.getElementById('btnCerrarSesion');
+    
+    if(btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            if(!confirm("¿Seguro que deseas Cerrar Sesión? Si tienes caja abierta, se cerrará automáticamente.")) return;
+
+            if (CAJA_ABIERTA) {
+                try {
+                    const uid = usuario.UsuarioID || usuario.usuarioID;
+                    
+                    const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
+                    if (!resReporte.ok) throw new Error("No se pudo calcular el cierre");
+                    
+                    const dataReporte = await resReporte.json();
+                    const saldoCierre = dataReporte.SaldoEsperadoEnCaja || 0.00;
+
+                    const payload = {
+                        usuarioID: uid,
+                        saldoFinalReal: saldoCierre
+                    };
+
+                    const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!resCierre.ok) throw new Error("Error cerrando caja en BD");
+                    
+                    alert("🔒 Caja cerrada y turno finalizado correctamente.");
+
+                } catch (e) {
+                    console.error("Error al auto-cerrar caja:", e);
+                    alert("⚠️ Advertencia: Hubo un error de conexión al cerrar la caja, pero se cerrará la sesión local.");
+                }
+            }
+
+            localStorage.removeItem('usuarioSesion');
+            window.location.href = '../html/login.html';
+        });
+    }
+
+    // ==========================================
+    // 3. VISTA DE CIERRE DE TURNO (IMPRIMIR SIN CONFIRMACIÓN)
+    // ==========================================
+    window.imprimirCierre = async () => {
+        // SE ELIMINÓ LA CONFIRMACIÓN (prompt/confirm)
+        try {
+            const uid = usuario.UsuarioID || usuario.usuarioID;
+            
+            // 1. Obtener datos
+            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
+            if(!resReporte.ok) throw new Error("Error obteniendo datos del cierre");
+            const data = await resReporte.json();
+
+            // 2. Llenar el ticket oculto con los datos del Backend
+            document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString();
+            document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString();
+            
+            // Usamos .toFixed(2) para asegurar dos decimales
+            document.getElementById('ticketYape').textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
+            document.getElementById('ticketTarjeta').textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
+            document.getElementById('ticketTotal').textContent = `S/ ${parseFloat(data.TotalVendido || 0).toFixed(2)}`;
+
+            // 3. Cerrar Caja en BD
+            const payload = {
+                usuarioID: uid,
+                saldoFinalReal: data.SaldoEsperadoEnCaja
+            };
+
+            const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if(!resCierre.ok) {
+                const err = await resCierre.json();
+                throw new Error(err.error || "Error al cerrar caja");
+            }
+
+            // 4. Imprimir de inmediato
+            window.print();
+            
+            // 5. Bloquear sistema
+            actualizarEstadoVisualCaja(false); 
+            // alert("✅ Turno Cerrado"); // Opcional, si quieres quitar este alert también, bórralo.
+
+        } catch (error) {
+            console.error(error);
+            alert("❌ Error en el cierre: " + error.message);
+        }
+    };
+
+    // ==========================================
+    // 4. LÓGICA DE PAGOS (VENTAS)
+    // ==========================================
+    function configurarSelectores(idContenedor, idInput, claseBtn) {
+        const cont = document.getElementById(idContenedor);
+        const inp = document.getElementById(idInput);
+        if(!cont || !inp) return;
+        cont.addEventListener('click', (e) => {
+            const btn = e.target.closest(claseBtn);
+            if (btn && cont.contains(btn)) {
+                cont.querySelectorAll(claseBtn).forEach(b => b.classList.remove('seleccionado'));
+                btn.classList.add('seleccionado');
+                inp.value = btn.getAttribute('data-value');
+            }
+        });
+    }
+    
+    configurarSelectores('selectorFamilia', 'inputFamilia', '.card-familia');
+    configurarSelectores('selectorDestino', 'inputDestino', '.chip-banco');
+    configurarSelectores('selectorComprobante', 'inputComprobante', '.segmento');
+    configurarSelectores('selectorFamiliaTarjeta', 'inputFamiliaTarjeta', '.card-familia');
+    configurarSelectores('selectorBancoTarjeta', 'inputBancoTarjeta', '.chip-banco');
+
+    async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
+        e.preventDefault();
+
+        if (CAJA_ABIERTA === false) {
+            alert("🔒 CAJA CERRADA\n\nNo puedes realizar ventas hasta que inicies turno.\nPresiona el botón verde 'Abrir Caja'.");
+            return;
+        }
+
+        const btn = form.querySelector('.btn-registrar-grande');
+        const inputFam = document.getElementById(idInputFam);
+        const monto = parseFloat(form.querySelector('input[type="number"]').value);
+
+        if(!inputFam.value) { alert("⚠️ Selecciona una Familia"); return; }
+        if(!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
+
+        let entidadId = 1, numOp = null, compId = 2;
+
+        if(tipo === 'YAPE') {
+            entidadId = document.getElementById('inputDestino').value;
+            numOp = document.getElementById('numOperacion').value;
+            compId = document.getElementById('inputComprobante').value;
+            if(!numOp) { alert("⚠️ Ingresa el número de operación"); return; }
+        } else {
+            entidadId = document.getElementById('inputBancoTarjeta').value;
+            const inputOpTarjeta = document.getElementById('numOperacionTarjeta');
+            if(inputOpTarjeta) numOp = inputOpTarjeta.value;
+            if(!numOp) { alert("⚠️ Ingresa el N° de Lote o Voucher del POS"); return; }
+        }
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Procesando...';
+        btn.disabled = true;
+
+        const payload = {
+            usuarioID: usuario.UsuarioID || usuario.usuarioID, 
+            tipoComprobanteID: parseInt(compId),
+            clienteDoc: "00000000", 
+            clienteNombre: "Publico General",
+            fechaEmision: new Date().toISOString(),
+            detalles: [{ 
+                CategoriaID: parseInt(inputFam.value), 
+                Monto: monto 
+            }],
+            pagos: [{
+                FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
+                Monto: monto,
+                EntidadID: parseInt(entidadId),
+                NumOperacion: numOp
+            }]
+        };
+
+        try {
+            const res = await fetch(`${BASE_URL}/ventas/registrar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                btn.innerHTML = '¡REGISTRADO! 🎉';
+                btn.style.background = '#4ade80';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                    btn.disabled = false;
+                    form.reset();
+                    const cont = document.getElementById(idContenedorFam);
+                    if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
+                    inputFam.value = "";
+                }, 2000);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                if(err.error && err.error.toUpperCase().includes('CAJA CERRADA')) {
+                     actualizarEstadoVisualCaja(false);
+                     alert("⛔ El sistema detecta que la caja está CERRADA. Por favor ábrela nuevamente.");
+                } else {
+                     throw new Error(err.error || "Error al registrar");
+                }
+            }
+        } catch (error) {
+            alert("❌ Error: " + error.message);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    const fY = document.getElementById('formYape');
+    if(fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
+    
+    const fT = document.getElementById('formTarjeta');
+    if(fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
+
+    // ==========================================
+    // 5. HISTORIAL Y ANULACIONES
+    // ==========================================
+    
+    async function cargarHistorial() {
+        const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
+        if(!cuerpoTabla) return;
+
+        cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>';
+
+        try {
+            const uid = usuario.UsuarioID || usuario.usuarioID;
+            const res = await fetch(`${BASE_URL}/ventas/historial/${uid}`);
+            
+            if(!res.ok) throw new Error("Error al cargar datos");
+
+            const ventas = await res.json();
+            cuerpoTabla.innerHTML = '';
+
+            if(ventas.length === 0) {
+                cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay ventas registradas hoy.</td></tr>';
+                return;
+            }
+
+            ventas.forEach(v => {
+                const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const esAnulado = v.Estado === 'ANULADO';
+                const claseEstado = esAnulado ? 'badge-estado anulado' : 'badge-estado completado';
+                const btnDisabled = esAnulado ? 'disabled' : '';
+                const estiloFila = esAnulado ? 'opacity: 0.6; background: #fff5f5;' : '';
+
+                const fila = `
+                    <tr style="${estiloFila}">
+                        <td class="col-tipo">${v.FormaPago === 'QR' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                        <td>${v.Familia || 'Varios'}</td>
+                        <td>
+                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion}</div>
+                            <div style="font-size:0.75rem; color:#666;">Op: ${v.CodigoPago || '---'}</div>
+                        </td>
+                        <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
+                        <td>${fecha}</td>
+                        <td><span class="${claseEstado}">${v.Estado}</span></td>
+                        <td>
+                            <button class="btn-anular" 
+                                onclick="solicitarAnulacion(${v.VentaID})" 
+                                ${btnDisabled}>
+                                🚫 Anular
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                cuerpoTabla.insertAdjacentHTML('beforeend', fila);
+            });
+
+        } catch (error) {
+            console.error(error);
+            cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error de conexión</td></tr>';
+        }
+    }
+
+    window.solicitarAnulacion = async (ventaId) => {
+        if (!CAJA_ABIERTA) {
+            alert("🔒 Debes tener la caja abierta para realizar anulaciones.");
+            return;
+        }
+        
+        if (!confirm("¿Estás seguro de que deseas ANULAR esta venta?")) return;
+
+        try {
+            const payload = {
+                ventaID: ventaId,
+                usuarioID: usuario.UsuarioID || usuario.usuarioID,
+                motivo: "Anulación Manual"
+            };
+            const res = await fetch(`${BASE_URL}/ventas/anular`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("✅ Venta Anulada Correctamente");
+                cargarHistorial();
+            } else {
+                const err = await res.json();
+                alert("❌ Error: " + (err.error || "No se pudo anular"));
+            }
+        } catch (e) {
+            alert("❌ Error de red al anular");
+        }
+    };
+
+    // UTILS
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
     const menuItems = document.querySelectorAll('.item-menu');
     const vistas = document.querySelectorAll('.vista-seccion');
 
+    function actualizarReloj() {
+        const ahora = new Date();
+        const texto = ahora.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+        document.querySelectorAll('.fecha-hora-reloj').forEach(s => s.textContent = texto);
+        const fechaCierre = document.getElementById('fechaCierre');
+        if(fechaCierre) fechaCierre.textContent = ahora.toLocaleDateString('es-PE');
+    }
+    setInterval(actualizarReloj, 1000);
+    actualizarReloj();
+
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
-            // Validar si es un enlace de navegación
             const href = this.getAttribute('href');
-            if(href === '#' || href === null) e.preventDefault();
+            if(href === '#' || !href) e.preventDefault();
             
-            // Ignorar si es el botón de salir
-            if(this.classList.contains('cierre-sesion')) return;
-
-            // 1. Actualizar Sidebar (Visual)
             menuItems.forEach(i => i.classList.remove('activo'));
             this.classList.add('activo');
 
-            // 2. Cambiar Vista
             const targetId = this.getAttribute('data-target');
             if(targetId) {
-                vistas.forEach(vista => {
-                    // Ocultar todas primero
-                    vista.classList.remove('activa');
-                    vista.style.display = 'none'; 
-                    
-                    // Mostrar la seleccionada
-                    if(vista.id === targetId) {
-                        vista.style.display = 'block';
-                        // Pequeño timeout para permitir transición CSS
-                        setTimeout(() => vista.classList.add('activa'), 10);
-
-                        // Si es financiero, cargar gráficos
-                        if(targetId === 'vista-financiero') {
-                            setTimeout(inicializarGraficos, 100);
-                        }
-                        // Si es cierre, recalcular
+                vistas.forEach(v => {
+                    v.style.display = 'none';
+                    v.classList.remove('activa');
+                    if(v.id === targetId) {
+                        v.style.display = 'block';
+                        setTimeout(() => v.classList.add('activa'), 10);
+                        
                         if(targetId === 'vista-cierre') {
-                            calcularTotalesCierre();
+                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
+                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
+                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
+                                })
+                                .catch(() => {});
+                        }
+                        if(targetId === 'vista-anulacion') {
+                            cargarHistorial();
                         }
                     }
                 });
             }
-
-            // 3. Cerrar menú en móvil
-            if (window.innerWidth <= 768 && sidebar && btnToggle) {
-                sidebar.classList.remove('mobile-open');
-                btnToggle.classList.remove('activo');
-            }
-        });
-    });
-
-    // Toggle Sidebar (Botón Hamburguesa)
-    if (btnToggle && sidebar) {
-        btnToggle.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evita que el clic cierre el menú inmediatamente
-            btnToggle.classList.toggle('activo');
-            if (window.innerWidth > 768) {
-                sidebar.classList.toggle('colapsado');
-            } else {
-                sidebar.classList.toggle('mobile-open'); 
-            }
-        });
-    }
-
-    // ==========================================
-    // 3. LÓGICA DE BOTONES DE SELECCIÓN (CORE FIX)
-    // ==========================================
-    function configurarSelectores(idContenedor, idInputOculto, claseBoton) {
-        const contenedor = document.getElementById(idContenedor);
-        const input = document.getElementById(idInputOculto);
-        
-        if(!contenedor || !input) return; // Protección contra errores
-
-        // Usamos Delegación de Eventos (Más seguro)
-        contenedor.addEventListener('click', (e) => {
-            // Buscar el botón más cercano al clic (por si hace clic en el icono o texto)
-            const btn = e.target.closest(claseBoton);
-            
-            if (btn && contenedor.contains(btn)) {
-                // 1. Quitar seleccionado a todos los hermanos
-                const todosBotones = contenedor.querySelectorAll(claseBoton);
-                todosBotones.forEach(b => b.classList.remove('seleccionado'));
-                
-                // 2. Activar el clickeado
-                btn.classList.add('seleccionado');
-                
-                // 3. Efecto visual
-                btn.style.transform = "scale(0.95)";
-                setTimeout(() => btn.style.transform = "", 150);
-
-                // 4. Actualizar el input hidden
-                const valor = btn.getAttribute('data-value');
-                input.value = valor;
-                console.log(`Seleccionado en ${idContenedor}: ${valor}`);
-            }
-        });
-    }
-
-    // Inicializar Selectores (Asegúrate que los IDs en HTML coincidan)
-    configurarSelectores('selectorFamilia', 'inputFamilia', '.card-familia');
-    configurarSelectores('selectorDestino', 'inputDestino', '.chip-banco');
-    configurarSelectores('selectorComprobante', 'inputComprobante', '.segmento');
-    
-    // Para la vista de Tarjeta
-    configurarSelectores('selectorFamiliaTarjeta', 'inputFamiliaTarjeta', '.card-familia');
-    configurarSelectores('selectorBancoTarjeta', 'inputBancoTarjeta', '.chip-banco');
-
-
-    // ==========================================
-    // 4. PROCESAR PAGOS (SIMULACIÓN)
-    // ==========================================
-    function procesarPago(e, form, tipo, idInputFamilia, idContenedorFam) {
-        e.preventDefault();
-        
-        const btn = form.querySelector('.btn-registrar-grande');
-        if(!btn) return;
-
-        // Validar Familia
-        const inputFam = document.getElementById(idInputFamilia);
-        if(!inputFam || !inputFam.value) {
-            alert("⚠️ Por favor selecciona qué vendiste (Familia)");
-            return;
-        }
-
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Procesando...';
-        btn.style.opacity = '0.7';
-        btn.disabled = true;
-
-        // Simular Delay de Red
-        setTimeout(() => {
-            btn.innerHTML = '¡REGISTRADO! 🎉';
-            btn.style.background = '#4ade80';
-            btn.style.opacity = '1';
-            
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.style.background = '';
-                btn.disabled = false;
-                form.reset();
-                
-                // Resetear visualmente la familia seleccionada
-                const contenedor = document.getElementById(idContenedorFam);
-                if(contenedor) {
-                    contenedor.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
-                }
-                // Limpiar el input hidden manualmente
-                if(inputFam) inputFam.value = "";
-                
-            }, 1500);
-        }, 1000);
-    }
-
-    const formYape = document.getElementById('formYape');
-    if(formYape) {
-        formYape.addEventListener('submit', (e) => 
-            procesarPago(e, formYape, 'YAPE', 'inputFamilia', 'selectorFamilia')
-        );
-    }
-
-    const formTarjeta = document.getElementById('formTarjeta');
-    if(formTarjeta) {
-        formTarjeta.addEventListener('submit', (e) => 
-            procesarPago(e, formTarjeta, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta')
-        );
-    }
-
-    // ==========================================
-    // 5. GESTIÓN DE USUARIOS (DATOS VACÍOS)
-    // ==========================================
-    let usuarios = []; // Array vacío por defecto
-
-    function renderizarUsuarios() {
-        const tbody = document.getElementById('cuerpoTablaUsuarios');
-        const msg = document.getElementById('mensajeSinUsuarios');
-        if(!tbody) return;
-        
-        tbody.innerHTML = '';
-        
-        if(usuarios.length === 0) {
-            if(msg) msg.style.display = 'block';
-        } else {
-            if(msg) msg.style.display = 'none';
-            usuarios.forEach(u => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${u.id}</td>
-                    <td>${u.nombre}</td>
-                    <td><span class="badge-estado ${u.rol === 'Administrador' ? 'completado' : 'anulado'}">${u.rol}</span></td>
-                    <td>${u.estado}</td>
-                    <td>••••••</td>
-                    <td>
-                        <button class="btn-accion btn-editar" onclick="editarUsuario(${u.id})">✏️</button>
-                        <button class="btn-accion btn-eliminar" onclick="eliminarUsuario(${u.id})">🗑️</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-    }
-    renderizarUsuarios();
-
-    // Lógica del Modal
-    window.abrirModalUsuario = () => {
-        const modal = document.getElementById('modalUsuario');
-        if(modal) {
-            document.getElementById('formUsuario').reset();
-            document.getElementById('idUsuarioEdicion').value = '';
-            document.getElementById('tituloModalUsuario').textContent = 'Nuevo Usuario';
-            modal.style.display = 'block';
-        }
-    };
-    
-    window.cerrarModalUsuario = () => {
-        const modal = document.getElementById('modalUsuario');
-        if(modal) modal.style.display = 'none';
-    };
-
-    // Funciones globales para botones dinámicos
-    window.editarUsuario = (id) => {
-        const user = usuarios.find(u => u.id === id);
-        if(user) {
-            document.getElementById('idUsuarioEdicion').value = user.id;
-            document.getElementById('nombreUsuario').value = user.nombre;
-            document.getElementById('rolUsuario').value = user.rol;
-            document.getElementById('estadoUsuario').value = user.estado;
-            document.getElementById('passUsuario').value = user.password;
-            
-            document.getElementById('tituloModalUsuario').textContent = 'Editar Usuario';
-            document.getElementById('modalUsuario').style.display = 'block';
-        }
-    };
-
-    window.eliminarUsuario = (id) => {
-        if(confirm('¿Eliminar usuario permanentemente?')) {
-            usuarios = usuarios.filter(u => u.id !== id);
-            renderizarUsuarios();
-        }
-    };
-
-    const formUsuario = document.getElementById('formUsuario');
-    if(formUsuario) {
-        formUsuario.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const idEdicion = document.getElementById('idUsuarioEdicion').value;
-            const nombre = document.getElementById('nombreUsuario').value;
-            const rol = document.getElementById('rolUsuario').value;
-            const estado = document.getElementById('estadoUsuario').value;
-            const pass = document.getElementById('passUsuario').value;
-
-            if(idEdicion) {
-                // Actualizar
-                const index = usuarios.findIndex(u => u.id == idEdicion);
-                if(index !== -1) {
-                    usuarios[index] = { ...usuarios[index], nombre, rol, estado, password: pass };
-                }
-            } else {
-                // Crear
-                const nuevo = {
-                    id: Date.now(),
-                    nombre,
-                    rol,
-                    estado,
-                    password: pass
-                };
-                usuarios.push(nuevo);
-            }
-            renderizarUsuarios();
-            window.cerrarModalUsuario();
-        });
-    }
-
-    // ==========================================
-    // 6. ESTADO FINANCIERO (GRÁFICOS VACÍOS)
-    // ==========================================
-    let chartPastel = null;
-    let chartBarras = null;
-
-    window.inicializarGraficos = function() {
-        const ctxP = document.getElementById('graficoPastel');
-        const ctxB = document.getElementById('graficoBarras');
-
-        if(ctxP && !chartPastel) {
-            chartPastel = new Chart(ctxP.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Yape', 'Tarjeta', 'Efectivo'],
-                    datasets: [{ 
-                        data: [0, 0, 0], // Datos vacíos
-                        backgroundColor: ['#ff003c', '#3b82f6', '#4ade80'], 
-                        borderWidth: 0 
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        if(ctxB && !chartBarras) {
-            chartBarras = new Chart(ctxB.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-                    datasets: [{ 
-                        label: 'Ventas (S/)', 
-                        data: [0, 0, 0, 0, 0, 0, 0], // Datos vacíos
-                        backgroundColor: '#ff4d6d', 
-                        borderRadius: 5 
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
-        }
-    };
-
-    // ==========================================
-    // 7. REPORTES & CIERRE
-    // ==========================================
-    window.generarReporte = function(tipo) {
-        if(tipo === 'RANGO') {
-            const inicio = document.getElementById('fechaInicio').value;
-            const fin = document.getElementById('fechaFin').value;
-            if(!inicio || !fin) {
-                alert("⚠️ Por favor selecciona ambas fechas.");
-                return;
-            }
-            // Mostrar resultado simulado
-            const res = document.getElementById('resultadoReporte');
-            if(res) res.style.display = 'block';
-        } else {
-            alert(`Generando reporte ${tipo}... (Conectando a Base de Datos)`);
-        }
-    };
-
-    window.calcularTotalesCierre = function() {
-        // Datos en CERO
-        if(document.getElementById('totalYape')) {
-            document.getElementById('totalYape').textContent = 'S/ 0.00';
-            document.getElementById('totalTarjeta').textContent = 'S/ 0.00';
-            document.getElementById('totalAnulado').textContent = 'S/ 0.00';
-            document.getElementById('totalGeneral').textContent = 'S/ 0.00';
-        }
-        return { yape: 0, tarjeta: 0, anulado: 0, totalGeneral: 0, operaciones: 0 };
-    };
-
-    window.imprimirCierre = function() {
-        const ahora = new Date();
-        // Llenar ticket con ceros
-        document.getElementById('ticketFecha').textContent = ahora.toLocaleDateString();
-        document.getElementById('ticketHora').textContent = ahora.toLocaleTimeString();
-        document.getElementById('ticketYape').textContent = 'S/ 0.00';
-        document.getElementById('ticketTarjeta').textContent = 'S/ 0.00';
-        document.getElementById('ticketAnulado').textContent = 'S/ 0.00';
-        document.getElementById('ticketTotal').textContent = 'S/ 0.00';
-        document.getElementById('ticketOps').textContent = '0';
-        
-        window.print();
-    };
-
-    // ==========================================
-    // 8. MANEJO DE CIERRE DE MODALES Y CLICS
-    // ==========================================
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('modalUsuario');
-        
-        // Cerrar modal si se hace clic fuera del contenido
-        if (modal && event.target === modal) {
-            modal.style.display = "none";
-        }
-        
-        // Cerrar sidebar en móvil al hacer clic fuera
-        if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('mobile-open')) {
-            if (!sidebar.contains(event.target) && !btnToggle.contains(event.target)) {
+            if(window.innerWidth <= 768 && sidebar) {
                 sidebar.classList.remove('mobile-open');
                 if(btnToggle) btnToggle.classList.remove('activo');
             }
-        }
+        });
     });
 
-    // Cerrar Sesión
-    const btnLogout = document.getElementById('btnCerrarSesion');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            btnLogout.innerHTML = '👋 Saliendo...';
-            setTimeout(() => { window.location.href = '/login.html'; }, 500);
-        });
-    }
+    if(btnToggle) btnToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        btnToggle.classList.toggle('activo');
+        sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open');
+    });
+
+    window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
+    window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
+    window.generarReporte = (tipo) => alert("Reporte " + tipo + " en construcción.");
+    window.inicializarGraficos = () => console.log("Init gráficos...");
 });

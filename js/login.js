@@ -1,72 +1,96 @@
+// URL de tu Backend Spring Boot
+const API_URL = 'http://localhost:8080/api/auth/login';
+
 // Referencias al DOM
 const inputPassword = document.getElementById('password');
 const formularioLogin = document.getElementById('formularioLogin');
-const inputEmail = document.getElementById('email');
+// CAMBIO: Ahora buscamos por id="username"
+const inputUsuario = document.getElementById('username'); 
 
 // Validación y Envío del formulario
-formularioLogin.addEventListener('submit', function(e) {
+formularioLogin.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     // Limpiamos espacios vacíos
-    const email = inputEmail.value.trim();
+    const username = inputUsuario.value.trim();
     const password = inputPassword.value.trim();
     
     // --- VERIFICACIÓN DE SEGURIDAD (CLIENTE) ---
     
-    // 1. Validación de campos vacíos
-    if (!email || !password) {
+    if (!username || !password) {
         mostrarNotificacion('Por favor completa todos los campos', 'error');
-        sacudirInput(!email ? inputEmail : inputPassword);
+        sacudirInput(!username ? inputUsuario : inputPassword);
         return;
     }
     
-    // 2. Validación de formato de email
-    if (!esEmailValido(email)) {
-        mostrarNotificacion('Por favor ingresa un email válido', 'error');
-        sacudirInput(inputEmail);
-        return;
-    }
+    // --- CONEXIÓN CON EL BACKEND ---
     
-    // 3. Validación de longitud de contraseña
-    if (password.length < 6) {
-        mostrarNotificacion('La contraseña debe tener al menos 6 caracteres', 'error');
-        sacudirInput(inputPassword);
-        return;
-    }
-    
-    // --- PROCESO DE LOGIN Y REDIRECCIÓN ---
-    
-    // Feedback visual en el botón
     const botonLogin = document.querySelector('.boton-login');
-    botonLogin.style.pointerEvents = 'none'; // Evitar múltiples clics
+    const textoOriginal = botonLogin.innerHTML;
+    
+    botonLogin.style.pointerEvents = 'none'; 
     botonLogin.style.opacity = '0.8';
     botonLogin.innerHTML = '<span>Verificando...</span> ⏳';
     
-    // Simular conexión al servidor (1.5 segundos)
-    setTimeout(() => {
-        mostrarNotificacion('¡Credenciales correctas! Entrando...', 'exito');
-        
-        // Animación de salida
-        const contenedor = document.querySelector('.contenedor-login');
-        if(contenedor) {
-            contenedor.style.animation = 'alejarZoom 0.5s ease forwards';
-            contenedor.style.opacity = '0';
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                username: username, 
+                password: password 
+            })
+        });
+
+        if (response.ok) {
+            // --- ÉXITO ---
+            const data = await response.json(); 
+            
+            // Guardamos sesión
+            localStorage.setItem('usuarioSesion', JSON.stringify(data));
+            
+            mostrarNotificacion(`¡Bienvenido, ${data.NombreCompleto || username}!`, 'exito');
+            
+            // Animación de salida
+            const contenedor = document.querySelector('.contenedor-login');
+            if(contenedor) {
+                contenedor.style.animation = 'alejarZoom 0.5s ease forwards';
+                contenedor.style.opacity = '0';
+            }
+            
+            // --- REDIRECCIÓN A INDEX.HTML ---
+            setTimeout(() => {
+                window.location.href = '/html/index.html'; 
+            }, 800);
+
+        } else {
+            // --- ERROR DE CREDENCIALES ---
+            const errorData = await response.json().catch(() => ({}));
+            const mensajeError = errorData.error || 'Credenciales incorrectas';
+            throw new Error(mensajeError); 
         }
+
+    } catch (error) {
+        console.error("Error:", error);
         
-        // REDIRECCIÓN A INDEX.HTML
-        setTimeout(() => {
-            window.location.href = '/index.html';
-        }, 800); 
+        let mensaje = error.message;
+        if(error.message === 'Failed to fetch') {
+            mensaje = 'No se pudo conectar con el servidor (Backend apagado)';
+        }
+
+        mostrarNotificacion(mensaje, 'error');
+        sacudirInput(inputPassword);
+        sacudirInput(inputUsuario);
         
-    }, 1500);
+        botonLogin.innerHTML = textoOriginal;
+        botonLogin.style.pointerEvents = 'auto';
+        botonLogin.style.opacity = '1';
+    }
 });
 
 // --- FUNCIONES AUXILIARES ---
-
-function esEmailValido(email) {
-    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regexEmail.test(email);
-}
 
 function sacudirInput(input) {
     input.focus();
@@ -129,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Inyectar estilos de animación
 const estilo = document.createElement('style');
 estilo.textContent = `
     @keyframes sacudir {
