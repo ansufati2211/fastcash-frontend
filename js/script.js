@@ -203,146 +203,186 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-  // ==========================================
-    // 4. LÓGICA DE PAGOS (VENTAS) - ACTUALIZADA
-    // ==========================================
-    async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
-        e.preventDefault();
+ // ==========================================
+// 4. LÓGICA DE PAGOS (VENTAS) - DEFINITIVA
+// ==========================================
+async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
+    e.preventDefault();
 
-        // 1. Validar que la caja esté abierta
-        if (CAJA_ABIERTA === false) {
-            alert("🔒 CAJA CERRADA\n\nNo puedes realizar ventas hasta que inicies turno.\nPresiona el botón verde 'Abrir Caja'.");
-            return;
-        }
+    // 1. Validar que la caja esté abierta
+    if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
+        alert("🔒 CAJA CERRADA\n\nNo puedes realizar ventas hasta que inicies turno.\nPresiona el botón verde 'Abrir Caja'.");
+        return;
+    }
 
-        const btn = form.querySelector('.btn-registrar-grande');
-        const inputFam = document.getElementById(idInputFam);
-        const monto = parseFloat(form.querySelector('input[type="number"]').value);
+    // 2. Obtener Usuario (Aseguramos que exista)
+    let usuarioActivo = null;
+    if (typeof usuario !== 'undefined' && usuario) {
+        usuarioActivo = usuario;
+    } else {
+        const stored = localStorage.getItem('usuario'); // O el nombre de key que uses
+        if (stored) usuarioActivo = JSON.parse(stored);
+    }
 
-        if(!inputFam.value) { alert("⚠️ Selecciona una Familia"); return; }
-        if(!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
+    if (!usuarioActivo) {
+        alert("⚠️ Error de sesión: No se detectó el usuario. Por favor inicia sesión nuevamente.");
+        return;
+    }
 
-        // --- CAPTURA DE DATOS ---
-        let entidadId = 1, numOp = null, compId = 2;
+    const btn = form.querySelector('.btn-registrar-grande');
+    const inputFam = document.getElementById(idInputFam);
+    const montoVal = form.querySelector('input[type="number"]').value;
+    const monto = parseFloat(montoVal);
+
+    if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
+    if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
+
+    // --- CAPTURA DE DATOS ---
+    let entidadId = 1, numOp = null, compId = 2; // Default: Yape(1), Boleta(2)
+    
+    // Variables para los datos opcionales
+    let fechaEmision = null; 
+    let ticketManual = null;
+
+    if (tipo === 'YAPE') {
+        entidadId = document.getElementById('inputDestino').value;
+        numOp = document.getElementById('numOperacion').value;
+        const inputComp = document.getElementById('inputComprobante');
+        if(inputComp) compId = inputComp.value;
         
-        // [NUEVO] Variables para los datos opcionales
-        let fechaEmision = null; 
-        let ticketManual = null;
+        // [NUEVO] Capturar Fecha y Boleta Manual de YAPE
+        const inputFechaYape = document.getElementById('fechaManualYape');
+        const inputTicketYape = document.getElementById('ticketManualYape');
+        
+        if (inputFechaYape && inputFechaYape.value) fechaEmision = inputFechaYape.value;
+        if (inputTicketYape && inputTicketYape.value) ticketManual = inputTicketYape.value;
 
-        if(tipo === 'YAPE') {
-            entidadId = document.getElementById('inputDestino').value;
-            numOp = document.getElementById('numOperacion').value;
-            compId = document.getElementById('inputComprobante').value;
-            
-            // [NUEVO] Capturar Fecha y Boleta Manual de YAPE
-            // (Usamos ?.value para evitar error si el input no existe aun en el HTML)
-            const inputFechaYape = document.getElementById('fechaManualYape');
-            const inputTicketYape = document.getElementById('ticketManualYape');
-            
-            if (inputFechaYape && inputFechaYape.value) fechaEmision = inputFechaYape.value;
-            if (inputTicketYape && inputTicketYape.value) ticketManual = inputTicketYape.value;
+        if (!numOp) { alert("⚠️ Ingresa el número de operación"); return; }
 
-            if(!numOp) { alert("⚠️ Ingresa el número de operación"); return; }
+    } else {
+        // TARJETA
+        entidadId = document.getElementById('inputBancoTarjeta').value;
+        const inputOpTarjeta = document.getElementById('numOperacionTarjeta');
+        if (inputOpTarjeta) numOp = inputOpTarjeta.value;
+        
+        // [NUEVO] Capturar Fecha y Boleta Manual de TARJETA
+        const inputFechaTarjeta = document.getElementById('fechaManualTarjeta');
+        const inputTicketTarjeta = document.getElementById('ticketManualTarjeta');
+
+        if (inputFechaTarjeta && inputFechaTarjeta.value) fechaEmision = inputFechaTarjeta.value;
+        if (inputTicketTarjeta && inputTicketTarjeta.value) ticketManual = inputTicketTarjeta.value;
+
+        if (!numOp) { alert("⚠️ Ingresa el N° de Lote o Voucher del POS"); return; }
+    }
+
+    // --- PREPARAR ENVÍO ---
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Procesando... ⏳';
+    btn.disabled = true;
+
+    const payload = {
+        usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
+        tipoComprobanteID: parseInt(compId),
+        clienteDoc: "00000000", 
+        clienteNombre: "Publico General",
+        
+        // Enviamos los campos nuevos (si están vacíos, van como null)
+        fechaEmision: fechaEmision, 
+        numeroComprobanteManual: ticketManual, 
+        
+        detalles: [{ 
+            CategoriaID: parseInt(inputFam.value), 
+            Monto: monto 
+        }],
+        pagos: [{
+            FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
+            Monto: monto,
+            EntidadID: parseInt(entidadId),
+            NumOperacion: numOp
+        }]
+    };
+
+    try {
+        // Asegúrate que BASE_URL esté definido al inicio de tu script
+        const res = await fetch(`${BASE_URL}/ventas/registrar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            
+            // ÉXITO: Mostrar ticket
+            alert(`✅ ¡VENTA REGISTRADA CORRECTAMENTE!\n\n📄 Ticket Generado: ${data.Comprobante || 'Automático'}`);
+            
+            // Feedback visual en botón
+            btn.innerHTML = '¡ÉXITO! 🎉';
+            btn.style.background = '#28a745'; // Verde éxito
+            
+            setTimeout(() => {
+                // Restaurar formulario completo
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+                btn.disabled = false;
+                form.reset();
+                
+                // Limpiar inputs manuales (importante para que no se quede la fecha pegada)
+                const idsLimpiar = ['fechaManualYape', 'ticketManualYape', 'fechaManualTarjeta', 'ticketManualTarjeta'];
+                idsLimpiar.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.value = '';
+                });
+
+                // Resetear selección visual de familias
+                const cont = document.getElementById(idContenedorFam);
+                if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
+                inputFam.value = "";
+                
+            }, 2000);
 
         } else {
-            // Lógica para TARJETA
-            entidadId = document.getElementById('inputBancoTarjeta').value;
-            const inputOpTarjeta = document.getElementById('numOperacionTarjeta');
-            if(inputOpTarjeta) numOp = inputOpTarjeta.value;
-            
-            // [NUEVO] Capturar Fecha y Boleta Manual de TARJETA
-            const inputFechaTarjeta = document.getElementById('fechaManualTarjeta');
-            const inputTicketTarjeta = document.getElementById('ticketManualTarjeta');
+            // ERROR DEL BACKEND
+            const err = await res.json().catch(() => ({}));
+            const msgError = err.error || err.Mensaje || "Error desconocido";
 
-            if (inputFechaTarjeta && inputFechaTarjeta.value) fechaEmision = inputFechaTarjeta.value;
-            if (inputTicketTarjeta && inputTicketTarjeta.value) ticketManual = inputTicketTarjeta.value;
-
-            if(!numOp) { alert("⚠️ Ingresa el N° de Lote o Voucher del POS"); return; }
-        }
-
-        // --- PREPARAR ENVÍO ---
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Procesando...';
-        btn.disabled = true;
-
-        const payload = {
-            usuarioID: usuario.UsuarioID || usuario.usuarioID, 
-            tipoComprobanteID: parseInt(compId),
-            clienteDoc: "00000000", 
-            clienteNombre: "Publico General",
-            
-            // [NUEVO] Enviamos los campos nuevos (si están vacíos, van como null)
-            fechaEmision: fechaEmision, 
-            numeroComprobanteManual: ticketManual, 
-            
-            detalles: [{ 
-                CategoriaID: parseInt(inputFam.value), 
-                Monto: monto 
-            }],
-            pagos: [{
-                FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-                Monto: monto,
-                EntidadID: parseInt(entidadId),
-                NumOperacion: numOp
-            }]
-        };
-
-        try {
-            const res = await fetch(`${BASE_URL}/ventas/registrar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                
-                // Mostrar el ticket (Ya sea el manual o el automático)
-                alert(`✅ ¡VENTA REGISTRADA!\nTicket: ${data.Comprobante || 'Generado'}`);
-                
-                // Limpiar formulario y restaurar botón
-                btn.innerHTML = '¡REGISTRADO! 🎉';
-                btn.style.background = '#4ade80';
-                
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.style.background = '';
-                    btn.disabled = false;
-                    form.reset();
-                    
-                    // Limpiar también los inputs manuales nuevos
-                    if(document.getElementById('fechaManualYape')) document.getElementById('fechaManualYape').value = '';
-                    if(document.getElementById('ticketManualYape')) document.getElementById('ticketManualYape').value = '';
-                    if(document.getElementById('fechaManualTarjeta')) document.getElementById('fechaManualTarjeta').value = '';
-                    if(document.getElementById('ticketManualTarjeta')) document.getElementById('ticketManualTarjeta').value = '';
-
-                    const cont = document.getElementById(idContenedorFam);
-                    if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
-                    inputFam.value = "";
-                }, 2000);
-
+            if (msgError.toUpperCase().includes('CAJA CERRADA')) {
+                 if(typeof actualizarEstadoVisualCaja === 'function') actualizarEstadoVisualCaja(false);
+                 alert("⛔ CAJA CERRADA: El sistema detectó que tu turno no está activo.");
             } else {
-                const err = await res.json().catch(() => ({}));
-                if(err.error && err.error.toUpperCase().includes('CAJA CERRADA')) {
-                     actualizarEstadoVisualCaja(false);
-                     alert("⛔ El sistema detecta que la caja está CERRADA. Por favor ábrela nuevamente.");
-                } else {
-                     throw new Error(err.error || "Error al registrar");
-                }
+                 throw new Error(msgError);
             }
-        } catch (error) {
-            alert("❌ Error: " + error.message);
+            
+            // Restaurar botón inmediatamente en caso de error
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al procesar: " + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// --- LISTENERS (Asegúrate de que esto corra después de que el DOM cargue) ---
+document.addEventListener("DOMContentLoaded", () => {
+    const fY = document.getElementById('formYape');
+    if (fY) {
+        // Remover listeners anteriores para evitar duplicados (opcional pero recomendado)
+        const newFY = fY.cloneNode(true);
+        fY.parentNode.replaceChild(newFY, fY);
+        newFY.addEventListener('submit', (e) => procesarPago(e, newFY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
     }
 
-    const fY = document.getElementById('formYape');
-    if(fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
-    
     const fT = document.getElementById('formTarjeta');
-    if(fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
-
+    if (fT) {
+        const newFT = fT.cloneNode(true);
+        fT.parentNode.replaceChild(newFT, fT);
+        newFT.addEventListener('submit', (e) => procesarPago(e, newFT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
+    }
+});
     // ==========================================
     // 5. HISTORIAL Y ANULACIONES
     // ==========================================
