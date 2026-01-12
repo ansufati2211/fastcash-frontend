@@ -5,18 +5,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // VARIABLE GLOBAL DE ESTADO
     let CAJA_ABIERTA = false; 
-    let fechaEmision = null; 
-        let ticketManual = null;
 
     // 0. VERIFICACIÓN DE SESIÓN
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) {
         // En producción descomenta la siguiente línea:
         // window.location.href = '../html/login.html'; 
-        return;
+        // return;
     }
     
-    const usuario = JSON.parse(usuarioData);
+    const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
 
     // Header Info
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
@@ -33,6 +31,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
+    // BLOQUE NUEVO: INTERACTIVIDAD VISUAL (LO QUE FALTABA)
+    // =========================================================
+    
+    // Función genérica para selección de botones (Chips/Cards)
+    function activarSelector(idContenedor, claseItems, idInputHidden) {
+        const contenedor = document.getElementById(idContenedor);
+        const input = document.getElementById(idInputHidden);
+        
+        if (contenedor && input) {
+            const items = contenedor.querySelectorAll(`.${claseItems}`);
+            items.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 1. Quitar clase 'seleccionado' a todos los hermanos
+                    items.forEach(i => i.classList.remove('seleccionado'));
+                    // 2. Agregar clase al clickeado
+                    btn.classList.add('seleccionado');
+                    // 3. Actualizar el input oculto que lee el procesarPago
+                    input.value = btn.getAttribute('data-value');
+                    console.log(`Seleccionado ${idInputHidden}: ${input.value}`); // Debug
+                });
+            });
+        }
+    }
+
+    // ACTIVAR TODOS LOS SELECTORES
+    // 1. Familias (Yape)
+    activarSelector('selectorFamilia', 'card-familia', 'inputFamilia');
+    // 2. Familias (Tarjeta)
+    activarSelector('selectorFamiliaTarjeta', 'card-familia', 'inputFamiliaTarjeta');
+    // 3. Bancos (Yape/Destino)
+    activarSelector('selectorDestino', 'chip-banco', 'inputDestino');
+    // 4. Bancos (Tarjeta)
+    activarSelector('selectorBancoTarjeta', 'chip-banco', 'inputBancoTarjeta');
+    // 5. Tipo Comprobante
+    activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
+
+
+    // =========================================================
     // 1. CONTROL DE ESTADO DE CAJA (Sincronización con BD)
     // =========================================================
     const btnAbrirCaja = document.getElementById('btnAbrirCaja');
@@ -43,10 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (estaAbierta) {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
-            areaTrabajo.style.opacity = "1";
-            areaTrabajo.style.pointerEvents = "all"; 
+            if(areaTrabajo) {
+                areaTrabajo.style.opacity = "1";
+                areaTrabajo.style.pointerEvents = "all"; 
+            }
         } else {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
+            if(areaTrabajo) {
+                // Opcional: Bloquear visualmente si está cerrada
+                 areaTrabajo.style.opacity = "0.8";
+                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si quieres bloquear clics
+            }
         }
     }
 
@@ -155,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. VISTA DE CIERRE DE TURNO (IMPRIMIR SIN CONFIRMACIÓN)
     // ==========================================
     window.imprimirCierre = async () => {
-        // SE ELIMINÓ LA CONFIRMACIÓN (prompt/confirm)
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
@@ -195,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 5. Bloquear sistema
             actualizarEstadoVisualCaja(false); 
-            // alert("✅ Turno Cerrado"); // Opcional, si quieres quitar este alert también, bórralo.
 
         } catch (error) {
             console.error(error);
@@ -203,186 +244,100 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
- // ==========================================
-// 4. LÓGICA DE PAGOS (VENTAS) - DEFINITIVA
-// ==========================================
-async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
-    e.preventDefault();
+    // ==========================================
+    // 4. LÓGICA DE PAGOS (VENTAS) - DEFINITIVA
+    // ==========================================
+ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
+        e.preventDefault();
 
-    // 1. Validar que la caja esté abierta
-    if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
-        alert("🔒 CAJA CERRADA\n\nNo puedes realizar ventas hasta que inicies turno.\nPresiona el botón verde 'Abrir Caja'.");
-        return;
-    }
+        // VALIDACIONES BÁSICAS
+        if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
+            alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
+        }
 
-    // 2. Obtener Usuario (Aseguramos que exista)
-    let usuarioActivo = null;
-    if (typeof usuario !== 'undefined' && usuario) {
-        usuarioActivo = usuario;
-    } else {
-        const stored = localStorage.getItem('usuario'); // O el nombre de key que uses
-        if (stored) usuarioActivo = JSON.parse(stored);
-    }
+        // Obtener usuario seguro
+        let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
+        if (!usuarioActivo) { alert("⚠️ Error de sesión"); return; }
 
-    if (!usuarioActivo) {
-        alert("⚠️ Error de sesión: No se detectó el usuario. Por favor inicia sesión nuevamente.");
-        return;
-    }
+        const btn = form.querySelector('.btn-registrar-grande');
+        const inputFam = document.getElementById(idInputFam);
+        const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
-    const btn = form.querySelector('.btn-registrar-grande');
-    const inputFam = document.getElementById(idInputFam);
-    const montoVal = form.querySelector('input[type="number"]').value;
-    const monto = parseFloat(montoVal);
+        if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona Familia"); return; }
+        if (!monto || monto <= 0) { alert("⚠️ Monto inválido"); return; }
 
-    if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
-    if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
-
-    // --- CAPTURA DE DATOS ---
-    let entidadId = 1, numOp = null, compId = 2; // Default: Yape(1), Boleta(2)
-    
-    // Variables para los datos opcionales
-    let fechaEmision = null; 
-    let ticketManual = null;
-
-    if (tipo === 'YAPE') {
-        entidadId = document.getElementById('inputDestino').value;
-        numOp = document.getElementById('numOperacion').value;
-        const inputComp = document.getElementById('inputComprobante');
-        if(inputComp) compId = inputComp.value;
+        // DATOS DE PAGO
+        let entidadId = 1, numOp = null, compId = 2;
         
-        // [NUEVO] Capturar Fecha y Boleta Manual de YAPE
-        const inputFechaYape = document.getElementById('fechaManualYape');
-        const inputTicketYape = document.getElementById('ticketManualYape');
-        
-        if (inputFechaYape && inputFechaYape.value) fechaEmision = inputFechaYape.value;
-        if (inputTicketYape && inputTicketYape.value) ticketManual = inputTicketYape.value;
+        if (tipo === 'YAPE') {
+            entidadId = document.getElementById('inputDestino').value;
+            numOp = document.getElementById('numOperacion').value;
+            compId = document.getElementById('inputComprobante').value;
+            if (!numOp) { alert("⚠️ Ingrese N° Operación"); return; }
+        } else {
+            entidadId = document.getElementById('inputBancoTarjeta').value;
+            numOp = document.getElementById('numOperacionTarjeta').value; // Si existe
+            if (!numOp) { alert("⚠️ Ingrese Voucher/Lote"); return; }
+        }
 
-        if (!numOp) { alert("⚠️ Ingresa el número de operación"); return; }
+        // PREPARAR ENVÍO (Limpio, sin fechas manuales)
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Procesando...';
+        btn.disabled = true;
 
-    } else {
-        // TARJETA
-        entidadId = document.getElementById('inputBancoTarjeta').value;
-        const inputOpTarjeta = document.getElementById('numOperacionTarjeta');
-        if (inputOpTarjeta) numOp = inputOpTarjeta.value;
-        
-        // [NUEVO] Capturar Fecha y Boleta Manual de TARJETA
-        const inputFechaTarjeta = document.getElementById('fechaManualTarjeta');
-        const inputTicketTarjeta = document.getElementById('ticketManualTarjeta');
+        const payload = {
+            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
+            tipoComprobanteID: parseInt(compId),
+            clienteDoc: "00000000", 
+            clienteNombre: "Publico General",
+            detalles: [{ CategoriaID: parseInt(inputFam.value), Monto: monto }],
+            pagos: [{
+                FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
+                Monto: monto,
+                EntidadID: parseInt(entidadId),
+                NumOperacion: numOp
+            }]
+        };
 
-        if (inputFechaTarjeta && inputFechaTarjeta.value) fechaEmision = inputFechaTarjeta.value;
-        if (inputTicketTarjeta && inputTicketTarjeta.value) ticketManual = inputTicketTarjeta.value;
+        try {
+            const res = await fetch(`${BASE_URL}/ventas/registrar`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        if (!numOp) { alert("⚠️ Ingresa el N° de Lote o Voucher del POS"); return; }
-    }
-
-    // --- PREPARAR ENVÍO ---
-    const originalText = btn.innerHTML;
-    btn.innerHTML = 'Procesando... ⏳';
-    btn.disabled = true;
-
-    const payload = {
-        usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
-        tipoComprobanteID: parseInt(compId),
-        clienteDoc: "00000000", 
-        clienteNombre: "Publico General",
-        
-        // Enviamos los campos nuevos (si están vacíos, van como null)
-        fechaEmision: fechaEmision, 
-        numeroComprobanteManual: ticketManual, 
-        
-        detalles: [{ 
-            CategoriaID: parseInt(inputFam.value), 
-            Monto: monto 
-        }],
-        pagos: [{
-            FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-            Monto: monto,
-            EntidadID: parseInt(entidadId),
-            NumOperacion: numOp
-        }]
-    };
-
-    try {
-        // Asegúrate que BASE_URL esté definido al inicio de tu script
-        const res = await fetch(`${BASE_URL}/ventas/registrar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            
-            // ÉXITO: Mostrar ticket
-            alert(`✅ ¡VENTA REGISTRADA CORRECTAMENTE!\n\n📄 Ticket Generado: ${data.Comprobante || 'Automático'}`);
-            
-            // Feedback visual en botón
-            btn.innerHTML = '¡ÉXITO! 🎉';
-            btn.style.background = '#28a745'; // Verde éxito
-            
-            setTimeout(() => {
-                // Restaurar formulario completo
-                btn.innerHTML = originalText;
-                btn.style.background = '';
-                btn.disabled = false;
-                form.reset();
+            if (res.ok) {
+                const data = await res.json();
+                alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
                 
-                // Limpiar inputs manuales (importante para que no se quede la fecha pegada)
-                const idsLimpiar = ['fechaManualYape', 'ticketManualYape', 'fechaManualTarjeta', 'ticketManualTarjeta'];
-                idsLimpiar.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) el.value = '';
-                });
-
-                // Resetear selección visual de familias
+                // Limpieza rápida
+                form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
-                
-            }, 2000);
+                btn.innerHTML = '¡ÉXITO!';
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
 
-        } else {
-            // ERROR DEL BACKEND
-            const err = await res.json().catch(() => ({}));
-            const msgError = err.error || err.Mensaje || "Error desconocido";
-
-            if (msgError.toUpperCase().includes('CAJA CERRADA')) {
-                 if(typeof actualizarEstadoVisualCaja === 'function') actualizarEstadoVisualCaja(false);
-                 alert("⛔ CAJA CERRADA: El sistema detectó que tu turno no está activo.");
             } else {
-                 throw new Error(msgError);
+                const err = await res.json();
+                alert(`❌ ERROR: ${err.error || err.Mensaje}`);
+                btn.innerHTML = originalText; btn.disabled = false;
             }
-            
-            // Restaurar botón inmediatamente en caso de error
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+        } catch (error) {
+            alert("❌ Error de conexión");
+            btn.innerHTML = originalText; btn.disabled = false;
         }
-
-    } catch (error) {
-        console.error(error);
-        alert("❌ Error al procesar: " + error.message);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
     }
-}
-
-// --- LISTENERS (Asegúrate de que esto corra después de que el DOM cargue) ---
-document.addEventListener("DOMContentLoaded", () => {
+    // --- LISTENERS FORMULARIOS ---
     const fY = document.getElementById('formYape');
     if (fY) {
-        // Remover listeners anteriores para evitar duplicados (opcional pero recomendado)
-        const newFY = fY.cloneNode(true);
-        fY.parentNode.replaceChild(newFY, fY);
-        newFY.addEventListener('submit', (e) => procesarPago(e, newFY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
+        fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
     }
 
     const fT = document.getElementById('formTarjeta');
     if (fT) {
-        const newFT = fT.cloneNode(true);
-        fT.parentNode.replaceChild(newFT, fT);
-        newFT.addEventListener('submit', (e) => procesarPago(e, newFT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
+        fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
     }
-});
+
     // ==========================================
     // 5. HISTORIAL Y ANULACIONES
     // ==========================================
