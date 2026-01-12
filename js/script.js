@@ -1,28 +1,25 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // CONFIGURACIÓN
+    // ==========================================
+    // 0. CONFIGURACIÓN INICIAL Y SESIÓN
+    // ==========================================
     const BASE_URL = 'http://localhost:8080/api';
-    
-    // VARIABLE GLOBAL DE ESTADO
     let CAJA_ABIERTA = false; 
 
-    // 0. VERIFICACIÓN DE SESIÓN
+    // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
-    if (!usuarioData) {
-        // En producción descomenta la siguiente línea:
-        // window.location.href = '../html/login.html'; 
-        // return;
-    }
+    // Validación básica de seguridad (Descomentar en producción)
+    // if (!usuarioData) { window.location.href = '../html/login.html'; return; }
     
     const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
 
-    // Header Info
+    // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
     }
 
-    // PERMISOS
+    // GESTIÓN DE PERMISOS (Ocultar menú Admin a Cajeros)
     const rolUsuario = (usuario.Rol || 'CAJERO').toUpperCase();
     const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
 
@@ -31,10 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // BLOQUE NUEVO: INTERACTIVIDAD VISUAL (LO QUE FALTABA)
+    // 1. INTERACTIVIDAD VISUAL (BOTONES Y SELECTORES)
     // =========================================================
-    
-    // Función genérica para selección de botones (Chips/Cards)
+    // Esta función hace que los botones se pongan azules al hacer clic
     function activarSelector(idContenedor, claseItems, idInputHidden) {
         const contenedor = document.getElementById(idContenedor);
         const input = document.getElementById(idInputHidden);
@@ -43,61 +39,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const items = contenedor.querySelectorAll(`.${claseItems}`);
             items.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    // 1. Quitar clase 'seleccionado' a todos los hermanos
+                    // Quitar selección a los demás
                     items.forEach(i => i.classList.remove('seleccionado'));
-                    // 2. Agregar clase al clickeado
+                    // Marcar el actual
                     btn.classList.add('seleccionado');
-                    // 3. Actualizar el input oculto que lee el procesarPago
+                    // Guardar valor en el input oculto
                     input.value = btn.getAttribute('data-value');
-                    console.log(`Seleccionado ${idInputHidden}: ${input.value}`); // Debug
                 });
             });
         }
     }
 
-    // ACTIVAR TODOS LOS SELECTORES
-    // 1. Familias (Yape)
+    // Activamos todos los grupos de botones
     activarSelector('selectorFamilia', 'card-familia', 'inputFamilia');
-    // 2. Familias (Tarjeta)
     activarSelector('selectorFamiliaTarjeta', 'card-familia', 'inputFamiliaTarjeta');
-    // 3. Bancos (Yape/Destino)
     activarSelector('selectorDestino', 'chip-banco', 'inputDestino');
-    // 4. Bancos (Tarjeta)
     activarSelector('selectorBancoTarjeta', 'chip-banco', 'inputBancoTarjeta');
-    // 5. Tipo Comprobante
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
 
 
     // =========================================================
-    // 1. CONTROL DE ESTADO DE CAJA (Sincronización con BD)
+    // 2. CONTROL DE CAJA (ABRIR / ESTADO)
     // =========================================================
     const btnAbrirCaja = document.getElementById('btnAbrirCaja');
     const areaTrabajo = document.querySelector('.area-trabajo');
 
+    // Función visual para bloquear/desbloquear la pantalla
     function actualizarEstadoVisualCaja(estaAbierta) {
         CAJA_ABIERTA = estaAbierta;
-        
         if (estaAbierta) {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
-            if(areaTrabajo) {
-                areaTrabajo.style.opacity = "1";
+            if(areaTrabajo) { 
+                areaTrabajo.style.opacity = "1"; 
                 areaTrabajo.style.pointerEvents = "all"; 
             }
         } else {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
-            if(areaTrabajo) {
-                // Opcional: Bloquear visualmente si está cerrada
-                 areaTrabajo.style.opacity = "0.8";
-                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si quieres bloquear clics
+            if(areaTrabajo) { 
+                areaTrabajo.style.opacity = "0.8"; 
+                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si deseas bloqueo total
             }
         }
     }
 
+    // Consultar al Backend si ya hay caja abierta
     async function verificarEstadoCaja() {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
-            
             if (res.ok) {
                 const data = await res.json();
                 actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
@@ -105,32 +94,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 actualizarEstadoVisualCaja(false);
             }
         } catch (e) {
-            console.error("Error conexión API:", e);
+            console.error("Error verificando caja:", e);
             actualizarEstadoVisualCaja(false);
         }
     }
+    verificarEstadoCaja(); // Ejecutar al inicio
 
-    verificarEstadoCaja();
-
-    // LÓGICA ABRIR CAJA
+    // Botón Abrir Caja
     if(btnAbrirCaja) {
         btnAbrirCaja.addEventListener('click', async () => {
             if(!confirm("¿Deseas abrir la caja para iniciar tu turno?")) return;
-
+            
             const originalText = btnAbrirCaja.innerHTML;
             btnAbrirCaja.innerHTML = "Abriendo...";
             btnAbrirCaja.disabled = true;
 
             try {
-                const payload = {
-                    usuarioID: usuario.UsuarioID || usuario.usuarioID,
-                    saldoInicial: 0.00
-                };
-
                 const res = await fetch(`${BASE_URL}/caja/abrir`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        usuarioID: usuario.UsuarioID || usuario.usuarioID, 
+                        saldoInicial: 0.00 
+                    })
                 });
 
                 if(res.ok) {
@@ -150,141 +135,116 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 2. LÓGICA DE CIERRE DE SESIÓN
+    // 3. CIERRE DE SESIÓN Y TICKET DE CIERRE
     // ==========================================
     const btnLogout = document.getElementById('btnCerrarSesion');
-    
     if(btnLogout) {
         btnLogout.addEventListener('click', async () => {
-            if(!confirm("¿Seguro que deseas Cerrar Sesión? Si tienes caja abierta, se cerrará automáticamente.")) return;
+            if(!confirm("¿Seguro que deseas Cerrar Sesión? \nSi la caja está abierta, se cerrará automáticamente.")) return;
 
+            // Si hay caja abierta, la cerramos antes de salir
             if (CAJA_ABIERTA) {
                 try {
                     const uid = usuario.UsuarioID || usuario.usuarioID;
-                    
+                    // 1. Obtener montos finales
                     const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
-                    if (!resReporte.ok) throw new Error("No se pudo calcular el cierre");
-                    
+                    if (!resReporte.ok) throw new Error("Error obteniendo datos de cierre");
                     const dataReporte = await resReporte.json();
-                    const saldoCierre = dataReporte.SaldoEsperadoEnCaja || 0.00;
-
-                    const payload = {
-                        usuarioID: uid,
-                        saldoFinalReal: saldoCierre
-                    };
-
-                    const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!resCierre.ok) throw new Error("Error cerrando caja en BD");
                     
-                    alert("🔒 Caja cerrada y turno finalizado correctamente.");
-
-                } catch (e) {
-                    console.error("Error al auto-cerrar caja:", e);
-                    alert("⚠️ Advertencia: Hubo un error de conexión al cerrar la caja, pero se cerrará la sesión local.");
+                    // 2. Cerrar en BD
+                    await fetch(`${BASE_URL}/caja/cerrar`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            usuarioID: uid, 
+                            saldoFinalReal: dataReporte.SaldoEsperadoEnCaja || 0.00 
+                        })
+                    });
+                    alert("🔒 Caja cerrada y turno finalizado.");
+                } catch (e) { 
+                    console.error("Error cierre automático:", e);
                 }
             }
-
             localStorage.removeItem('usuarioSesion');
             window.location.href = '../html/login.html';
         });
     }
 
-    // ==========================================
-    // 3. VISTA DE CIERRE DE TURNO (IMPRIMIR SIN CONFIRMACIÓN)
-    // ==========================================
+    // Función global para el botón "Imprimir Cierre"
     window.imprimirCierre = async () => {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
             // 1. Obtener datos
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
-            if(!resReporte.ok) throw new Error("Error obteniendo datos del cierre");
+            if(!resReporte.ok) throw new Error("Error obteniendo datos");
             const data = await resReporte.json();
 
-            // 2. Llenar el ticket oculto con los datos del Backend
+            // 2. Llenar Ticket Oculto (HTML)
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString();
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString();
-            
-            // Usamos .toFixed(2) para asegurar dos decimales
             document.getElementById('ticketYape').textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
             document.getElementById('ticketTarjeta').textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
             document.getElementById('ticketTotal').textContent = `S/ ${parseFloat(data.TotalVendido || 0).toFixed(2)}`;
 
             // 3. Cerrar Caja en BD
-            const payload = {
-                usuarioID: uid,
-                saldoFinalReal: data.SaldoEsperadoEnCaja
-            };
-
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuarioID: uid, saldoFinalReal: data.SaldoEsperadoEnCaja })
             });
 
-            if(!resCierre.ok) {
-                const err = await resCierre.json();
-                throw new Error(err.error || "Error al cerrar caja");
-            }
+            if(!resCierre.ok) throw new Error("Error al cerrar caja en BD");
 
-            // 4. Imprimir de inmediato
+            // 4. Imprimir
             window.print();
-            
-            // 5. Bloquear sistema
             actualizarEstadoVisualCaja(false); 
 
         } catch (error) {
-            console.error(error);
             alert("❌ Error en el cierre: " + error.message);
         }
     };
 
     // ==========================================
-    // 4. LÓGICA DE PAGOS (VENTAS) - DEFINITIVA
+    // 4. LÓGICA DE VENTAS (PROCESAR PAGO)
     // ==========================================
- async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
+    async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
-        // VALIDACIONES BÁSICAS
+        // Validaciones previas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
             alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
         }
 
-        // Obtener usuario seguro
         let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
         if (!usuarioActivo) { alert("⚠️ Error de sesión"); return; }
 
+        // Captura de datos básicos
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
-        if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona Familia"); return; }
-        if (!monto || monto <= 0) { alert("⚠️ Monto inválido"); return; }
+        if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
+        if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
-        // DATOS DE PAGO
+        // Datos específicos de pago
         let entidadId = 1, numOp = null, compId = 2;
         
         if (tipo === 'YAPE') {
             entidadId = document.getElementById('inputDestino').value;
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
-            if (!numOp) { alert("⚠️ Ingrese N° Operación"); return; }
+            if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
         } else {
             entidadId = document.getElementById('inputBancoTarjeta').value;
-            numOp = document.getElementById('numOperacionTarjeta').value; // Si existe
-            if (!numOp) { alert("⚠️ Ingrese Voucher/Lote"); return; }
+            numOp = document.getElementById('numOperacionTarjeta').value;
+            if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
 
-        // PREPARAR ENVÍO (Limpio, sin fechas manuales)
+        // Feedback Visual
         const originalText = btn.innerHTML;
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
+        // Construcción del objeto para el Backend
         const payload = {
             usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
             tipoComprobanteID: parseInt(compId),
@@ -309,11 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
                 
-                // Limpieza rápida
+                // Limpiar formulario
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
+                
+                // Efecto de éxito en botón
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
 
@@ -323,25 +285,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.innerHTML = originalText; btn.disabled = false;
             }
         } catch (error) {
-            alert("❌ Error de conexión");
+            alert("❌ Error de conexión con el servidor");
             btn.innerHTML = originalText; btn.disabled = false;
         }
     }
-    // --- LISTENERS FORMULARIOS ---
+
+    // Listeners para los formularios de venta
     const fY = document.getElementById('formYape');
-    if (fY) {
-        fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
-    }
-
-    const fT = document.getElementById('formTarjeta');
-    if (fT) {
-        fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
-    }
-
-    // ==========================================
-    // 5. HISTORIAL Y ANULACIONES
-    // ==========================================
+    if (fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
     
+    const fT = document.getElementById('formTarjeta');
+    if (fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
+
+
+    // ==========================================
+    // 5. HISTORIAL DE VENTAS Y ANULACIONES
+    // ==========================================
     async function cargarHistorial() {
         const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
         if(!cuerpoTabla) return;
@@ -352,90 +311,338 @@ document.addEventListener('DOMContentLoaded', () => {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             const res = await fetch(`${BASE_URL}/ventas/historial/${uid}`);
             
-            if(!res.ok) throw new Error("Error al cargar datos");
+            if(!res.ok) throw new Error("Error cargando historial");
 
             const ventas = await res.json();
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay ventas registradas hoy.</td></tr>';
+                cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay ventas hoy.</td></tr>';
                 return;
             }
 
             ventas.forEach(v => {
                 const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 const esAnulado = v.Estado === 'ANULADO';
-                const claseEstado = esAnulado ? 'badge-estado anulado' : 'badge-estado completado';
-                const btnDisabled = esAnulado ? 'disabled' : '';
-                const estiloFila = esAnulado ? 'opacity: 0.6; background: #fff5f5;' : '';
-
+                
                 const fila = `
-                    <tr style="${estiloFila}">
-                        <td class="col-tipo">${v.FormaPago === 'QR' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                    <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
+                        <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
                         <td>${v.Familia || 'Varios'}</td>
                         <td>
-                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion}</div>
-                            <div style="font-size:0.75rem; color:#666;">Op: ${v.CodigoPago || '---'}</div>
+                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div>
                         </td>
                         <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
                         <td>${fecha}</td>
-                        <td><span class="${claseEstado}">${v.Estado}</span></td>
+                        <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
                         <td>
-                            <button class="btn-anular" 
-                                onclick="solicitarAnulacion(${v.VentaID})" 
-                                ${btnDisabled}>
-                                🚫 Anular
-                            </button>
+                            <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
 
-        } catch (error) {
-            console.error(error);
-            cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error de conexión</td></tr>';
+        } catch (error) { 
+            cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error de conexión</td></tr>'; 
         }
     }
 
     window.solicitarAnulacion = async (ventaId) => {
-        if (!CAJA_ABIERTA) {
-            alert("🔒 Debes tener la caja abierta para realizar anulaciones.");
-            return;
-        }
-        
-        if (!confirm("¿Estás seguro de que deseas ANULAR esta venta?")) return;
+        if (!CAJA_ABIERTA) { alert("🔒 Caja cerrada. No se puede anular."); return; }
+        if (!confirm("¿Estás seguro de ANULAR esta venta?")) return;
 
         try {
-            const payload = {
-                ventaID: ventaId,
-                usuarioID: usuario.UsuarioID || usuario.usuarioID,
-                motivo: "Anulación Manual"
-            };
             const res = await fetch(`${BASE_URL}/ventas/anular`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ventaID: ventaId, 
+                    usuarioID: usuario.UsuarioID || usuario.usuarioID, 
+                    motivo: "Anulación Manual" 
+                })
             });
 
-            if (res.ok) {
-                alert("✅ Venta Anulada Correctamente");
-                cargarHistorial();
-            } else {
-                const err = await res.json();
-                alert("❌ Error: " + (err.error || "No se pudo anular"));
+            if (res.ok) { 
+                alert("✅ Venta Anulada"); 
+                cargarHistorial(); 
+            } else { 
+                const err = await res.json(); 
+                alert("❌ Error: " + (err.error || "Fallo anulación")); 
             }
-        } catch (e) {
-            alert("❌ Error de red al anular");
+        } catch (e) { 
+            alert("❌ Error de red"); 
         }
     };
 
-    // UTILS
+
+    // ==========================================
+    // 6. MÓDULO ADMIN: GESTIÓN DE USUARIOS
+    // ==========================================
+    async function cargarUsuarios() {
+        const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
+        if (!cuerpoTabla) return; 
+
+        try {
+            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            if (!res.ok) throw new Error("Error cargando usuarios");
+
+            const usuariosDB = await res.json();
+            cuerpoTabla.innerHTML = '';
+
+            if (usuariosDB.length === 0) { 
+                cuerpoTabla.innerHTML = '<tr><td colspan="6" style="text-align:center;">Sin usuarios</td></tr>'; 
+                return; 
+            }
+
+            usuariosDB.forEach(u => {
+                const fila = `<tr>
+                    <td>${u.UsuarioID}</td>
+                    <td>${u.NombreCompleto}</td>
+                    <td><span class="badge-rol ${u.Rol === 'ADMINISTRADOR' ? 'admin' : 'cajero'}">${u.Rol}</span></td>
+                    <td>${u.Activo ? '🟢 Activo' : '🔴 Inactivo'}</td>
+                    <td>******</td>
+                    <td><button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none;">✏️ Editar</button></td>
+                </tr>`;
+                cuerpoTabla.insertAdjacentHTML('beforeend', fila);
+            });
+        } catch (error) { 
+            console.error(error);
+        }
+    }
+
+    // Función: Abrir modal y cargar datos para editar
+    window.editarUsuario = async (idUsuario) => {
+        try {
+            // Traemos todos para buscar al seleccionado (o podrías hacer fetch by ID)
+            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            const usuarios = await res.json();
+            const user = usuarios.find(u => u.UsuarioID === idUsuario);
+            
+            if (!user) return;
+
+            // Rellenar Modal
+            document.getElementById('idUsuarioEdicion').value = user.UsuarioID;
+            document.getElementById('nombreUsuario').value = user.NombreCompleto;
+            document.getElementById('tituloModalUsuario').textContent = "Editar: " + user.Username;
+            document.getElementById('rolUsuario').value = user.Rol === 'ADMINISTRADOR' ? 'Administrador' : 'Cajero';
+            
+            const selEstado = document.getElementById('estadoUsuario');
+            if(selEstado) selEstado.value = user.Activo ? 'Activo' : 'Inactivo';
+
+            document.getElementById('passUsuario').placeholder = "(Vacío para no cambiar)";
+            document.getElementById('passUsuario').value = ""; 
+
+            abrirModalUsuario();
+        } catch (e) { 
+            alert("Error cargando datos del usuario"); 
+        }
+    };
+
+    // Manejo del Formulario (Crear o Editar)
+    const formUsuario = document.getElementById('formUsuario');
+    if (formUsuario) {
+        // Clonamos para limpiar listeners previos
+        const nuevoForm = formUsuario.cloneNode(true);
+        formUsuario.parentNode.replaceChild(nuevoForm, formUsuario);
+
+        nuevoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const idEdicion = document.getElementById('idUsuarioEdicion').value;
+            const nombre = document.getElementById('nombreUsuario').value;
+            const pass = document.getElementById('passUsuario').value;
+            const rol = document.getElementById('rolUsuario').value === 'Administrador' ? 1 : 2;
+            
+            const btnGuardar = nuevoForm.querySelector('.btn-guardar');
+            const txtOriginal = btnGuardar.innerHTML;
+            btnGuardar.innerHTML = 'Guardando...'; btnGuardar.disabled = true;
+
+            try {
+                if (idEdicion) {
+                    // --- MODO EDICIÓN ---
+                    // Simulamos edición de turno y datos básicos
+                    const nuevoTurno = confirm(`¿Deseas asignar a ${nombre} al turno NOCHE? \n[Aceptar]=NOCHE, [Cancelar]=MAÑANA`) ? 2 : 1;
+                    
+                    await fetch(`${BASE_URL}/admin/asignar-turno`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            adminID: usuario.UsuarioID, 
+                            usuarioID: parseInt(idEdicion), 
+                            turnoID: nuevoTurno 
+                        })
+                    });
+                    alert("✅ Usuario actualizado (Turno asignado)");
+
+                } else {
+                    // --- MODO CREACIÓN ---
+                    const nuevoUsuario = {
+                        adminID: usuario.UsuarioID || usuario.usuarioID,
+                        nombreCompleto: nombre,
+                        username: nombre.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
+                        password: pass || '123456',
+                        rolID: rol
+                    };
+
+                    const res = await fetch(`${BASE_URL}/admin/crear-usuario`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(nuevoUsuario)
+                    });
+
+                    if (!res.ok) throw new Error("Error al crear usuario");
+                    const dataRes = await res.json();
+                    
+                    // Asignar turno por defecto (Mañana)
+                    await fetch(`${BASE_URL}/admin/asignar-turno`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            adminID: usuario.UsuarioID, 
+                            usuarioID: dataRes.usuarioID || dataRes.UsuarioID, 
+                            turnoID: 1 
+                        })
+                    });
+                    alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
+                }
+                
+                cerrarModalUsuario();
+                nuevoForm.reset();
+                cargarUsuarios();
+
+            } catch (error) { 
+                alert("❌ Error: " + error.message); 
+            } finally { 
+                btnGuardar.innerHTML = txtOriginal; 
+                btnGuardar.disabled = false; 
+            }
+        });
+    }
+
+
+    // ==========================================
+    // 7. MÓDULO REPORTES (EXCEL)
+    // ==========================================
+    window.generarReporte = async (tipo) => {
+        const uid = usuario.UsuarioID || usuario.usuarioID;
+        let endpoint = '';
+        const nombreArchivo = `Reporte_${tipo}_${new Date().toISOString().slice(0,10)}.csv`;
+
+        if (tipo === 'GENERAL') endpoint = `${BASE_URL}/ventas/historial/${uid}`; 
+        else if (tipo === 'RANGO') {
+            const inicio = document.getElementById('fechaInicio').value;
+            const fin = document.getElementById('fechaFin').value;
+            if (!inicio || !fin) { alert("⚠️ Selecciona las fechas de inicio y fin"); return; }
+            endpoint = `${BASE_URL}/reportes/ventas-rango?inicio=${inicio}&fin=${fin}`; 
+        }
+
+        const btn = document.querySelector(`.btn-generar-reporte[onclick*="${tipo}"]`);
+        if(btn) btn.textContent = "⏳ Descargando...";
+
+        try {
+            const res = await fetch(endpoint);
+            if (!res.ok) throw new Error("No se encontraron datos");
+            
+            const data = await res.json();
+            if (!data || data.length === 0) { 
+                alert("⚠️ No hay datos para generar el reporte."); 
+                if(btn) btn.textContent = "📥 Descargar Reporte"; 
+                return; 
+            }
+
+            // Conversión JSON -> CSV
+            const cabeceras = Object.keys(data[0]);
+            const filas = data.map(row => cabeceras.map(key => `"${String(row[key] || '').replace(/"/g, '""')}"`).join(','));
+            const csvContent = "\uFEFF" + [cabeceras.join(','), ...filas].join('\n');
+            
+            // Descarga
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+            link.download = nombreArchivo;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+
+            if(btn) btn.textContent = "✅ ¡Listo!";
+            setTimeout(() => { if(btn) btn.textContent = "📥 Descargar Reporte"; }, 2000);
+
+        } catch (e) { 
+            alert("❌ Error: " + e.message); 
+            if(btn) btn.textContent = "❌ Error"; 
+        }
+    };
+
+
+    // ==========================================
+    // 8. DASHBOARD (GRÁFICOS)
+    // ==========================================
+    let chartPastel = null;
+    let chartBarras = null;
+
+    window.inicializarGraficos = async () => {
+        const contenedor = document.getElementById('vista-financiero');
+        if (contenedor.style.display === 'none') return;
+
+        try {
+            const hoy = new Date().toISOString().slice(0,10);
+            // Reusamos el endpoint de reportes para obtener datos del día
+            const res = await fetch(`${BASE_URL}/reportes/ventas-rango?inicio=${hoy}&fin=${hoy}`);
+            const ventas = res.ok ? await res.json() : [];
+
+            const datosFam = {};
+            const datosHora = {};
+            
+            ventas.forEach(v => { 
+                // Agrupar por Familia
+                const f = v.Familia || 'Otros'; 
+                datosFam[f] = (datosFam[f]||0) + parseFloat(v.ImporteTotal);
+                
+                // Agrupar por Hora
+                const h = new Date(v.FechaEmision).getHours();
+                datosHora[h] = (datosHora[h]||0) + parseFloat(v.ImporteTotal);
+            });
+
+            // Gráfico Pastel
+            const ctxP = document.getElementById('graficoPastel').getContext('2d');
+            if(chartPastel) chartPastel.destroy();
+            chartPastel = new Chart(ctxP, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(datosFam),
+                    datasets: [{ 
+                        data: Object.values(datosFam), 
+                        borderWidth: 0, 
+                        backgroundColor: ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff'] 
+                    }]
+                }, 
+                options: { responsive: true, plugins: { legend: { position: 'right' } } }
+            });
+
+            // Gráfico Barras
+            const ctxB = document.getElementById('graficoBarras').getContext('2d');
+            if(chartBarras) chartBarras.destroy();
+            const horas = Object.keys(datosHora).sort((a,b)=>a-b);
+            chartBarras = new Chart(ctxB, {
+                type: 'bar',
+                data: {
+                    labels: horas.map(h => `${h}:00`),
+                    datasets: [{ 
+                        label: 'Ventas S/', 
+                        data: horas.map(h=>datosHora[h]), 
+                        backgroundColor: '#22c55e', 
+                        borderRadius: 4 
+                    }]
+                }, 
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+
+        } catch (e) { console.error("Error cargando gráficos", e); }
+    };
+
+
+    // ==========================================
+    // 9. UTILIDADES Y MENÚ LATERAL
+    // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
     const menuItems = document.querySelectorAll('.item-menu');
     const vistas = document.querySelectorAll('.vista-seccion');
 
+    // Reloj digital
     function actualizarReloj() {
         const ahora = new Date();
         const texto = ahora.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
@@ -446,6 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(actualizarReloj, 1000);
     actualizarReloj();
 
+    // Navegación del Menú
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
@@ -463,22 +671,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         v.style.display = 'block';
                         setTimeout(() => v.classList.add('activa'), 10);
                         
+                        // Carga perezosa de datos según la vista
                         if(targetId === 'vista-cierre') {
-                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
-                                .then(r => r.json())
-                                .then(d => {
-                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
-                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
-                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
-                                })
-                                .catch(() => {});
+                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`).then(r => r.json()).then(d => {
+                                document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
+                                document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
+                                document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
+                            }).catch(()=>{});
                         }
-                        if(targetId === 'vista-anulacion') {
-                            cargarHistorial();
-                        }
+                        if(targetId === 'vista-anulacion') cargarHistorial();
+                        if(targetId === 'vista-roles') cargarUsuarios();
+                        if(targetId === 'vista-financiero') inicializarGraficos();
                     }
                 });
             }
+            // Cerrar menú en móvil
             if(window.innerWidth <= 768 && sidebar) {
                 sidebar.classList.remove('mobile-open');
                 if(btnToggle) btnToggle.classList.remove('activo');
@@ -486,14 +693,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Toggle menú móvil
     if(btnToggle) btnToggle.addEventListener('click', (e) => {
         e.stopPropagation();
         btnToggle.classList.toggle('activo');
         sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open');
     });
 
+    // Modales
     window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
     window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
-    window.generarReporte = (tipo) => alert("Reporte " + tipo + " en construcción.");
-    window.inicializarGraficos = () => console.log("Init gráficos...");
+
 });
