@@ -1,16 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ==========================================
-    // 0. CONFIGURACIÓN INICIAL Y SESIÓN
-    // ==========================================
     const BASE_URL = 'http://localhost:8080/api';
     let CAJA_ABIERTA = false; 
 
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
-    // Validación básica de seguridad (Descomentar en producción)
-    // if (!usuarioData) { window.location.href = '../html/login.html'; return; }
-    
     const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
 
     // Mostrar nombre en el header
@@ -19,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
     }
 
-    // GESTIÓN DE PERMISOS (Ocultar menú Admin a Cajeros)
+    // GESTIÓN DE PERMISOS
     const rolUsuario = (usuario.Rol || 'CAJERO').toUpperCase();
     const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
 
@@ -28,9 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // 1. INTERACTIVIDAD VISUAL (BOTONES Y SELECTORES)
+    // 1. UTILIDADES
     // =========================================================
-    // Esta función hace que los botones se pongan azules al hacer clic
     function activarSelector(idContenedor, claseItems, idInputHidden) {
         const contenedor = document.getElementById(idContenedor);
         const input = document.getElementById(idInputHidden);
@@ -39,18 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const items = contenedor.querySelectorAll(`.${claseItems}`);
             items.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    // Quitar selección a los demás
                     items.forEach(i => i.classList.remove('seleccionado'));
-                    // Marcar el actual
                     btn.classList.add('seleccionado');
-                    // Guardar valor en el input oculto
                     input.value = btn.getAttribute('data-value');
                 });
             });
         }
     }
 
-    // Activamos todos los grupos de botones
     activarSelector('selectorFamilia', 'card-familia', 'inputFamilia');
     activarSelector('selectorFamiliaTarjeta', 'card-familia', 'inputFamiliaTarjeta');
     activarSelector('selectorDestino', 'chip-banco', 'inputDestino');
@@ -59,13 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =========================================================
-    // 2. CONTROL DE CAJA (ABRIR / ESTADO)
+    // 2. CONTROL DE CAJA
     // =========================================================
     const btnAbrirCaja = document.getElementById('btnAbrirCaja');
     const areaTrabajo = document.querySelector('.area-trabajo');
 
-    // Función visual para bloquear/desbloquear la pantalla
-    function actualizarEstadoVisualCaja(estaAbierta) {
+    function actualizarEstadoVisualCaja(estaAbierta, mostrarBoton = true) {
         CAJA_ABIERTA = estaAbierta;
         if (estaAbierta) {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
@@ -74,15 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaTrabajo.style.pointerEvents = "all"; 
             }
         } else {
-            if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
+            if(btnAbrirCaja) {
+                btnAbrirCaja.style.display = mostrarBoton ? 'flex' : 'none'; 
+            }
             if(areaTrabajo) { 
                 areaTrabajo.style.opacity = "0.8"; 
-                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si deseas bloqueo total
             }
         }
     }
 
-    // Consultar al Backend si ya hay caja abierta
     async function verificarEstadoCaja() {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
@@ -98,9 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
             actualizarEstadoVisualCaja(false);
         }
     }
-    verificarEstadoCaja(); // Ejecutar al inicio
+    verificarEstadoCaja(); 
 
-    // Botón Abrir Caja
     if(btnAbrirCaja) {
         btnAbrirCaja.addEventListener('click', async () => {
             if(!confirm("¿Deseas abrir la caja para iniciar tu turno?")) return;
@@ -135,23 +122,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. CIERRE DE SESIÓN Y TICKET DE CIERRE
+    // 3. CIERRE DE SESIÓN
     // ==========================================
     const btnLogout = document.getElementById('btnCerrarSesion');
     if(btnLogout) {
         btnLogout.addEventListener('click', async () => {
             if(!confirm("¿Seguro que deseas Cerrar Sesión? \nSi la caja está abierta, se cerrará automáticamente.")) return;
 
-            // Si hay caja abierta, la cerramos antes de salir
             if (CAJA_ABIERTA) {
                 try {
                     const uid = usuario.UsuarioID || usuario.usuarioID;
-                    // 1. Obtener montos finales
                     const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
                     if (!resReporte.ok) throw new Error("Error obteniendo datos de cierre");
                     const dataReporte = await resReporte.json();
                     
-                    // 2. Cerrar en BD
                     await fetch(`${BASE_URL}/caja/cerrar`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
@@ -169,24 +153,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Función global para el botón "Imprimir Cierre"
     window.imprimirCierre = async () => {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
-            // 1. Obtener datos
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
             if(!resReporte.ok) throw new Error("Error obteniendo datos");
             const data = await resReporte.json();
 
-            // 2. Llenar Ticket Oculto (HTML)
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString();
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString();
             document.getElementById('ticketYape').textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
             document.getElementById('ticketTarjeta').textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
             document.getElementById('ticketTotal').textContent = `S/ ${parseFloat(data.TotalVendido || 0).toFixed(2)}`;
 
-            // 3. Cerrar Caja en BD
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ usuarioID: uid, saldoFinalReal: data.SaldoEsperadoEnCaja })
@@ -194,9 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(!resCierre.ok) throw new Error("Error al cerrar caja en BD");
 
-            // 4. Imprimir
             window.print();
-            actualizarEstadoVisualCaja(false); 
+            actualizarEstadoVisualCaja(false, false); 
 
         } catch (error) {
             alert("❌ Error en el cierre: " + error.message);
@@ -204,12 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 4. LÓGICA DE VENTAS (PROCESAR PAGO)
+    // 4. LÓGICA DE VENTAS
     // ==========================================
     async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
-        // Validaciones previas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
             alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
         }
@@ -217,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
         if (!usuarioActivo) { alert("⚠️ Error de sesión"); return; }
 
-        // Captura de datos básicos
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
@@ -225,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
         if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
-        // Datos específicos de pago
         let entidadId = 1, numOp = null, compId = 2;
         
         if (tipo === 'YAPE') {
@@ -239,12 +215,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
 
-        // Feedback Visual
         const originalText = btn.innerHTML;
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
-        // Construcción del objeto para el Backend
         const payload = {
             usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
             tipoComprobanteID: parseInt(compId),
@@ -268,14 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
-                
-                // Limpiar formulario
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
                 
-                // Efecto de éxito en botón
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
 
@@ -290,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Listeners para los formularios de venta
     const fY = document.getElementById('formYape');
     if (fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
     
@@ -299,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 5. HISTORIAL DE VENTAS Y ANULACIONES
+    // 5. HISTORIAL DE VENTAS
     // ==========================================
     async function cargarHistorial() {
         const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
@@ -329,15 +299,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
                         <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
                         <td>${v.Familia || 'Varios'}</td>
-                        <td>
-                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div>
-                        </td>
+                        <td><div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div></td>
                         <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
                         <td>${fecha}</td>
                         <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
-                        <td>
-                            <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
-                        </td>
+                        <td><button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button></td>
                     </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
@@ -375,10 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 6. MÓDULO ADMIN: GESTIÓN DE USUARIOS
+    // 6. GESTIÓN DE USUARIOS (ACTUALIZADO: CREAR, EDITAR, ELIMINAR)
     // ==========================================
     async function cargarUsuarios() {
         const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
+        const mensaje = document.getElementById('mensajeSinUsuarios');
         if (!cuerpoTabla) return; 
 
         try {
@@ -388,59 +355,105 @@ document.addEventListener('DOMContentLoaded', () => {
             const usuariosDB = await res.json();
             cuerpoTabla.innerHTML = '';
 
+            // Filtrar visualmente los inactivos si quieres, o mostrarlos con otro color
+            // En este caso, el backend ya podría filtrarlos o mostrarlos como "Inactivo"
             if (usuariosDB.length === 0) { 
-                cuerpoTabla.innerHTML = '<tr><td colspan="6" style="text-align:center;">Sin usuarios</td></tr>'; 
+                if(mensaje) mensaje.style.display = 'block';
                 return; 
             }
+            if(mensaje) mensaje.style.display = 'none';
 
             usuariosDB.forEach(u => {
-                const fila = `<tr>
+                const rolClase = (u.Rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
+                const estadoTexto = u.Activo ? '🟢 Activo' : '🔴 Inactivo';
+                // Si está inactivo, deshabilitamos botones o cambiamos estilo
+                const estiloFila = !u.Activo ? 'opacity: 0.5;' : '';
+
+                const fila = `<tr style="${estiloFila}">
                     <td>${u.UsuarioID}</td>
                     <td>${u.NombreCompleto}</td>
-                    <td><span class="badge-rol ${u.Rol === 'ADMINISTRADOR' ? 'admin' : 'cajero'}">${u.Rol}</span></td>
-                    <td>${u.Activo ? '🟢 Activo' : '🔴 Inactivo'}</td>
+                    <td><strong>${u.Username}</strong></td>
+                    <td>${u.TurnoActual || '-'}</td>
+                    <td><span class="badge-rol ${rolClase}">${u.Rol}</span></td>
+                    <td>${estadoTexto}</td>
                     <td>******</td>
-                    <td><button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none;">✏️ Editar</button></td>
+                    <td style="display:flex; gap:10px; align-items:center;">
+                        <button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
+                        ${u.Activo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Eliminar">🗑️</button>` : ''}
+                    </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
         } catch (error) { 
             console.error(error);
+            if(mensaje) mensaje.textContent = "Error al cargar datos.";
         }
     }
 
-    // Función: Abrir modal y cargar datos para editar
+    // ELIMINAR (SOFT DELETE)
+    window.eliminarUsuario = async (idUsuario) => {
+        if(!confirm("¿Estás seguro de ELIMINAR (Desactivar) este usuario?")){
+            return;
+        }
+        try {
+            const res = await fetch(`${BASE_URL}/admin/eliminar/${idUsuario}`, { method: 'DELETE' });
+            if(res.ok) {
+                alert("✅ Usuario desactivado correctamente.");
+                cargarUsuarios();
+            } else {
+                const err = await res.json();
+                alert("❌ Error: " + (err.error || "No se pudo eliminar"));
+            }
+        } catch(e) { alert("❌ Error de conexión"); }
+    };
+
+    // EDITAR (CARGAR DATOS EN MODAL)
     window.editarUsuario = async (idUsuario) => {
         try {
-            // Traemos todos para buscar al seleccionado (o podrías hacer fetch by ID)
             const res = await fetch(`${BASE_URL}/admin/usuarios`);
             const usuarios = await res.json();
             const user = usuarios.find(u => u.UsuarioID === idUsuario);
             
             if (!user) return;
 
-            // Rellenar Modal
             document.getElementById('idUsuarioEdicion').value = user.UsuarioID;
             document.getElementById('nombreUsuario').value = user.NombreCompleto;
-            document.getElementById('tituloModalUsuario').textContent = "Editar: " + user.Username;
-            document.getElementById('rolUsuario').value = user.Rol === 'ADMINISTRADOR' ? 'Administrador' : 'Cajero';
+            document.getElementById('usernameUsuario').value = user.Username; 
+            
+            // Seleccionar Turno correcto
+            document.getElementById('turnoUsuario').value = user.TurnoID || 1;
+
+            document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
+            document.getElementById('rolUsuario').value = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
             
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) selEstado.value = user.Activo ? 'Activo' : 'Inactivo';
 
-            document.getElementById('passUsuario').placeholder = "(Vacío para no cambiar)";
+            document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
+            document.getElementById('passUsuario').required = false;
 
             abrirModalUsuario();
         } catch (e) { 
-            alert("Error cargando datos del usuario"); 
+            alert("Error cargando datos del usuario: " + e.message); 
         }
     };
 
-    // Manejo del Formulario (Crear o Editar)
+    const btnNuevoUsuario = document.querySelector('.btn-nuevo-usuario');
+    if(btnNuevoUsuario) {
+        btnNuevoUsuario.onclick = () => {
+            document.getElementById('formUsuario').reset();
+            document.getElementById('idUsuarioEdicion').value = "";
+            document.getElementById('tituloModalUsuario').textContent = "Nuevo Usuario";
+            document.getElementById('usernameUsuario').disabled = false;
+            document.getElementById('passUsuario').required = true;
+            document.getElementById('turnoUsuario').value = 1; 
+            abrirModalUsuario();
+        };
+    }
+
     const formUsuario = document.getElementById('formUsuario');
     if (formUsuario) {
-        // Clonamos para limpiar listeners previos
         const nuevoForm = formUsuario.cloneNode(true);
         formUsuario.parentNode.replaceChild(nuevoForm, formUsuario);
 
@@ -449,36 +462,49 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const idEdicion = document.getElementById('idUsuarioEdicion').value;
             const nombre = document.getElementById('nombreUsuario').value;
+            const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
             const rol = document.getElementById('rolUsuario').value === 'Administrador' ? 1 : 2;
-            
+            const selectedTurno = document.getElementById('turnoUsuario').value;
+
             const btnGuardar = nuevoForm.querySelector('.btn-guardar');
             const txtOriginal = btnGuardar.innerHTML;
             btnGuardar.innerHTML = 'Guardando...'; btnGuardar.disabled = true;
 
             try {
                 if (idEdicion) {
-                    // --- MODO EDICIÓN ---
-                    // Simulamos edición de turno y datos básicos
-                    const nuevoTurno = confirm(`¿Deseas asignar a ${nombre} al turno NOCHE? \n[Aceptar]=NOCHE, [Cancelar]=MAÑANA`) ? 2 : 1;
-                    
+                    // MODO EDICIÓN
+                    // 1. Actualizar datos básicos (PUT)
+                    await fetch(`${BASE_URL}/admin/actualizar`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            usuarioID: parseInt(idEdicion),
+                            nombreCompleto: nombre,
+                            username: usernameInput,
+                            rolID: rol,
+                            password: pass
+                        })
+                    });
+
+                    // 2. Actualizar Turno (POST)
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             adminID: usuario.UsuarioID, 
                             usuarioID: parseInt(idEdicion), 
-                            turnoID: nuevoTurno 
+                            turnoID: parseInt(selectedTurno)
                         })
                     });
-                    alert("✅ Usuario actualizado (Turno asignado)");
+                    alert("✅ Usuario actualizado correctamente");
 
                 } else {
-                    // --- MODO CREACIÓN ---
+                    // MODO CREACIÓN
                     const nuevoUsuario = {
                         adminID: usuario.UsuarioID || usuario.usuarioID,
                         nombreCompleto: nombre,
-                        username: nombre.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
-                        password: pass || '123456',
+                        username: usernameInput, 
+                        password: pass,
                         rolID: rol
                     };
 
@@ -487,16 +513,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify(nuevoUsuario)
                     });
 
-                    if (!res.ok) throw new Error("Error al crear usuario");
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || "Error al crear usuario");
+                    }
                     const dataRes = await res.json();
                     
-                    // Asignar turno por defecto (Mañana)
+                    // Asignar turno inicial
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             adminID: usuario.UsuarioID, 
-                            usuarioID: dataRes.usuarioID || dataRes.UsuarioID, 
-                            turnoID: 1 
+                            usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
+                            turnoID: parseInt(selectedTurno)
                         })
                     });
                     alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
@@ -517,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. MÓDULO REPORTES (EXCEL)
+    // 7. OTROS (REPORTES, GRÁFICOS, MENÚ)
     // ==========================================
     window.generarReporte = async (tipo) => {
         const uid = usuario.UsuarioID || usuario.usuarioID;
@@ -528,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (tipo === 'RANGO') {
             const inicio = document.getElementById('fechaInicio').value;
             const fin = document.getElementById('fechaFin').value;
-            if (!inicio || !fin) { alert("⚠️ Selecciona las fechas de inicio y fin"); return; }
+            if (!inicio || !fin) { alert("⚠️ Selecciona las fechas"); return; }
             endpoint = `${BASE_URL}/reportes/ventas-rango?inicio=${inicio}&fin=${fin}`; 
         }
 
@@ -538,20 +567,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(endpoint);
             if (!res.ok) throw new Error("No se encontraron datos");
-            
             const data = await res.json();
-            if (!data || data.length === 0) { 
-                alert("⚠️ No hay datos para generar el reporte."); 
-                if(btn) btn.textContent = "📥 Descargar Reporte"; 
-                return; 
-            }
-
-            // Conversión JSON -> CSV
+            
             const cabeceras = Object.keys(data[0]);
             const filas = data.map(row => cabeceras.map(key => `"${String(row[key] || '').replace(/"/g, '""')}"`).join(','));
             const csvContent = "\uFEFF" + [cabeceras.join(','), ...filas].join('\n');
-            
-            // Descarga
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
             link.download = nombreArchivo;
@@ -559,149 +579,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(btn) btn.textContent = "✅ ¡Listo!";
             setTimeout(() => { if(btn) btn.textContent = "📥 Descargar Reporte"; }, 2000);
-
         } catch (e) { 
             alert("❌ Error: " + e.message); 
             if(btn) btn.textContent = "❌ Error"; 
         }
     };
 
-
-    // ==========================================
-    // 8. DASHBOARD (GRÁFICOS)
-    // ==========================================
-    let chartPastel = null;
-    let chartBarras = null;
-
+    let chartPastel = null; let chartBarras = null;
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
         if (contenedor.style.display === 'none') return;
-
         try {
             const hoy = new Date().toISOString().slice(0,10);
-            // Reusamos el endpoint de reportes para obtener datos del día
             const res = await fetch(`${BASE_URL}/reportes/ventas-rango?inicio=${hoy}&fin=${hoy}`);
             const ventas = res.ok ? await res.json() : [];
-
-            const datosFam = {};
-            const datosHora = {};
-            
+            const datosFam = {}; const datosHora = {};
             ventas.forEach(v => { 
-                // Agrupar por Familia
-                const f = v.Familia || 'Otros'; 
-                datosFam[f] = (datosFam[f]||0) + parseFloat(v.ImporteTotal);
-                
-                // Agrupar por Hora
-                const h = new Date(v.FechaEmision).getHours();
-                datosHora[h] = (datosHora[h]||0) + parseFloat(v.ImporteTotal);
+                const f = v.Familia || 'Otros'; datosFam[f] = (datosFam[f]||0) + parseFloat(v.ImporteTotal);
+                const h = new Date(v.FechaEmision).getHours(); datosHora[h] = (datosHora[h]||0) + parseFloat(v.ImporteTotal);
             });
-
-            // Gráfico Pastel
             const ctxP = document.getElementById('graficoPastel').getContext('2d');
             if(chartPastel) chartPastel.destroy();
-            chartPastel = new Chart(ctxP, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(datosFam),
-                    datasets: [{ 
-                        data: Object.values(datosFam), 
-                        borderWidth: 0, 
-                        backgroundColor: ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff'] 
-                    }]
-                }, 
-                options: { responsive: true, plugins: { legend: { position: 'right' } } }
-            });
-
-            // Gráfico Barras
+            chartPastel = new Chart(ctxP, { type: 'doughnut', data: { labels: Object.keys(datosFam), datasets: [{ data: Object.values(datosFam), borderWidth: 0, backgroundColor: ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff'] }] } });
             const ctxB = document.getElementById('graficoBarras').getContext('2d');
             if(chartBarras) chartBarras.destroy();
             const horas = Object.keys(datosHora).sort((a,b)=>a-b);
-            chartBarras = new Chart(ctxB, {
-                type: 'bar',
-                data: {
-                    labels: horas.map(h => `${h}:00`),
-                    datasets: [{ 
-                        label: 'Ventas S/', 
-                        data: horas.map(h=>datosHora[h]), 
-                        backgroundColor: '#22c55e', 
-                        borderRadius: 4 
-                    }]
-                }, 
-                options: { scales: { y: { beginAtZero: true } } }
-            });
-
-        } catch (e) { console.error("Error cargando gráficos", e); }
+            chartBarras = new Chart(ctxB, { type: 'bar', data: { labels: horas.map(h => `${h}:00`), datasets: [{ label: 'Ventas S/', data: horas.map(h=>datosHora[h]), backgroundColor: '#22c55e', borderRadius: 4 }] } });
+        } catch (e) { console.error("Error gráficos", e); }
     };
 
-
-    // ==========================================
-    // 9. UTILIDADES Y MENÚ LATERAL
-    // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
     const menuItems = document.querySelectorAll('.item-menu');
     const vistas = document.querySelectorAll('.vista-seccion');
 
-    // Reloj digital
     function actualizarReloj() {
         const ahora = new Date();
         const texto = ahora.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
         document.querySelectorAll('.fecha-hora-reloj').forEach(s => s.textContent = texto);
-        const fechaCierre = document.getElementById('fechaCierre');
-        if(fechaCierre) fechaCierre.textContent = ahora.toLocaleDateString('es-PE');
+        const fc = document.getElementById('fechaCierre'); if(fc) fc.textContent = ahora.toLocaleDateString('es-PE');
     }
-    setInterval(actualizarReloj, 1000);
-    actualizarReloj();
+    setInterval(actualizarReloj, 1000); actualizarReloj();
 
-    // Navegación del Menú
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
             if(href === '#' || !href) e.preventDefault();
-            
             menuItems.forEach(i => i.classList.remove('activo'));
             this.classList.add('activo');
-
             const targetId = this.getAttribute('data-target');
             if(targetId) {
                 vistas.forEach(v => {
-                    v.style.display = 'none';
-                    v.classList.remove('activa');
+                    v.style.display = 'none'; v.classList.remove('activa');
                     if(v.id === targetId) {
-                        v.style.display = 'block';
-                        setTimeout(() => v.classList.add('activa'), 10);
-                        
-                        // Carga perezosa de datos según la vista
-                        if(targetId === 'vista-cierre') {
-                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`).then(r => r.json()).then(d => {
-                                document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
-                                document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
-                                document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
-                            }).catch(()=>{});
-                        }
+                        v.style.display = 'block'; setTimeout(() => v.classList.add('activa'), 10);
+                        if(targetId === 'vista-cierre') { fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`).then(r => r.json()).then(d => { document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`; document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`; document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`; }).catch(()=>{}); }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
                         if(targetId === 'vista-financiero') inicializarGraficos();
                     }
                 });
             }
-            // Cerrar menú en móvil
-            if(window.innerWidth <= 768 && sidebar) {
-                sidebar.classList.remove('mobile-open');
-                if(btnToggle) btnToggle.classList.remove('activo');
-            }
+            if(window.innerWidth <= 768 && sidebar) { sidebar.classList.remove('mobile-open'); if(btnToggle) btnToggle.classList.remove('activo'); }
         });
     });
 
-    // Toggle menú móvil
-    if(btnToggle) btnToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        btnToggle.classList.toggle('activo');
-        sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open');
-    });
-
-    // Modales
+    if(btnToggle) btnToggle.addEventListener('click', (e) => { e.stopPropagation(); btnToggle.classList.toggle('activo'); sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open'); });
     window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
     window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
-
 });

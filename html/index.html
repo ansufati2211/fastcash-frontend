@@ -94,8 +94,7 @@
         </nav>
 
         <main class="area-trabajo">
-            
-         <section id="vista-yape" class="vista-seccion activa">
+            <section id="vista-yape" class="vista-seccion activa">
                 <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
                         <div class="cabecera-simple"><h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--/-- --:--</span></div>
@@ -111,30 +110,25 @@
                         </div>
                         <input type="hidden" id="inputFamilia">
                     </div>
-
                     <div class="panel-transaccion">
                         <form id="formYape">
                             <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
-                            
                             <div class="selector-bancos" id="selectorDestino">
                                 <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
                                 <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
                                 <button type="button" class="chip-banco" data-value="1"><span class="dot personal"></span> Yape/Per</button>
                                 <input type="hidden" id="inputDestino" value="3">
                             </div>
-                            
                             <div class="input-operacion-wrapper">
                                 <label># Operación</label>
                                 <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
                             </div>
-
                             <div class="selector-tipo" id="selectorComprobante">
                                 <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
                                 <button type="button" class="segmento" data-value="1">Factura</button>
                                 <button type="button" class="segmento" data-value="4">Nota</button>
                                 <input type="hidden" id="inputComprobante" value="2">
                             </div>
-
                             <button type="submit" class="btn-registrar-grande">CONFIRMAR PAGO <span class="flecha">→</span></button>
                         </form>
                     </div>
@@ -142,7 +136,7 @@
             </section>
 
             <section id="vista-tarjeta" class="vista-seccion">
-                <div class="contenedor-formulario-yape layout-split">
+                 <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
                         <div class="cabecera-simple"><h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--/-- --:--</span></div>
                         <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
@@ -168,12 +162,10 @@
                                 <button type="button" class="chip-banco" data-value="5"><span class="dot regalo"></span> Otro</button>
                                 <input type="hidden" id="inputBancoTarjeta" value="3">
                             </div>
-                            
                             <div class="input-operacion-wrapper" style="margin-top: 1rem;">
                                 <label>N° Lote / Voucher</label>
                                 <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
                             </div>
-
                             <div style="flex-grow: 1;"></div>
                             <button type="submit" class="btn-registrar-grande">PROCESAR TARJETA <span class="flecha">💳</span></button>
                         </form>
@@ -199,7 +191,6 @@
             <section id="vista-reportes" class="vista-seccion">
                 <div class="contenedor-tabla-registro" style="background: transparent; box-shadow: none; border: none; padding: 0;">
                     <h2 style="color: var(--color-primario); margin-bottom: 1.5rem;">📊 Centro de Reportes</h2>
-                    
                     <div class="card-reporte">
                         <div class="cabecera-reporte"><h3>📅 Reporte por Rangos</h3><p>Ventas detalladas entre fechas específicas.</p></div>
                         <div class="cuerpo-reporte">
@@ -211,7 +202,6 @@
                             <div id="resultadoReporte" style="display: none; margin-top: 1rem;"><span class="badge-estado completado">Resultados Generados (Simulado)</span></div>
                         </div>
                     </div>
-
                     <div class="card-reporte">
                         <div class="cabecera-reporte"><h3>👤 Reporte por Cajero</h3><p>Desempeño individual y cierre por usuario.</p></div>
                         <div class="cuerpo-reporte">
@@ -224,7 +214,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="card-reporte">
                         <div class="cabecera-reporte"><h3>📑 Reporte General Completo</h3><p>Consolidado total histórico.</p></div>
                         <div class="cuerpo-reporte">
@@ -242,7 +231,17 @@
                     </div>
                     <div class="tabla-responsive">
                         <table class="tabla-transacciones">
-                            <thead><tr><th>ID</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Usuario</th>
+                                    <th>Turno</th> <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Contraseña</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody id="cuerpoTablaUsuarios"></tbody>
                         </table>
                         <div id="mensajeSinUsuarios" style="text-align: center; padding: 2rem; color: #888;">No hay usuarios registrados.</div>
@@ -291,7 +290,6 @@
                     </div>
                 </div>
             </section>
-
         </main>
     </div>
 
@@ -303,13 +301,50 @@
             </div>
             <form id="formUsuario">
                 <input type="hidden" id="idUsuarioEdicion">
-                <div class="form-group"><label>Nombre</label><input type="text" id="nombreUsuario" placeholder="Ej: Juan Perez" required></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Rol</label><select id="rolUsuario" class="input-select-modal"><option value="Cajero">Cajero</option><option value="Administrador">Administrador</option></select></div>
-                    <div class="form-group"><label>Estado</label><select id="estadoUsuario" class="input-select-modal"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select></div>
+                
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="nombreUsuario" placeholder="Ej: Juan Perez" required>
                 </div>
-                <div class="form-group"><label>Contraseña</label><input type="text" id="passUsuario" placeholder="Contraseña" required></div>
-                <div class="modal-footer"><button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">Cancelar</button><button type="submit" class="btn-guardar">Guardar</button></div>
+
+                <div class="form-group">
+                    <label>Nombre de Usuario (Login)</label>
+                    <input type="text" id="usernameUsuario" placeholder="Ej: jperez22" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <select id="rolUsuario" class="input-select-modal">
+                            <option value="Cajero">Cajero</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="estadoUsuario" class="input-select-modal">
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Turno Asignado</label>
+                    <select id="turnoUsuario" class="input-select-modal">
+                        <option value="1">MAÑANA</option>
+                        <option value="2">TARDE</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="text" id="passUsuario" placeholder="Contraseña" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Guardar</button>
+                </div>
             </form>
         </div>
     </div>
