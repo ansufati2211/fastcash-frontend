@@ -1,10 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     
+    // ==========================================
+    // 0. CONFIGURACIÓN INICIAL Y SESIÓN
+    // ==========================================
     const BASE_URL = 'http://localhost:8080/api';
     let CAJA_ABIERTA = false; 
 
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
+    if (!usuarioData) { 
+        // Si no hay sesión, redirigir al login (opcional)
+        // window.location.href = 'login.html'; 
+    }
+    
     const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
 
     // Mostrar nombre en el header
@@ -13,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
     }
 
-    // GESTIÓN DE PERMISOS
+    // GESTIÓN DE PERMISOS (Ocultar menú Admin a Cajeros)
     const rolUsuario = (usuario.Rol || 'CAJERO').toUpperCase();
     const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
 
@@ -21,8 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsAdmin.forEach(item => item.style.display = 'none');
     }
 
+    // Cargar selector de usuarios si es Admin
+    if (rolUsuario === 'ADMINISTRADOR') {
+        cargarFiltroUsuarios();
+    }
+
     // =========================================================
-    // 1. UTILIDADES
+    // 1. UTILIDADES UI
     // =========================================================
     function activarSelector(idContenedor, claseItems, idInputHidden) {
         const contenedor = document.getElementById(idContenedor);
@@ -48,12 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =========================================================
-    // 2. CONTROL DE CAJA
+    // 2. CONTROL DE CAJA (ABRIR / ESTADO)
     // =========================================================
     const btnAbrirCaja = document.getElementById('btnAbrirCaja');
     const areaTrabajo = document.querySelector('.area-trabajo');
 
-    function actualizarEstadoVisualCaja(estaAbierta, mostrarBoton = true) {
+    function actualizarEstadoVisualCaja(estaAbierta) {
         CAJA_ABIERTA = estaAbierta;
         if (estaAbierta) {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
@@ -62,11 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaTrabajo.style.pointerEvents = "all"; 
             }
         } else {
-            if(btnAbrirCaja) {
-                btnAbrirCaja.style.display = mostrarBoton ? 'flex' : 'none'; 
-            }
+            if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
             if(areaTrabajo) { 
                 areaTrabajo.style.opacity = "0.8"; 
+                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si deseas bloqueo total
             }
         }
     }
@@ -86,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             actualizarEstadoVisualCaja(false);
         }
     }
-    verificarEstadoCaja(); 
+    verificarEstadoCaja();
 
     if(btnAbrirCaja) {
         btnAbrirCaja.addEventListener('click', async () => {
@@ -122,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. CIERRE DE SESIÓN
+    // 3. CIERRE DE SESIÓN Y TICKET (CORREGIDO)
     // ==========================================
     const btnLogout = document.getElementById('btnCerrarSesion');
     if(btnLogout) {
@@ -132,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (CAJA_ABIERTA) {
                 try {
                     const uid = usuario.UsuarioID || usuario.usuarioID;
+                    // Obtenemos los datos para cerrar correctamente en base de datos
                     const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
                     if (!resReporte.ok) throw new Error("Error obteniendo datos de cierre");
                     const dataReporte = await resReporte.json();
@@ -144,41 +157,91 @@ document.addEventListener('DOMContentLoaded', () => {
                         })
                     });
                     alert("🔒 Caja cerrada y turno finalizado.");
-                } catch (e) { 
-                    console.error("Error cierre automático:", e);
-                }
+                } catch (e) { console.error("Error cierre auto:", e); }
             }
             localStorage.removeItem('usuarioSesion');
             window.location.href = '../html/login.html';
         });
     }
 
+    // Imprimir Ticket X/Z con datos completos
+    // ==========================================
+    // IMPRIMIR CIERRE (CORREGIDO: VISUAL + TICKET)
+    // ==========================================
     window.imprimirCierre = async () => {
+        const btn = document.querySelector('.btn-imprimir-cierre');
+        if(btn) { btn.disabled = true; btn.textContent = "⏳ Calculando..."; }
+
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
+            // 1. Obtener datos del Backend
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
-            if(!resReporte.ok) throw new Error("Error obteniendo datos");
-            const data = await resReporte.json();
+            if(!resReporte.ok) throw new Error("Error obteniendo datos del cierre");
+            
+            const data = await resReporte.json(); 
+            // data esperado: { SaldoInicial, VentasEfectivo, VentasDigital, VentasTarjeta, TotalVendido, SaldoEsperadoEnCaja }
 
-            document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString();
-            document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString();
-            document.getElementById('ticketYape').textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
-            document.getElementById('ticketTarjeta').textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
-            document.getElementById('ticketTotal').textContent = `S/ ${parseFloat(data.TotalVendido || 0).toFixed(2)}`;
+            // Función auxiliar segura
+            const setText = (id, valor) => {
+                const el = document.getElementById(id);
+                if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
+            };
 
+            // 2. FECHAS (En el Ticket)
+            const elFecha = document.getElementById('ticketFecha');
+            if(elFecha) elFecha.textContent = new Date().toLocaleDateString();
+            const elHora = document.getElementById('ticketHora');
+            if(elHora) elHora.textContent = new Date().toLocaleTimeString();
+
+            // 3. LLENAR DATOS EN LA PANTALLA (VISUAL)
+            // Estos IDs están en las tarjetas de colores del HTML
+            setText('ticketSaldoInicial', data.SaldoInicial); 
+            setText('ticketEfectivo', data.VentasEfectivo);   
+            setText('totalYape', data.VentasDigital);         
+            setText('totalTarjeta', data.VentasTarjeta);      
+            setText('totalGeneral', data.TotalVendido);       
+
+            // 4. LLENAR DATOS EN EL TICKET (IMPRESIÓN)
+            // Estos IDs están dentro del div id="ticketImpresion"
+            setText('ticketSaldoInicialPrint', data.SaldoInicial);
+            setText('ticketEfectivoPrint', data.VentasEfectivo);
+            setText('ticketYapePrint', data.VentasDigital);
+            setText('ticketTarjetaPrint', data.VentasTarjeta);
+            setText('ticketTotalPrint', data.TotalVendido);
+
+            // 5. CONFIRMAR CIERRE EN BASE DE DATOS
+            // Enviamos el 'SaldoEsperadoEnCaja' (Efectivo Inicial + Ventas Efectivo)
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuarioID: uid, saldoFinalReal: data.SaldoEsperadoEnCaja })
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    usuarioID: uid, 
+                    saldoFinalReal: data.SaldoEsperadoEnCaja 
+                })
             });
 
-            if(!resCierre.ok) throw new Error("Error al cerrar caja en BD");
+            if(!resCierre.ok) {
+                const err = await resCierre.json();
+                throw new Error(err.Mensaje || "Error al cerrar caja en BD");
+            }
 
-            window.print();
-            actualizarEstadoVisualCaja(false, false); 
+            // 6. IMPRIMIR
+            // Pequeño delay para asegurar que el DOM se actualizó
+            setTimeout(() => {
+                window.print();
+                alert("✅ Turno cerrado correctamente.");
+                
+                // Opcional: Cerrar sesión y volver al login
+                localStorage.removeItem('usuarioSesion');
+                window.location.href = '../html/login.html';
+            }, 500);
 
         } catch (error) {
+            console.error(error);
             alert("❌ Error en el cierre: " + error.message);
+        } finally {
+            if(btn) { btn.disabled = false; btn.textContent = "🖨️ IMPRIMIR CIERRE"; }
         }
     };
 
@@ -246,24 +309,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
-                
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
-
             } else {
                 const err = await res.json();
                 alert(`❌ ERROR: ${err.error || err.Mensaje}`);
                 btn.innerHTML = originalText; btn.disabled = false;
             }
         } catch (error) {
-            alert("❌ Error de conexión con el servidor");
+            alert("❌ Error de conexión");
             btn.innerHTML = originalText; btn.disabled = false;
         }
     }
 
     const fY = document.getElementById('formYape');
     if (fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
-    
     const fT = document.getElementById('formTarjeta');
     if (fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
 
@@ -299,11 +359,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
                         <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
                         <td>${v.Familia || 'Varios'}</td>
-                        <td><div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div></td>
+                        <td>
+                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div>
+                        </td>
                         <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
                         <td>${fecha}</td>
                         <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
-                        <td><button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button></td>
+                        <td>
+                            <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                        </td>
                     </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
@@ -334,18 +398,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 const err = await res.json(); 
                 alert("❌ Error: " + (err.error || "Fallo anulación")); 
             }
-        } catch (e) { 
-            alert("❌ Error de red"); 
-        }
+        } catch (e) { alert("❌ Error de red"); }
     };
 
 
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS (ACTUALIZADO: CREAR, EDITAR, ELIMINAR)
+    // 6. GESTIÓN DE USUARIOS (FILTROS Y CRUD)
     // ==========================================
+    
+    // A. Llenar el select de filtro (Solo Admins)
+    async function cargarFiltroUsuarios() {
+        const select = document.getElementById('filtroUsuarioReporte');
+        const contenedor = document.getElementById('contenedorFiltroUsuario'); // Asegúrate de tener este div en HTML
+        
+        if(!select) return;
+        if(contenedor) contenedor.style.display = 'block';
+
+        try {
+            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            if(res.ok) {
+                const usuarios = await res.json();
+                select.innerHTML = '<option value="">-- Todos los Cajeros --</option>';
+                usuarios.forEach(u => {
+                    select.innerHTML += `<option value="${u.UsuarioID}">${u.NombreCompleto}</option>`;
+                });
+            }
+        } catch(e) { console.error("Error cargando usuarios filtro", e); }
+    }
+
+    // B. Cargar Tabla de Usuarios
     async function cargarUsuarios() {
         const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
-        const mensaje = document.getElementById('mensajeSinUsuarios');
         if (!cuerpoTabla) return; 
 
         try {
@@ -355,18 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const usuariosDB = await res.json();
             cuerpoTabla.innerHTML = '';
 
-            // Filtrar visualmente los inactivos si quieres, o mostrarlos con otro color
-            // En este caso, el backend ya podría filtrarlos o mostrarlos como "Inactivo"
             if (usuariosDB.length === 0) { 
-                if(mensaje) mensaje.style.display = 'block';
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center;">Sin usuarios</td></tr>'; 
                 return; 
             }
-            if(mensaje) mensaje.style.display = 'none';
 
             usuariosDB.forEach(u => {
                 const rolClase = (u.Rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
                 const estadoTexto = u.Activo ? '🟢 Activo' : '🔴 Inactivo';
-                // Si está inactivo, deshabilitamos botones o cambiamos estilo
                 const estiloFila = !u.Activo ? 'opacity: 0.5;' : '';
 
                 const fila = `<tr style="${estiloFila}">
@@ -379,35 +458,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>******</td>
                     <td style="display:flex; gap:10px; align-items:center;">
                         <button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
-                        ${u.Activo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Eliminar">🗑️</button>` : ''}
+                        ${u.Activo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
                     </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
-        } catch (error) { 
-            console.error(error);
-            if(mensaje) mensaje.textContent = "Error al cargar datos.";
-        }
+        } catch (error) { console.error(error); }
     }
 
-    // ELIMINAR (SOFT DELETE)
+    // C. Eliminar (Desactivar) Usuario
     window.eliminarUsuario = async (idUsuario) => {
-        if(!confirm("¿Estás seguro de ELIMINAR (Desactivar) este usuario?")){
-            return;
-        }
+        if(!confirm("¿Estás seguro de DESACTIVAR este usuario?")) return;
         try {
             const res = await fetch(`${BASE_URL}/admin/eliminar/${idUsuario}`, { method: 'DELETE' });
             if(res.ok) {
-                alert("✅ Usuario desactivado correctamente.");
+                alert("✅ Usuario desactivado.");
                 cargarUsuarios();
             } else {
-                const err = await res.json();
-                alert("❌ Error: " + (err.error || "No se pudo eliminar"));
+                alert("❌ Error al eliminar");
             }
         } catch(e) { alert("❌ Error de conexión"); }
     };
 
-    // EDITAR (CARGAR DATOS EN MODAL)
+    // D. Editar Usuario (Cargar datos al modal)
     window.editarUsuario = async (idUsuario) => {
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios`);
@@ -419,39 +492,41 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('idUsuarioEdicion').value = user.UsuarioID;
             document.getElementById('nombreUsuario').value = user.NombreCompleto;
             document.getElementById('usernameUsuario').value = user.Username; 
-            
-            // Seleccionar Turno correcto
             document.getElementById('turnoUsuario').value = user.TurnoID || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             document.getElementById('rolUsuario').value = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
             
             const selEstado = document.getElementById('estadoUsuario');
-            if(selEstado) selEstado.value = user.Activo ? 'Activo' : 'Inactivo';
+            if(selEstado) selEstado.value = user.Activo ? 'true' : 'false';
 
             document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
             document.getElementById('passUsuario').required = false;
 
             abrirModalUsuario();
-        } catch (e) { 
-            alert("Error cargando datos del usuario: " + e.message); 
-        }
+        } catch (e) { alert("Error cargando usuario: " + e.message); }
     };
 
+    // E. Preparar Modal para Nuevo Usuario
     const btnNuevoUsuario = document.querySelector('.btn-nuevo-usuario');
     if(btnNuevoUsuario) {
         btnNuevoUsuario.onclick = () => {
             document.getElementById('formUsuario').reset();
             document.getElementById('idUsuarioEdicion').value = "";
             document.getElementById('tituloModalUsuario').textContent = "Nuevo Usuario";
-            document.getElementById('usernameUsuario').disabled = false;
             document.getElementById('passUsuario').required = true;
+            document.getElementById('passUsuario').placeholder = "Contraseña";
             document.getElementById('turnoUsuario').value = 1; 
+            
+            const selEstado = document.getElementById('estadoUsuario');
+            if(selEstado) selEstado.value = 'true';
+            
             abrirModalUsuario();
         };
     }
 
+    // F. Submit del Formulario Usuario
     const formUsuario = document.getElementById('formUsuario');
     if (formUsuario) {
         const nuevoForm = formUsuario.cloneNode(true);
@@ -466,6 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pass = document.getElementById('passUsuario').value;
             const rol = document.getElementById('rolUsuario').value === 'Administrador' ? 1 : 2;
             const selectedTurno = document.getElementById('turnoUsuario').value;
+            const esActivo = document.getElementById('estadoUsuario')?.value === 'true'; // Convertir string a boolean
 
             const btnGuardar = nuevoForm.querySelector('.btn-guardar');
             const txtOriginal = btnGuardar.innerHTML;
@@ -473,8 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 if (idEdicion) {
-                    // MODO EDICIÓN
-                    // 1. Actualizar datos básicos (PUT)
+                    // --- MODO EDICIÓN ---
+                    // 1. Actualizar Datos Personales + Estado Activo
                     await fetch(`${BASE_URL}/admin/actualizar`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -483,23 +559,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             nombreCompleto: nombre,
                             username: usernameInput,
                             rolID: rol,
-                            password: pass
+                            password: pass,
+                            activo: esActivo // Enviamos el estado
                         })
                     });
 
-                    // 2. Actualizar Turno (POST)
+                    // 2. Actualizar Turno
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             adminID: usuario.UsuarioID, 
                             usuarioID: parseInt(idEdicion), 
-                            turnoID: parseInt(selectedTurno)
+                            turnoID: parseInt(selectedTurno) 
                         })
                     });
                     alert("✅ Usuario actualizado correctamente");
 
                 } else {
-                    // MODO CREACIÓN
+                    // --- MODO CREACIÓN ---
                     const nuevoUsuario = {
                         adminID: usuario.UsuarioID || usuario.usuarioID,
                         nombreCompleto: nombre,
@@ -525,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ 
                             adminID: usuario.UsuarioID, 
                             usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
-                            turnoID: parseInt(selectedTurno)
+                            turnoID: parseInt(selectedTurno) 
                         })
                     });
                     alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
@@ -546,68 +623,148 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. OTROS (REPORTES, GRÁFICOS, MENÚ)
+    // 7. REPORTES DINÁMICOS
     // ==========================================
     window.generarReporte = async (tipo) => {
-        const uid = usuario.UsuarioID || usuario.usuarioID;
-        let endpoint = '';
-        const nombreArchivo = `Reporte_${tipo}_${new Date().toISOString().slice(0,10)}.csv`;
+        // A. Capturar Inputs
+        const inicio = document.getElementById('fechaInicio').value;
+        const fin = document.getElementById('fechaFin').value;
+        const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
 
-        if (tipo === 'GENERAL') endpoint = `${BASE_URL}/ventas/historial/${uid}`; 
-        else if (tipo === 'RANGO') {
-            const inicio = document.getElementById('fechaInicio').value;
-            const fin = document.getElementById('fechaFin').value;
-            if (!inicio || !fin) { alert("⚠️ Selecciona las fechas"); return; }
-            endpoint = `${BASE_URL}/reportes/ventas-rango?inicio=${inicio}&fin=${fin}`; 
+        // B. Construir Parámetros URL
+        const params = new URLSearchParams();
+        if (inicio) params.append('inicio', inicio);
+        if (fin) params.append('fin', fin);
+
+        // Lógica de Usuario: Si es admin y eligió alguien, úsalo. Si no, si es cajero, usa su propio ID.
+        if (usuario.Rol === 'ADMINISTRADOR') {
+            if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
+        } else {
+            params.append('usuarioID', usuario.UsuarioID);
         }
 
-        const btn = document.querySelector(`.btn-generar-reporte[onclick*="${tipo}"]`);
-        if(btn) btn.textContent = "⏳ Descargando...";
+        // C. Definir Endpoint
+        // GENERAL = Ventas (Detallado)
+        // CAJAS   = Sesiones (Apertura/Cierre)
+        let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
+        const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
+
+        // D. Feedback Visual
+        const btn = event.target; 
+        const txtOriginal = btn.textContent;
+        btn.textContent = "⏳ Descargando...";
+        btn.disabled = true;
 
         try {
-            const res = await fetch(endpoint);
-            if (!res.ok) throw new Error("No se encontraron datos");
-            const data = await res.json();
+            const res = await fetch(urlFinal);
+            if (!res.ok) throw new Error("Error en el servidor");
             
+            const data = await res.json();
+            if (!data || data.length === 0) {
+                alert("⚠️ No hay datos con esos filtros.");
+                return;
+            }
+
+            // Generar CSV
             const cabeceras = Object.keys(data[0]);
-            const filas = data.map(row => cabeceras.map(key => `"${String(row[key] || '').replace(/"/g, '""')}"`).join(','));
+            const filas = data.map(row => 
+                cabeceras.map(key => `"${String(row[key] || '').replace(/"/g, '""')}"`).join(',')
+            );
             const csvContent = "\uFEFF" + [cabeceras.join(','), ...filas].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-            link.download = nombreArchivo;
+            link.href = URL.createObjectURL(blob);
+            link.download = `Reporte_${tipo}_${inicio || 'HOY'}.csv`;
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
 
-            if(btn) btn.textContent = "✅ ¡Listo!";
-            setTimeout(() => { if(btn) btn.textContent = "📥 Descargar Reporte"; }, 2000);
-        } catch (e) { 
-            alert("❌ Error: " + e.message); 
-            if(btn) btn.textContent = "❌ Error"; 
+            if(btn) btn.textContent = "✅ Listo";
+            setTimeout(() => { if(btn) btn.textContent = txtOriginal; }, 2000);
+
+        } catch (e) {
+            console.error(e);
+            alert("❌ Error: " + e.message);
+            if(btn) btn.textContent = "❌ Error";
+        } finally {
+            btn.disabled = false;
         }
     };
 
-    let chartPastel = null; let chartBarras = null;
+
+    // ==========================================
+    // 8. GRÁFICOS DASHBOARD (CON FILTROS)
+    // ==========================================
+    let chartPastel = null; 
+    let chartBarras = null;
+    
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
         if (contenedor.style.display === 'none') return;
+
+        // Puedes usar los mismos inputs de fecha del reporte o inputs propios del dashboard
+        const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
+        const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
+
+        const params = new URLSearchParams();
+        if(fechaDash) params.append('fecha', fechaDash);
+        if(userDash && usuario.Rol === 'ADMINISTRADOR') params.append('usuarioID', userDash);
+        // Si es cajero, siempre ve sus propios datos
+        if(usuario.Rol !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID);
+
         try {
-            const hoy = new Date().toISOString().slice(0,10);
-            const res = await fetch(`${BASE_URL}/reportes/ventas-rango?inicio=${hoy}&fin=${hoy}`);
-            const ventas = res.ok ? await res.json() : [];
-            const datosFam = {}; const datosHora = {};
-            ventas.forEach(v => { 
-                const f = v.Familia || 'Otros'; datosFam[f] = (datosFam[f]||0) + parseFloat(v.ImporteTotal);
-                const h = new Date(v.FechaEmision).getHours(); datosHora[h] = (datosHora[h]||0) + parseFloat(v.ImporteTotal);
-            });
-            const ctxP = document.getElementById('graficoPastel').getContext('2d');
-            if(chartPastel) chartPastel.destroy();
-            chartPastel = new Chart(ctxP, { type: 'doughnut', data: { labels: Object.keys(datosFam), datasets: [{ data: Object.values(datosFam), borderWidth: 0, backgroundColor: ['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff'] }] } });
-            const ctxB = document.getElementById('graficoBarras').getContext('2d');
-            if(chartBarras) chartBarras.destroy();
-            const horas = Object.keys(datosHora).sort((a,b)=>a-b);
-            chartBarras = new Chart(ctxB, { type: 'bar', data: { labels: horas.map(h => `${h}:00`), datasets: [{ label: 'Ventas S/', data: horas.map(h=>datosHora[h]), backgroundColor: '#22c55e', borderRadius: 4 }] } });
+            const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`);
+            if(!res.ok) return;
+
+            const data = await res.json(); 
+            // data esperado: { categorias: [{label, value}], pagos: [{label, value}] }
+
+            // 1. Gráfico Pastel (Categorías)
+            if(data.categorias) {
+                const ctxP = document.getElementById('graficoPastel').getContext('2d');
+                if(chartPastel) chartPastel.destroy();
+                chartPastel = new Chart(ctxP, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.categorias.map(i => i.label),
+                        datasets: [{ 
+                            data: data.categorias.map(i => i.value), 
+                            borderWidth: 0, 
+                            backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF'] 
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // 2. Gráfico Barras (Pagos)
+            if(data.pagos) {
+                const ctxB = document.getElementById('graficoBarras').getContext('2d');
+                if(chartBarras) chartBarras.destroy();
+                chartBarras = new Chart(ctxB, {
+                    type: 'bar',
+                    data: {
+                        labels: data.pagos.map(i => i.label),
+                        datasets: [{ 
+                            label: 'Total S/', 
+                            data: data.pagos.map(i => i.value), 
+                            backgroundColor: '#22c55e', 
+                            borderRadius: 4 
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } } 
+                    }
+                });
+            }
         } catch (e) { console.error("Error gráficos", e); }
     };
 
+
+    // ==========================================
+    // 9. MENÚ LATERAL Y RELOJ
+    // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
     const menuItems = document.querySelectorAll('.item-menu');
@@ -625,18 +782,31 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
             if(href === '#' || !href) e.preventDefault();
+            
             menuItems.forEach(i => i.classList.remove('activo'));
             this.classList.add('activo');
+
             const targetId = this.getAttribute('data-target');
             if(targetId) {
                 vistas.forEach(v => {
                     v.style.display = 'none'; v.classList.remove('activa');
                     if(v.id === targetId) {
-                        v.style.display = 'block'; setTimeout(() => v.classList.add('activa'), 10);
-                        if(targetId === 'vista-cierre') { fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`).then(r => r.json()).then(d => { document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`; document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`; document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`; }).catch(()=>{}); }
+                        v.style.display = 'block'; 
+                        setTimeout(() => v.classList.add('activa'), 10);
+                        
+                        // Acciones al cambiar de pestaña
+                        if(targetId === 'vista-cierre') {
+                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
+                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
+                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
+                                }).catch(()=>{});
+                        }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
-                        if(targetId === 'vista-financiero') inicializarGraficos();
+                        if(targetId === 'vista-financiero') inicializarGraficos(); // Carga gráficos al entrar
                     }
                 });
             }
@@ -645,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if(btnToggle) btnToggle.addEventListener('click', (e) => { e.stopPropagation(); btnToggle.classList.toggle('activo'); sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open'); });
+    
     window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
     window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
 });
