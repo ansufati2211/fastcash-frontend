@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
-        // Si no hay sesión, redirigir al login (opcional)
-        // window.location.href = 'login.html'; 
+        // Redirigir si no hay sesión (Descomentar en producción)
+        // window.location.href = '../html/login.html'; 
     }
     
     const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activarSelector('selectorDestino', 'chip-banco', 'inputDestino');
     activarSelector('selectorBancoTarjeta', 'chip-banco', 'inputBancoTarjeta');
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
+    activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
 
 
     // =========================================================
@@ -75,10 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaTrabajo.style.pointerEvents = "all"; 
             }
         } else {
+            // Usamos display flex para que el botón se vea bien con el CSS nuevo
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
             if(areaTrabajo) { 
                 areaTrabajo.style.opacity = "0.8"; 
-                // areaTrabajo.style.pointerEvents = "none"; // Descomentar si deseas bloqueo total
+                // areaTrabajo.style.pointerEvents = "none"; 
             }
         }
     }
@@ -134,84 +136,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. CIERRE DE SESIÓN Y TICKET (CORREGIDO)
+    // 3. CIERRE DE SESIÓN
     // ==========================================
     const btnLogout = document.getElementById('btnCerrarSesion');
     if(btnLogout) {
         btnLogout.addEventListener('click', async () => {
-            if(!confirm("¿Seguro que deseas Cerrar Sesión? \nSi la caja está abierta, se cerrará automáticamente.")) return;
-
-            if (CAJA_ABIERTA) {
-                try {
-                    const uid = usuario.UsuarioID || usuario.usuarioID;
-                    // Obtenemos los datos para cerrar correctamente en base de datos
-                    const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
-                    if (!resReporte.ok) throw new Error("Error obteniendo datos de cierre");
-                    const dataReporte = await resReporte.json();
-                    
-                    await fetch(`${BASE_URL}/caja/cerrar`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            usuarioID: uid, 
-                            saldoFinalReal: dataReporte.SaldoEsperadoEnCaja || 0.00 
-                        })
-                    });
-                    alert("🔒 Caja cerrada y turno finalizado.");
-                } catch (e) { console.error("Error cierre auto:", e); }
-            }
+            if(!confirm("¿Deseas cerrar sesión del sistema?")) return;
             localStorage.removeItem('usuarioSesion');
             window.location.href = '../html/login.html';
         });
     }
 
-    // Imprimir Ticket X/Z con datos completos
     // ==========================================
-    // IMPRIMIR CIERRE (CORREGIDO: VISUAL + TICKET)
+    // FUNCIÓN DEL BOTÓN "CERRAR CAJA E IMPRIMIR"
     // ==========================================
     window.imprimirCierre = async () => {
+        
+        if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) {
+            return;
+        }
+
         const btn = document.querySelector('.btn-imprimir-cierre');
-        if(btn) { btn.disabled = true; btn.textContent = "⏳ Calculando..."; }
+        if(btn) { 
+            btn.disabled = true; 
+            btn.innerHTML = '<span>⚙️</span> Cerrando...'; 
+        }
 
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
-            // 1. Obtener datos del Backend
+            // PASO A: Obtener los montos finales desde la Base de Datos
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
-            if(!resReporte.ok) throw new Error("Error obteniendo datos del cierre");
+            if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
-            // data esperado: { SaldoInicial, VentasEfectivo, VentasDigital, VentasTarjeta, TotalVendido, SaldoEsperadoEnCaja }
 
-            // Función auxiliar segura
+            // Función auxiliar para formatear dinero
             const setText = (id, valor) => {
                 const el = document.getElementById(id);
                 if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
             };
 
-            // 2. FECHAS (En el Ticket)
-            const elFecha = document.getElementById('ticketFecha');
-            if(elFecha) elFecha.textContent = new Date().toLocaleDateString();
-            const elHora = document.getElementById('ticketHora');
-            if(elHora) elHora.textContent = new Date().toLocaleTimeString();
+            // PASO B: Llenar el Ticket Oculto (HTML) para la impresión
+            document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
+            document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
 
-            // 3. LLENAR DATOS EN LA PANTALLA (VISUAL)
-            // Estos IDs están en las tarjetas de colores del HTML
-            setText('ticketSaldoInicial', data.SaldoInicial); 
-            setText('ticketEfectivo', data.VentasEfectivo);   
-            setText('totalYape', data.VentasDigital);         
-            setText('totalTarjeta', data.VentasTarjeta);      
-            setText('totalGeneral', data.TotalVendido);       
+            // --- 1. LLENAR NOMBRE ---
+            const nombreCajero = usuario.NombreCompleto || usuario.username || "Cajero";
+            const elNombre = document.getElementById('ticketCajeroNombre');
+            if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
 
-            // 4. LLENAR DATOS EN EL TICKET (IMPRESIÓN)
-            // Estos IDs están dentro del div id="ticketImpresion"
+            // --- 2. OBTENER TURNO REAL DESDE BD (CORRECCIÓN) ---
+            // Primero intentamos leer de la sesión, pero por seguridad, 
+            // consultamos la BD para ver qué tiene asignado realmente este ID.
+            let turnoTexto = "MAÑANA"; // Valor por defecto
+            
+            try {
+                // Hacemos una consulta rápida a la lista de usuarios para ver el turno actual
+                const resUsers = await fetch(`${BASE_URL}/admin/usuarios`);
+                if(resUsers.ok) {
+                    const listaUsers = await resUsers.json();
+                    const userEncontrado = listaUsers.find(u => u.UsuarioID == uid);
+                    if(userEncontrado && userEncontrado.TurnoActual) {
+                        turnoTexto = userEncontrado.TurnoActual;
+                    }
+                }
+            } catch(err) {
+                console.log("No se pudo verificar turno en BD, usando local o hora");
+                // Fallback si falla la red: Usar hora
+                const horaActual = new Date().getHours();
+                turnoTexto = (horaActual < 14) ? "MAÑANA" : "TARDE";
+            }
+            
+            const elTurno = document.getElementById('ticketTurno');
+            if(elTurno) elTurno.textContent = turnoTexto.toUpperCase();
+            // ----------------------------------------------
+
             setText('ticketSaldoInicialPrint', data.SaldoInicial);
             setText('ticketEfectivoPrint', data.VentasEfectivo);
             setText('ticketYapePrint', data.VentasDigital);
             setText('ticketTarjetaPrint', data.VentasTarjeta);
             setText('ticketTotalPrint', data.TotalVendido);
 
-            // 5. CONFIRMAR CIERRE EN BASE DE DATOS
-            // Enviamos el 'SaldoEsperadoEnCaja' (Efectivo Inicial + Ventas Efectivo)
+            // PASO C: Mandar la orden al Backend para cerrar la caja
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -223,25 +230,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(!resCierre.ok) {
                 const err = await resCierre.json();
-                throw new Error(err.Mensaje || "Error al cerrar caja en BD");
+                throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
             }
 
-            // 6. IMPRIMIR
-            // Pequeño delay para asegurar que el DOM se actualizó
+            // PASO D: Éxito -> Imprimir y Salir
             setTimeout(() => {
-                window.print();
-                alert("✅ Turno cerrado correctamente.");
-                
-                // Opcional: Cerrar sesión y volver al login
+                window.print(); // Abre el diálogo de impresión
+                alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
                 window.location.href = '../html/login.html';
-            }, 500);
+            }, 800);
 
         } catch (error) {
             console.error(error);
-            alert("❌ Error en el cierre: " + error.message);
-        } finally {
-            if(btn) { btn.disabled = false; btn.textContent = "🖨️ IMPRIMIR CIERRE"; }
+            alert("❌ ERROR CRÍTICO: " + error.message);
+            if(btn) { 
+                btn.disabled = false; 
+                btn.innerHTML = '🖨️ CERRAR CAJA E IMPRIMIR'; 
+            }
         }
     };
 
@@ -275,6 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             entidadId = document.getElementById('inputBancoTarjeta').value;
             numOp = document.getElementById('numOperacionTarjeta').value;
+            
+            const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
+            if (inputCompTarjeta) {
+                compId = inputCompTarjeta.value;
+            }
+
             if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
 
@@ -309,6 +321,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
+                
+                // Restaurar comprobante a Boleta por defecto
+                if(tipo !== 'YAPE') {
+                    const selectorT = document.getElementById('selectorComprobanteTarjeta');
+                    if(selectorT) {
+                        selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                        selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
+                        document.getElementById('inputComprobanteTarjeta').value = "2";
+                    }
+                }
+
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
             } else {
@@ -331,15 +354,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 5. HISTORIAL DE VENTAS
     // ==========================================
-    async function cargarHistorial() {
+    window.cargarHistorial = async function() {
         const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
+        const btnRefresh = document.querySelector('#vista-anulacion .btn-refresh-moderno');
+        const icono = btnRefresh ? btnRefresh.querySelector('.icono-refresh') : null;
+
         if(!cuerpoTabla) return;
 
-        cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>';
+        if(icono) icono.classList.add('girando');
+        if(btnRefresh) btnRefresh.disabled = true;
+
+        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
 
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
-            const res = await fetch(`${BASE_URL}/ventas/historial/${uid}`);
+            const res = await fetch(`${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`);
             
             if(!res.ok) throw new Error("Error cargando historial");
 
@@ -347,35 +376,38 @@ document.addEventListener('DOMContentLoaded', () => {
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay ventas hoy.</td></tr>';
-                return;
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas hoy.</td></tr>';
+            } else {
+                ventas.forEach(v => {
+                    const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const esAnulado = v.Estado === 'ANULADO';
+                    
+                    const fila = `
+                        <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
+                            <td style="font-weight:bold; color:#444;">${v.Cajero || 'Cajero'}</td>
+                            <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                            <td>${v.Familia || 'Varios'}</td>
+                            <td><div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div></td>
+                            <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
+                            <td>${fecha}</td>
+                            <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
+                            <td>
+                                <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                            </td>
+                        </tr>`;
+                    cuerpoTabla.insertAdjacentHTML('beforeend', fila);
+                });
             }
 
-            ventas.forEach(v => {
-                const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                const esAnulado = v.Estado === 'ANULADO';
-                
-                const fila = `
-                    <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
-                        <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
-                        <td>${v.Familia || 'Varios'}</td>
-                        <td>
-                            <div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div>
-                        </td>
-                        <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
-                        <td>${fecha}</td>
-                        <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
-                        <td>
-                            <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
-                        </td>
-                    </tr>`;
-                cuerpoTabla.insertAdjacentHTML('beforeend', fila);
-            });
-
         } catch (error) { 
-            cuerpoTabla.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error de conexión</td></tr>'; 
+            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión. Intente nuevamente.</td></tr>'; 
+        } finally {
+            setTimeout(() => {
+                if(icono) icono.classList.remove('girando');
+                if(btnRefresh) btnRefresh.disabled = false;
+            }, 500);
         }
-    }
+    };
 
     window.solicitarAnulacion = async (ventaId) => {
         if (!CAJA_ABIERTA) { alert("🔒 Caja cerrada. No se puede anular."); return; }
@@ -403,13 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS (FILTROS Y CRUD)
+    // 6. GESTIÓN DE USUARIOS
     // ==========================================
-    
-    // A. Llenar el select de filtro (Solo Admins)
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
-        const contenedor = document.getElementById('contenedorFiltroUsuario'); // Asegúrate de tener este div en HTML
+        const contenedor = document.getElementById('contenedorFiltroUsuario');
         
         if(!select) return;
         if(contenedor) contenedor.style.display = 'block';
@@ -426,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error("Error cargando usuarios filtro", e); }
     }
 
-    // B. Cargar Tabla de Usuarios
     async function cargarUsuarios() {
         const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
         if (!cuerpoTabla) return; 
@@ -466,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error(error); }
     }
 
-    // C. Eliminar (Desactivar) Usuario
     window.eliminarUsuario = async (idUsuario) => {
         if(!confirm("¿Estás seguro de DESACTIVAR este usuario?")) return;
         try {
@@ -480,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) { alert("❌ Error de conexión"); }
     };
 
-    // D. Editar Usuario (Cargar datos al modal)
     window.editarUsuario = async (idUsuario) => {
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios`);
@@ -508,7 +535,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { alert("Error cargando usuario: " + e.message); }
     };
 
-    // E. Preparar Modal para Nuevo Usuario
     const btnNuevoUsuario = document.querySelector('.btn-nuevo-usuario');
     if(btnNuevoUsuario) {
         btnNuevoUsuario.onclick = () => {
@@ -526,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // F. Submit del Formulario Usuario
     const formUsuario = document.getElementById('formUsuario');
     if (formUsuario) {
         const nuevoForm = formUsuario.cloneNode(true);
@@ -541,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pass = document.getElementById('passUsuario').value;
             const rol = document.getElementById('rolUsuario').value === 'Administrador' ? 1 : 2;
             const selectedTurno = document.getElementById('turnoUsuario').value;
-            const esActivo = document.getElementById('estadoUsuario')?.value === 'true'; // Convertir string a boolean
+            const esActivo = document.getElementById('estadoUsuario')?.value === 'true';
 
             const btnGuardar = nuevoForm.querySelector('.btn-guardar');
             const txtOriginal = btnGuardar.innerHTML;
@@ -549,8 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 if (idEdicion) {
-                    // --- MODO EDICIÓN ---
-                    // 1. Actualizar Datos Personales + Estado Activo
                     await fetch(`${BASE_URL}/admin/actualizar`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -560,11 +583,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             username: usernameInput,
                             rolID: rol,
                             password: pass,
-                            activo: esActivo // Enviamos el estado
+                            activo: esActivo
                         })
                     });
 
-                    // 2. Actualizar Turno
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
@@ -576,7 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert("✅ Usuario actualizado correctamente");
 
                 } else {
-                    // --- MODO CREACIÓN ---
                     const nuevoUsuario = {
                         adminID: usuario.UsuarioID || usuario.usuarioID,
                         nombreCompleto: nombre,
@@ -596,7 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     const dataRes = await res.json();
                     
-                    // Asignar turno inicial
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
@@ -623,37 +643,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. REPORTES DINÁMICOS
+    // 7. REPORTES EXCEL "PREMIUM" (CON ESTILOS)
     // ==========================================
     window.generarReporte = async (tipo) => {
-        // A. Capturar Inputs
         const inicio = document.getElementById('fechaInicio').value;
         const fin = document.getElementById('fechaFin').value;
         const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
 
-        // B. Construir Parámetros URL
         const params = new URLSearchParams();
         if (inicio) params.append('inicio', inicio);
         if (fin) params.append('fin', fin);
 
-        // Lógica de Usuario: Si es admin y eligió alguien, úsalo. Si no, si es cajero, usa su propio ID.
         if (usuario.Rol === 'ADMINISTRADOR') {
             if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
         } else {
             params.append('usuarioID', usuario.UsuarioID);
         }
 
-        // C. Definir Endpoint
-        // GENERAL = Ventas (Detallado)
-        // CAJAS   = Sesiones (Apertura/Cierre)
         let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
         const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
 
-        // D. Feedback Visual
-        const btn = event.target; 
-        const txtOriginal = btn.textContent;
-        btn.textContent = "⏳ Descargando...";
-        btn.disabled = true;
+        const btn = event.target.closest('button'); 
+        const txtOriginal = btn ? btn.innerHTML : '';
+        
+        if (btn) {
+            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
+            btn.disabled = true;
+        }
 
         try {
             const res = await fetch(urlFinal);
@@ -662,53 +678,114 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!data || data.length === 0) {
                 alert("⚠️ No hay datos con esos filtros.");
+                if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
                 return;
             }
 
-            // Generar CSV
-            const cabeceras = Object.keys(data[0]);
-            const filas = data.map(row => 
-                cabeceras.map(key => `"${String(row[key] || '').replace(/"/g, '""')}"`).join(',')
-            );
-            const csvContent = "\uFEFF" + [cabeceras.join(','), ...filas].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Reporte_${tipo}_${inicio || 'HOY'}.csv`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            // --- 1. CREAR HOJA DE TRABAJO ---
+            const worksheet = XLSX.utils.json_to_sheet(data);
 
-            if(btn) btn.textContent = "✅ Listo";
-            setTimeout(() => { if(btn) btn.textContent = txtOriginal; }, 2000);
+            // --- 2. ESTILOS DE ENCABEZADO (ROJO MARCA) ---
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const address = XLSX.utils.encode_col(C) + "1"; 
+                if (!worksheet[address]) continue;
+
+                worksheet[address].s = {
+                    fill: { fgColor: { rgb: "FF003C" } }, // Tu color rojo
+                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, // Letra blanca
+                    alignment: { horizontal: "center", vertical: "center" },
+                    border: {
+                        top: { style: "thin", color: { auto: 1 } },
+                        bottom: { style: "thin", color: { auto: 1 } },
+                        left: { style: "thin", color: { auto: 1 } },
+                        right: { style: "thin", color: { auto: 1 } }
+                    }
+                };
+            }
+
+            // --- 3. ESTILOS DE CELDAS DE DATOS Y BORDES ---
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                    if (!worksheet[cellRef]) continue;
+
+                    worksheet[cellRef].s = {
+                        font: { name: "Arial", sz: 10 },
+                        alignment: { vertical: "center", horizontal: "left" }, 
+                        border: {
+                            top: { style: "thin", color: { rgb: "CCCCCC" } },
+                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                            left: { style: "thin", color: { rgb: "CCCCCC" } },
+                            right: { style: "thin", color: { rgb: "CCCCCC" } }
+                        }
+                    };
+                }
+            }
+
+            // --- 4. AJUSTE AUTOMÁTICO DE ANCHO DE COLUMNAS ---
+            const columnWidths = [];
+            const keys = Object.keys(data[0]);
+            
+            keys.forEach((key, index) => {
+                let maxLength = key.length;
+                data.forEach(row => {
+                    const cellValue = row[key] ? String(row[key]) : "";
+                    if (cellValue.length > maxLength) {
+                        maxLength = cellValue.length;
+                    }
+                });
+                columnWidths.push({ wch: maxLength + 5 });
+            });
+            worksheet['!cols'] = columnWidths;
+
+            // --- 5. CREAR LIBRO Y DESCARGAR ---
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
+
+            const nombreArchivo = `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`;
+            
+            XLSX.writeFile(workbook, nombreArchivo);
+
+            if(btn) {
+                btn.innerHTML = '<span>✅</span> ¡Descargado!';
+                setTimeout(() => { 
+                    btn.innerHTML = txtOriginal; 
+                    btn.disabled = false; 
+                }, 2000);
+            }
 
         } catch (e) {
             console.error(e);
-            alert("❌ Error: " + e.message);
-            if(btn) btn.textContent = "❌ Error";
-        } finally {
-            btn.disabled = false;
+            alert("❌ Error generando Excel: " + e.message);
+            if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
         }
     };
 
 
     // ==========================================
-    // 8. GRÁFICOS DASHBOARD (CON FILTROS)
+    // 8. GRÁFICOS DASHBOARD (MODO PREMIUM)
     // ==========================================
     let chartPastel = null; 
     let chartBarras = null;
     
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
+        const btnRefresh = document.querySelector('#vista-financiero .btn-refresh-moderno');
+        const icono = btnRefresh ? btnRefresh.querySelector('.icono-refresh') : null;
+
         if (contenedor.style.display === 'none') return;
 
-        // Puedes usar los mismos inputs de fecha del reporte o inputs propios del dashboard
+        if(icono) icono.classList.add('girando');
+        if(btnRefresh) btnRefresh.disabled = true;
+
         const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
         const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
 
         const params = new URLSearchParams();
         if(fechaDash) params.append('fecha', fechaDash);
         if(userDash && usuario.Rol === 'ADMINISTRADOR') params.append('usuarioID', userDash);
-        // Si es cajero, siempre ve sus propios datos
         if(usuario.Rol !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID);
 
         try {
@@ -716,12 +793,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!res.ok) return;
 
             const data = await res.json(); 
-            // data esperado: { categorias: [{label, value}], pagos: [{label, value}] }
 
-            // 1. Gráfico Pastel (Categorías)
+            Chart.defaults.font.family = "'Inconsolata', monospace";
+            Chart.defaults.color = '#666';
+
+            // 1. GRÁFICO PASTEL
             if(data.categorias) {
                 const ctxP = document.getElementById('graficoPastel').getContext('2d');
                 if(chartPastel) chartPastel.destroy();
+
                 chartPastel = new Chart(ctxP, {
                     type: 'doughnut',
                     data: {
@@ -729,36 +809,65 @@ document.addEventListener('DOMContentLoaded', () => {
                         datasets: [{ 
                             data: data.categorias.map(i => i.value), 
                             borderWidth: 0, 
-                            backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF'] 
+                            hoverOffset: 15, 
+                            borderRadius: 20, 
+                            spacing: 5,       
+                            backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] 
                         }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false }
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, cutout: '75%', 
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+                            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, cornerRadius: 8 }
+                        }
+                    }
                 });
             }
 
-            // 2. Gráfico Barras (Pagos)
+            // 2. GRÁFICO BARRAS
             if(data.pagos) {
                 const ctxB = document.getElementById('graficoBarras').getContext('2d');
                 if(chartBarras) chartBarras.destroy();
+
+                let gradientRed = ctxB.createLinearGradient(0, 0, 0, 400);
+                gradientRed.addColorStop(0, 'rgba(255, 0, 60, 0.9)');
+                gradientRed.addColorStop(1, 'rgba(255, 0, 60, 0.2)');
+
                 chartBarras = new Chart(ctxB, {
                     type: 'bar',
                     data: {
                         labels: data.pagos.map(i => i.label),
                         datasets: [{ 
-                            label: 'Total S/', 
+                            label: 'Total Ventas (S/)', 
                             data: data.pagos.map(i => i.value), 
-                            backgroundColor: '#22c55e', 
-                            borderRadius: 4 
+                            backgroundColor: gradientRed, 
+                            borderRadius: { topLeft: 15, topRight: 15 }, 
+                            borderSkipped: false,
+                            barPercentage: 0.6,
                         }]
                     },
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        scales: { y: { beginAtZero: true } } 
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: function(context) { return ' S/ ' + context.parsed.y.toFixed(2); } } }
+                        },
+                        scales: { 
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e5e5e5' }, border: { display: false } },
+                            x: { grid: { display: false }, border: { display: false } }
+                        } 
                     }
                 });
             }
-        } catch (e) { console.error("Error gráficos", e); }
+        } catch (e) { 
+            console.error("Error gráficos", e); 
+        } finally {
+            setTimeout(() => {
+                if(icono) icono.classList.remove('girando');
+                if(btnRefresh) btnRefresh.disabled = false;
+            }, 500);
+        }
     };
 
 
@@ -806,7 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
-                        if(targetId === 'vista-financiero') inicializarGraficos(); // Carga gráficos al entrar
+                        if(targetId === 'vista-financiero') inicializarGraficos();
                     }
                 });
             }

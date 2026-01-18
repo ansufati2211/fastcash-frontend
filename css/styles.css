@@ -322,8 +322,9 @@ body {
     grid-template-columns: 1.2fr 0.8fr;
     gap: 2rem;
     padding: 0;
-    overflow: hidden;
-    height: 550px;
+    overflow: visible;
+    height: auto;
+    min-height: 550px;
     background: white;
     border-radius: var(--radio-md);
     box-shadow: var(--sombra-lg);
@@ -338,6 +339,7 @@ body {
     flex-direction: column;
     gap: 1.5rem;
     border-right: 1px solid rgba(0,0,0,0.05);
+    border-radius: 1rem;
 }
 
 .cabecera-simple {
@@ -499,6 +501,8 @@ body {
 .dot.bcp { background: #002a8d; }
 .dot.bbva { background: #004481; }
 .dot.personal { background: #333; }
+.dot.scotia { background: #ec111a; } 
+.dot.otras { background: #666666; }
 
 .chip-banco.seleccionado {
     background: white;
@@ -586,6 +590,30 @@ body {
     box-shadow: 0 16px 40px rgba(255, 0, 60, 0.5);
 }
 
+.btn-registrar-grandeTarjeta {
+    width: 100%;
+    padding: 1.2rem;
+    background: linear-gradient(135deg, var(--color-primario), var(--color-acento));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: #2563eb;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: space-between;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    margin-top: 1rem;
+}
+
+.btn-registrar-grandeTarjeta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(5, 5, 149, 0.5);
+}
+
 /* --- AGREGAR AL FINAL DE TU CSS --- */
 
 /* Colores para los puntos de los nuevos bancos */
@@ -645,11 +673,10 @@ body {
 /* Cabecera de la sección */
 .cabecera-tabla {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    justify-content: space-between; 
+    align-items: center;            
+    width: 100%;                    
+    margin-bottom: 1.5rem;        
 }
 
 .titulo-seccion h2 {
@@ -1406,4 +1433,358 @@ input[type="date"] {
     pointer-events: none; /* No permite clics en nada */
     filter: grayscale(100%); /* Se pone en blanco y negro (opcional) */
     user-select: none;
+}
+
+/* Estilo del Botón Actualizar Moderno */
+.btn-refresh-moderno {
+    background-color: white;
+    color: #333;
+    border: 1px solid #e5e7eb;
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    font-family: 'Inconsolata', monospace;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.btn-refresh-moderno:hover {
+    background-color: #fff0f2;     /* Un tono rojizo muy suave al pasar el mouse */
+    border-color: #E60023;         /* Borde rojo de tu marca */
+    color: #E60023;                /* Texto rojo */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(230, 0, 35, 0.15); /* Sombra roja suave */
+}
+
+.btn-refresh-moderno:hover .icono-refresh {
+    transform: rotate(180deg);     /* Animación de giro */
+}
+
+.icono-refresh {
+    font-size: 1.1rem;
+    transition: transform 0.5s ease;
+}
+
+/* Efecto de rotación en el icono al pasar el mouse */
+.btn-refresh-moderno:hover .icono-refresh {
+    transform: rotate(180deg);
+}
+
+/* Animación de giro para el refresco */
+@keyframes rotarInfinito {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.girando {
+    animation: rotarInfinito 1s linear infinite;
+    pointer-events: none; /* Evita doble clic */
+}
+
+/* ================= ESTILOS REPORTES MODERNOS ================= */
+
+/* Contenedor de filtros más limpio */
+.filtros-reporte-unificados {
+    background: #ffffff;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+/* Etiquetas de los inputs */
+.grupo-filtro label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--texto-secundario);
+    margin-bottom: 0.5rem;
+    margin-left: 4px;
+}
+
+/* Inputs de fecha y Select más bonitos */
+.input-moderno {
+    padding: 0.8rem 1.2rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px; /* Bordes redondeados */
+    background-color: #f9fafb;
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.95rem;
+    color: var(--texto-principal);
+    transition: all 0.3s ease;
+    outline: none;
+    width: 100%;
+    min-width: 160px;
+}
+
+.input-moderno:focus {
+    background-color: white;
+    border-color: var(--color-primario); /* Borde rojo al seleccionar */
+    box-shadow: 0 0 0 4px rgba(255, 0, 60, 0.1); /* Resplandor rojo suave */
+}
+
+/* Estilo de las Tarjetas de Reporte */
+.card-reporte-accion {
+    background: white;
+    padding: 2.5rem 2rem;
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.02);
+    transition: transform 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-reporte-accion:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* El icono grande arriba del botón */
+.icono-grande {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+}
+
+.card-reporte-accion h3 {
+    font-size: 1.2rem;
+    color: #1d1d1f;
+    margin-bottom: 0.5rem;
+}
+
+/* EL BOTÓN DE DESCARGA MEJORADO */
+.btn-descarga-premium {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #ff003c 0%, #c8002f 100%); /* Degradado Rojo */
+    color: white;
+    border: none;
+    border-radius: 50px; /* Completamente redondo */
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(255, 0, 60, 0.3); /* Sombra roja brillante */
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-descarga-premium:hover {
+    box-shadow: 0 12px 25px rgba(255, 0, 60, 0.5);
+    transform: scale(1.02);
+}
+
+.btn-descarga-premium:active {
+    transform: scale(0.98);
+}
+
+.btn-descarga-premium:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Pequeño brillo en el botón */
+.btn-descarga-premium::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.btn-descarga-premium:hover::after {
+    left: 100%;
+}
+
+
+/* ==========================================================================
+   ESTILOS DE IMPRESIÓN TÉRMICA (SOLUCIÓN DE ALINEACIÓN IZQUIERDA)
+   ========================================================================== */
+@media print {
+    @page { margin: 0; size: auto; }
+
+    /* 1. Resetear HTML y Body */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    /* 2. Ocultar todo visualmente */
+    body * {
+        visibility: hidden;
+        height: 0;
+    }
+
+    /* 3. Hacer visible el ticket */
+    #ticketImpresion, #ticketImpresion * {
+        visibility: visible !important;
+        height: auto !important;
+    }
+
+    /* 4. TRUCO CLAVE: Desactivar la posición de los padres */
+    /* Esto evita que el ticket respete el espacio del menú lateral o paddings */
+    .contenedor-principal, 
+    .area-trabajo, 
+    .contenedor-cierre, 
+    .vista-seccion,
+    #sidebar {
+        position: static !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 100% !important;
+        left: 0 !important;
+    }
+
+    /* 5. Posicionar el ticket AL INICIO ABSOLUTO */
+    /* Al ser los padres 'static', el 'absolute' se referirá a la página entera */
+    #ticketImpresion {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        
+        /* Ancho del 100% del papel */
+        width: 100% !important;
+        
+        margin: 0 !important;
+        padding: 2px 0 !important; /* Mínimo padding */
+        
+        background-color: white !important;
+        color: black !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        
+        /* LETRA GRANDE (Ajustada) */
+        font-size: 13px !important; 
+        font-weight: 700 !important; /* Negrita fuerte */
+        line-height: 1.1 !important;
+        text-align: center; /* Todo centrado */
+    }
+
+    /* --- ESTILOS INTERNOS (Para que se vea bien centrado) --- */
+    .ticket-header h3 { font-size: 16px !important; margin: 5px 0 !important; text-transform: uppercase; }
+    .ticket-header p { font-size: 12px !important; margin: 2px 0 !important; }
+    .ticket-header h4 { font-size: 14px !important; border: 2px solid black; margin: 8px 0; padding: 4px; }
+
+    /* Líneas */
+    .dashed { border-top: 2px dashed black !important; margin: 6px 0 !important; display: block; }
+    .solid { border-top: 2px solid black !important; margin: 6px 0 !important; display: block; }
+
+    /* Filas alineadas a los extremos */
+    .fila-ticket {
+        display: flex !important;
+        justify-content: space-between !important;
+        margin-bottom: 2px !important;
+        width: 100% !important;
+    }
+    .fila-ticket span:first-child { text-align: left; }
+    .fila-ticket span:last-child { text-align: right; }
+
+    /* Total Gigante */
+    .fila-ticket.total { margin-top: 10px !important; }
+    .fila-ticket.total span:first-child { font-size: 14px !important; }
+    .fila-ticket.total span:last-child { font-size: 20px !important; font-weight: 900 !important; }
+
+    .ticket-footer { margin-top: 20px !important; font-size: 10px !important; }
+}
+
+/* =========================================================
+   ARREGLO DE TÍTULOS CUANDO EL MENÚ ESTÁ CERRADO
+   ========================================================= */
+
+/* Cuando el sidebar tiene la clase .colapsado... */
+.sidebar.colapsado .titulo-seccion-menu {
+    /* 1. Ocultamos el texto original */
+    font-size: 0 !important;
+    color: transparent;
+    padding: 0;
+    
+    /* 2. Lo convertimos en una línea separadora bonita */
+    height: 2px;               /* Grosor de la línea */
+    width: 30px;               /* Ancho de la línea */
+    background: rgba(255, 255, 255, 0.3); /* Color blanco semitransparente */
+    margin: 15px auto;         /* Centrado y con espacio arriba/abajo */
+    border-radius: 2px;        /* Bordes redondeados */
+    border: none !important;   /* Quita bordes viejos si los hubiera */
+}
+
+/* 1. Estilo base idéntico para ambos botones */
+#btnAbrirCaja, 
+#btnCerrarSesion {
+    /* Dimensiones fijas para que sean gemelos */
+    height: 45px !important;
+    padding: 0 20px !important;
+    min-width: 140px !important; /* Ancho mínimo igual */
+    
+    /* Forma rectangular redondeada (como el de abrir caja original) */
+    border-radius: 8px !important; 
+    
+    /* Tipografía */
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    
+    /* Flexbox para centrar iconos */
+    display: flex; /* El JS cambia esto a 'none' o 'flex', pero aquí definimos el estilo base */
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    
+    /* Transición suave para la animación */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    cursor: pointer;
+    border: none;
+}
+
+/* 2. Colores Específicos: Botón ABRIR CAJA (Verde) */
+#btnAbrirCaja {
+    background-color: #22c55e !important;
+    color: white !important;
+    box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2) !important;
+}
+
+/* 3. Colores Específicos: Botón SALIR (Blanco con borde) */
+#btnCerrarSesion {
+    background-color: white !important;
+    color: var(--color-primario) !important;
+    border: 1.5px solid rgba(0,0,0,0.08) !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+}
+
+/* 4. ANIMACIÓN HOVER PARA LOS DOS (El efecto que querías) */
+#btnAbrirCaja:hover,
+#btnCerrarSesion:hover {
+    transform: translateY(-3px) !important; /* Se eleva */
+}
+
+/* Hover específico ABRIR (Brillo verde) */
+#btnAbrirCaja:hover {
+    background-color: #16a34a !important;
+}
+
+/* Hover específico SALIR (Se vuelve rojo) */
+#btnCerrarSesion:hover {
+    background-color: var(--color-primario) !important;
+    color: white !important;
+    border-color: var(--color-primario) !important;
+
 }

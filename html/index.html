@@ -7,7 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -30,7 +34,7 @@
                 <span class="turno-actual fecha-hora-reloj">--:--</span>
             </div>
             
-            <button class="btn-accion-caja" id="btnAbrirCaja" style="display: none; background: #22c55e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-right: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <button class="btn-header-accion" id="btnAbrirCaja" style="display: none;">
                 📥 Abrir Caja
             </button>
 
@@ -160,18 +164,32 @@
                             <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
                             <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
                             <label class="label-separador">Banco del POS:</label>
-                            <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
-                                <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
-                                <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
-                                <button type="button" class="chip-banco" data-value="5"><span class="dot interbank"></span> Izipay</button>
-                                <button type="button" class="chip-banco" data-value="6"><span class="dot regalo"></span> Niubiz</button>
-                                <input type="hidden" id="inputBancoTarjeta" value="3">
-                            </div>
+<div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
+    <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
+    <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
+    <button type="button" class="chip-banco" data-value="5"><span class="dot interbank"></span> Interbank</button>
+    
+    <button type="button" class="chip-banco" data-value="9"><span class="dot regalo"></span> T.Regalo</button>
+    
+    <button type="button" class="chip-banco" data-value="7"><span class="dot scotia"></span> Scotiabank</button>
+    <button type="button" class="chip-banco" data-value="8"><span class="dot otras"></span> Otras</button>
+
+    <input type="hidden" id="inputBancoTarjeta" value="3">
+</div>
                             <div class="input-operacion-wrapper" style="margin-top: 1rem;">
                                 <label>N° Lote / Voucher</label>
                                 <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
                             </div>
+                            
+                            <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
+                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+                                <button type="button" class="segmento" data-value="1">Factura</button>
+                                <button type="button" class="segmento" data-value="4">Nota</button>
+                                <input type="hidden" id="inputComprobanteTarjeta" value="2">
+                            </div>
+
                             <div style="flex-grow: 1;"></div>
+                            
                             <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
                         </form>
                     </div>
@@ -180,14 +198,16 @@
 
             <section id="vista-anulacion" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
+                    
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
                             <h2>🚫 Historial de Ventas (Hoy)</h2>
                             <p>Supervisión y Anulaciones en tiempo real.</p>
                         </div>
-                        <button class="btn-actualizar" onclick="cargarHistorial()">🔄 Actualizar</button>
-                    </div>
-                    <div class="tabla-responsive">
+                        <button class="btn-refresh-moderno" onclick="cargarHistorial()">
+                            <span class="icono-refresh">🔄</span> Refrescar
+                        </button>
+                    </div> <div class="tabla-responsive">
                         <table class="tabla-transacciones">
                             <thead>
                                 <tr>
@@ -201,43 +221,54 @@
 
             <section id="vista-reportes" class="vista-seccion">
                 <div class="contenedor-tabla-registro" style="background: transparent; box-shadow: none; border: none; padding: 0;">
-                    <div class="titulo-seccion" style="margin-bottom: 1rem;">
+                    
+                    <div class="titulo-seccion" style="margin-bottom: 1.5rem;">
                         <h2>📊 Centro de Reportes</h2>
-                        <p>Descarga de información histórica.</p>
+                        <p>Genera y descarga información histórica en Excel Profesional.</p>
                     </div>
 
-                    <div class="filtros-reporte-unificados" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 2rem;">
+                    <div class="filtros-reporte-unificados">
                         <div class="grupo-filtro">
-                            <label>Fecha Inicio:</label>
-                            <input type="date" id="fechaInicio" class="input-std">
+                            <label>📅 Fecha Inicio</label>
+                            <input type="date" id="fechaInicio" class="input-moderno">
                         </div>
                         <div class="grupo-filtro">
-                            <label>Fecha Fin:</label>
-                            <input type="date" id="fechaFin" class="input-std">
+                            <label>📅 Fecha Fin</label>
+                            <input type="date" id="fechaFin" class="input-moderno">
                         </div>
                         
-                        <div class="grupo-filtro" id="contenedorFiltroUsuario" style="display: none;">
-                            <label>Filtrar por Cajero:</label>
-                            <select id="filtroUsuarioReporte" class="input-std">
-                                <option value="">-- Todos --</option>
+                        <div class="grupo-filtro" id="contenedorFiltroUsuario" style="display: none; flex-grow: 1;">
+                            <label>👤 Filtrar por Cajero</label>
+                            <select id="filtroUsuarioReporte" class="input-moderno">
+                                <option value="">-- Todos los Cajeros --</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="grid-reportes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                        <div class="card-reporte-accion" style="background: white; padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                            <div class="icono-grande" style="font-size: 3rem; margin-bottom: 1rem;">🧾</div>
-                            <h3>Reporte de Ventas</h3>
-                            <p style="color: #666; margin-bottom: 1.5rem;">Detalle transacción por transacción (Yape, Tarjeta, Efectivo).</p>
-                            <button class="btn-generar-reporte" onclick="generarReporte('GENERAL')" style="width: 100%;">📥 Descargar CSV</button>
+                    <div class="grid-reportes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        
+                        <div class="card-reporte-accion">
+                            <div class="icono-grande">🧾</div>
+                            <h3>Reporte de Ventas Detallado</h3>
+                            <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
+                                Exporta cada transacción individual incluyendo método de pago (Yape/Tarjeta), número de operación y productos.
+                            </p>
+                            <button class="btn-descarga-premium" onclick="generarReporte('GENERAL')">
+                                <span>📥</span> Descargar Excel
+                            </button>
                         </div>
 
-                        <div class="card-reporte-accion" style="background: white; padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                            <div class="icono-grande" style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
-                            <h3>Reporte de Cajas</h3>
-                            <p style="color: #666; margin-bottom: 1.5rem;">Historial de aperturas, cierres y cuadres de caja.</p>
-                            <button class="btn-generar-reporte" onclick="generarReporte('CAJAS')" style="width: 100%;">📥 Descargar CSV</button>
+                        <div class="card-reporte-accion">
+                            <div class="icono-grande">📦</div>
+                            <h3>Historial de Cierres de Caja</h3>
+                            <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
+                                Visualiza aperturas y cierres de turno, montos iniciales, finales y cuadres de caja por usuario.
+                            </p>
+                            <button class="btn-descarga-premium" onclick="generarReporte('CAJAS')">
+                                <span>📥</span> Descargar Excel
+                            </button>
                         </div>
+
                     </div>
                 </div>
             </section>
@@ -271,10 +302,16 @@
 
             <section id="vista-financiero" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
+                    
                     <div class="cabecera-tabla">
-                        <div class="titulo-seccion"><h2>📈 Dashboard Financiero (Hoy)</h2></div>
-                        <button class="btn-actualizar" onclick="inicializarGraficos()">🔄 Refrescar</button>
+                        <div class="titulo-seccion">
+                            <h2>📈 Dashboard Financiero (Hoy)</h2>
+                        </div>
+                        <button class="btn-refresh-moderno" onclick="inicializarGraficos()">
+                            <span class="icono-refresh">🔄</span> Actualizar Datos
+                        </button>
                     </div>
+
                     <div class="grid-graficos">
                         <div class="card-grafico">
                             <h3>Ventas por Categoría</h3>
@@ -310,7 +347,7 @@
                     <div id="ticketImpresion" class="ticket-oculto">
                         <div class="ticket-header">
                             <h3>ROJAS SUPER S.A.C.</h3>
-                            <p>RUC: 20601234567</p>
+                            <p>RUC: 20606916061</p>
                             <hr class="dashed">
                             <h4>CIERRE DE TURNO</h4>
                             <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
@@ -325,7 +362,20 @@
                             <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
                             <hr class="dashed">
                         </div>
-                        <div class="ticket-footer"><p>Firma Cajero</p></div>
+<div class="ticket-footer">
+    <div style="margin-bottom: 5px;">
+        <span style="font-size: 10px;">Cajero:</span><br>
+        <span id="ticketCajeroNombre" style="font-size: 16px !important; font-weight: 900 !important; text-transform: uppercase;">--</span>
+    </div>
+    
+    <p style="font-size: 12px !important; margin-top: 2px;">
+        TURNO: <span id="ticketTurno" style="font-weight: bold;">--</span>
+    </p>
+
+    <br>
+    <p>_________________________</p>
+    <p>Firma Conforme</p>
+</div>
                     </div>
                 </div>
             </section>
