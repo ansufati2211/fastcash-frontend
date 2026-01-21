@@ -325,20 +325,35 @@
                     </div>
                 </div>
             </section>
-
-           <section id="vista-cierre" class="vista-seccion">
+<section id="vista-cierre" class="vista-seccion">
                 <div class="contenedor-cierre">
                     <div class="cabecera-cierre">
-                        <div class="titulo-cierre"><h2>🔒 Cierre de Turno</h2><p>Resumen y Cuadre de Caja</p></div>
+                        <div class="titulo-cierre">
+                            <h2>🔒 Cierre de Turno</h2>
+                            <p>Resumen Financiero del Cajero</p>
+                        </div>
                         <div class="fecha-cierre"><span id="fechaCierre">--/--/----</span></div>
                     </div>
                     
                     <div class="grid-resumen-cierre">
-                        <div class="card-dato"><span class="label">Saldo Inicial</span><span class="valor" id="ticketSaldoInicial" style="color: #666;">S/ 0.00</span></div>
-                        <div class="card-dato"><span class="label">Efectivo</span><span class="valor" id="ticketEfectivo">S/ 0.00</span></div>
-                        <div class="card-dato"><span class="label">Yape/Plin</span><span class="valor" id="totalYape">S/ 0.00</span></div>
-                        <div class="card-dato"><span class="label">Tarjetas</span><span class="valor" id="totalTarjeta">S/ 0.00</span></div>
-                        <div class="card-dato total"><span class="label">TOTAL VENDIDO</span><span class="valor" id="totalGeneral">S/ 0.00</span></div>
+                        <div class="card-dato">
+                            <span class="label">📱 Yape/Plin</span>
+                            <span class="valor" id="totalYape">S/ 0.00</span>
+                        </div>
+                        <div class="card-dato">
+                            <span class="label">💳 Tarjetas</span>
+                            <span class="valor" id="totalTarjeta">S/ 0.00</span>
+                        </div>
+                        
+                        <div class="card-dato anulado" style="border-left: 4px solid #ef4444; background-color: #fef2f2;">
+                            <span class="label" style="color: #ef4444;">🚫 Anulado</span>
+                            <span class="valor" id="totalAnulado" style="color: #ef4444;">S/ 0.00</span>
+                        </div>
+
+                        <div class="card-dato total">
+                            <span class="label">TOTAL VENTA</span>
+                            <span class="valor" id="totalGeneral">S/ 0.00</span>
+                        </div>
                     </div>
                     
                     <div class="accion-cierre">
@@ -348,35 +363,24 @@
                     <div id="ticketImpresion" class="ticket-oculto">
                         <div class="ticket-header">
                             <h3>ROJAS SUPER S.A.C.</h3>
-                            <p>RUC: 20606916061</p>
+                            <p>RUC: 20601234567</p>
                             <hr class="dashed">
                             <h4>CIERRE DE TURNO</h4>
                             <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
+                            <p>Cajero: <span id="ticketCajeroNombre"></span></p>
                             <hr class="dashed">
                         </div>
                         <div class="ticket-body">
-                            <div class="fila-ticket"><span>Saldo Inicial:</span><span id="ticketSaldoInicialPrint">S/ 0.00</span></div>
-                            <div class="fila-ticket"><span>(+) Efectivo:</span><span id="ticketEfectivoPrint">S/ 0.00</span></div>
-                            <div class="fila-ticket"><span>(+) Yape/Plin:</span><span id="ticketYapePrint">S/ 0.00</span></div>
-                            <div class="fila-ticket"><span>(+) Tarjetas:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
+                            <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
+                            <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
+                            
+                            <div class="fila-ticket"><span>(-) ANULADO:</span><span id="ticketAnuladoPrint">S/ 0.00</span></div>
+                            
                             <hr class="solid">
                             <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
                             <hr class="dashed">
                         </div>
-<div class="ticket-footer">
-    <div style="margin-bottom: 5px;">
-        <span style="font-size: 10px;">Cajero:</span><br>
-        <span id="ticketCajeroNombre" style="font-size: 16px !important; font-weight: 900 !important; text-transform: uppercase;">--</span>
-    </div>
-    
-    <p style="font-size: 12px !important; margin-top: 2px;">
-        TURNO: <span id="ticketTurno" style="font-weight: bold;">--</span>
-    </p>
-
-    <br>
-    <p>_________________________</p>
-    <p>Firma Conforme</p>
-</div>
+                        <div class="ticket-footer"><p>Firma Cajero</p></div>
                     </div>
                 </div>
             </section>

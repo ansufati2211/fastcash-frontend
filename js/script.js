@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
+// ==========================================
     // FUNCIÓN DEL BOTÓN "CERRAR CAJA E IMPRIMIR"
     // ==========================================
     window.imprimirCierre = async () => {
@@ -171,52 +171,46 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const data = await resReporte.json(); 
 
-            // Función auxiliar para formatear dinero
+            // Función auxiliar para formatear dinero (segura si no existe el elemento HTML)
             const setText = (id, valor) => {
                 const el = document.getElementById(id);
                 if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
             };
 
-            // PASO B: Llenar el Ticket Oculto (HTML) para la impresión
+            // PASO B: Llenar datos de Fecha/Hora
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
 
-            // --- 1. LLENAR NOMBRE ---
+            // --- 1. DATOS DE USUARIO ---
             const nombreCajero = usuario.NombreCompleto || usuario.username || "Cajero";
             const elNombre = document.getElementById('ticketCajeroNombre');
             if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
 
-            // --- 2. OBTENER TURNO REAL DESDE BD (CORRECCIÓN) ---
-            // Primero intentamos leer de la sesión, pero por seguridad, 
-            // consultamos la BD para ver qué tiene asignado realmente este ID.
-            let turnoTexto = "MAÑANA"; // Valor por defecto
-            
-            try {
-                // Hacemos una consulta rápida a la lista de usuarios para ver el turno actual
-                const resUsers = await fetch(`${BASE_URL}/admin/usuarios`);
-                if(resUsers.ok) {
-                    const listaUsers = await resUsers.json();
-                    const userEncontrado = listaUsers.find(u => u.UsuarioID == uid);
-                    if(userEncontrado && userEncontrado.TurnoActual) {
-                        turnoTexto = userEncontrado.TurnoActual;
-                    }
-                }
-            } catch(err) {
-                console.log("No se pudo verificar turno en BD, usando local o hora");
-                // Fallback si falla la red: Usar hora
-                const horaActual = new Date().getHours();
-                turnoTexto = (horaActual < 14) ? "MAÑANA" : "TARDE";
-            }
-            
             const elTurno = document.getElementById('ticketTurno');
-            if(elTurno) elTurno.textContent = turnoTexto.toUpperCase();
-            // ----------------------------------------------
+            if(elTurno) elTurno.textContent = "MAÑANA"; // O lógica de turno
 
+            // --- 2. LLENADO DE MONTOS (VISUAL Y TICKET) ---
+            
+            // Saldos y Efectivo (Si existen en tu HTML los llenará, si no, los ignora sin error)
             setText('ticketSaldoInicialPrint', data.SaldoInicial);
             setText('ticketEfectivoPrint', data.VentasEfectivo);
-            setText('ticketYapePrint', data.VentasDigital);
-            setText('ticketTarjetaPrint', data.VentasTarjeta);
-            setText('ticketTotalPrint', data.TotalVendido);
+
+            // Ventas Digitales
+            setText('totalYape', data.VentasDigital);        // Pantalla
+            setText('ticketYapePrint', data.VentasDigital);  // Ticket
+
+            // Tarjetas
+            setText('totalTarjeta', data.VentasTarjeta);       // Pantalla
+            setText('ticketTarjetaPrint', data.VentasTarjeta); // Ticket
+
+            // 🔴 NUEVO: ANULACIONES (CORREGIDO)
+            // Usamos data.TotalAnulado que viene del SQL. Si es nulo, pone 0.
+            setText('totalAnulado', data.TotalAnulado || 0);       // Pantalla (Tarjeta Roja)
+            setText('ticketAnuladoPrint', data.TotalAnulado || 0); // Ticket Impreso
+
+            // Total General
+            setText('totalGeneral', data.TotalVendido);       // Pantalla
+            setText('ticketTotalPrint', data.TotalVendido);   // Ticket
 
             // PASO C: Mandar la orden al Backend para cerrar la caja
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
@@ -238,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.print(); // Abre el diálogo de impresión
                 alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
-                window.location.href = '../html/login.html';
+                window.location.href = '../html/login.html'; // Asegúrate de la ruta correcta
             }, 800);
 
         } catch (error) {
@@ -903,16 +897,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         v.style.display = 'block'; 
                         setTimeout(() => v.classList.add('activa'), 10);
                         
-                        // Acciones al cambiar de pestaña
-                        if(targetId === 'vista-cierre') {
-                             fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
-                                .then(r => r.json())
-                                .then(d => {
-                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
-                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
-                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
-                                }).catch(()=>{});
-                        }
+                   // BUSCA ESTA PARTE AL FINAL DE TU SCRIPT.JS (Dentro de menuItems.forEach)
+if(targetId === 'vista-cierre') {
+     fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
+        .then(r => r.json())
+        .then(d => {
+            // Llenar Yape, Tarjeta y Total
+            document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
+            document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
+            document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
+            
+            // 🔴 ESTO ES LO QUE FALTABA: PINTAR LA TARJETA ROJA AL ENTRAR
+            document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || 0).toFixed(2)}`;
+        })
+        .catch(err => console.error("Error cargando cierre:", err));
+}
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
                         if(targetId === 'vista-financiero') inicializarGraficos();
