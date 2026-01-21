@@ -920,66 +920,103 @@ body {
     background: #000;
 }
 
-/* ================= ESTILOS TICKET (POS) ================= */
-/* Oculto en pantalla normal */
+/* ========================================================= */
+/* ESTILOS DEL TICKET DE IMPRESIÓN (POS TÉRMICO)           */
+/* ========================================================= */
+
+/* 1. OCULTO EN PANTALLA NORMAL */
+/* Esto asegura que el ticket no se vea debajo de los botones */
 .ticket-oculto {
     display: none; 
 }
 
-/* Estilos de impresión real */
+/* 2. CONFIGURACIÓN DE IMPRESIÓN REAL */
 @media print {
-    /* Ocultar TODO lo que no sea el ticket */
+    
+    /* A. Ocultar toda la interfaz del sistema */
     body * {
         visibility: hidden;
     }
     
-    /* Mostrar solo el ticket */
+    /* B. Mostrar SOLO el contenedor del ticket y su contenido */
     #ticketImpresion, #ticketImpresion * {
         visibility: visible;
     }
 
+    /* C. Posicionar el ticket para la impresora térmica */
     #ticketImpresion {
         position: absolute;
         left: 0;
         top: 0;
-        width: 80mm; /* Ancho estándar POS */
-        padding: 5mm;
-        display: block; /* Hacerlo visible */
+        width: 80mm; /* Ancho estándar POS (80mm) */
+        padding: 2mm; /* Pequeño margen interno */
+        display: block; /* Forzar visualización al imprimir */
         background: white;
         color: black;
-        font-family: 'Courier New', Courier, monospace; /* Fuente tipo ticket */
+        font-family: 'Courier New', Courier, monospace; /* Fuente monoespaciada tipo ticket */
     }
 
-    /* Diseño interno del ticket */
+    /* D. Diseño interno del ticket (Estética POS) */
     .ticket-header {
         text-align: center;
         margin-bottom: 10px;
     }
     
-    .ticket-header h3 { font-size: 16px; margin: 5px 0; }
-    .ticket-header p { font-size: 12px; margin: 2px 0; }
-    .ticket-header h4 { font-size: 14px; margin: 5px 0; border: 1px solid black; padding: 2px; }
+    .ticket-header h3 { 
+        font-size: 16px; 
+        margin: 5px 0; 
+        font-weight: bold;
+        text-transform: uppercase;
+    }
 
-    .dashed { border-top: 1px dashed black; margin: 5px 0; }
-    .solid { border-top: 1px solid black; margin: 5px 0; }
+    .ticket-header p { 
+        font-size: 12px; 
+        margin: 2px 0; 
+    }
 
+    .ticket-header h4 { 
+        font-size: 14px; 
+        margin: 8px 0; 
+        border: 2px solid black; /* Marco grueso para el título */
+        padding: 5px; 
+        font-weight: bold;
+    }
+
+    /* Líneas separadoras */
+    .dashed { 
+        border-top: 1px dashed black; 
+        margin: 5px 0; 
+        height: 1px;
+    }
+    
+    .solid { 
+        border-top: 1px solid black; 
+        margin: 5px 0; 
+        height: 1px;
+    }
+
+    /* Filas de datos (Justificadas a los lados) */
     .fila-ticket {
         display: flex;
         justify-content: space-between;
         font-size: 12px;
-        margin: 3px 0;
+        margin: 4px 0;
     }
 
+    /* Fila de Total (Más grande) */
     .fila-ticket.total {
         font-weight: bold;
-        font-size: 16px;
-        margin-top: 5px;
+        font-size: 18px; /* Total bien grande */
+        margin-top: 8px;
+        border-top: 2px solid black;
+        padding-top: 5px;
     }
 
     .ticket-footer {
         text-align: center;
-        margin-top: 15px;
-        font-size: 12px;
+        margin-top: 20px;
+        font-size: 11px;
+        font-style: italic;
     }
 }
 

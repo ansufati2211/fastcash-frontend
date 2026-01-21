@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
         // Redirigir si no hay sesión (Descomentar en producción)
-        // window.location.href = '../html/login.html'; 
+        window.location.href = 'login.html'; 
+        return;
     }
     
     const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
