@@ -53,6 +53,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function forzarSoloNumeros(idInput) {
+        const input = document.getElementById(idInput);
+        if (input) {
+            // Evento 'input': Se dispara cada vez que se escribe o pega algo
+            input.addEventListener('input', function() {
+                // Reemplaza todo lo que NO sea número (0-9) por vacío
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
+    }
+
+    forzarSoloNumeros('numOperacion');        // Campo Yape/Plin
+    forzarSoloNumeros('numOperacionTarjeta'); // Campo Lote/Voucher Tarjeta
+
     activarSelector('selectorFamilia', 'card-familia', 'inputFamilia');
     activarSelector('selectorFamiliaTarjeta', 'card-familia', 'inputFamiliaTarjeta');
     activarSelector('selectorDestino', 'chip-banco', 'inputDestino');
