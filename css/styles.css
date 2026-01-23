@@ -1825,3 +1825,450 @@ input[type="date"] {
     border-color: var(--color-primario) !important;
 
 }
+
+/* ========================================================= */
+/* ESTILOS DE INPUTS (OPERACIÓN Y COMPROBANTE IGUALES)       */
+/* ========================================================= */
+
+/* Agrupamos ambos selectores para que tengan el MISMO estilo */
+.input-operacion-wrapper,
+.display-comprobante-wrapper {
+    background: #f5f5f7; /* El mismo gris suave */
+    border-radius: 12px;
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem; /* Separación estándar */
+    border: none; /* Sin bordes raros */
+}
+
+/* Estilo para las etiquetas (labels) de ambos */
+.input-operacion-wrapper label, 
+.display-comprobante-wrapper label {
+    font-size: 0.75rem;
+    color: var(--texto-terciario);
+    margin-bottom: 2px;
+    font-weight: 400; /* Peso normal, no negrita forzada */
+    text-transform: none; /* Texto normal, no mayúsculas forzadas */
+}
+
+/* Estilo para el texto dentro del input */
+.input-operacion-wrapper input,
+.display-comprobante-wrapper input {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-family: "Inconsolata", monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--texto-principal);
+    box-shadow: none;
+    width: 100%;
+    outline: none;
+}
+
+/* Diferencia sutil: El comprobante es solo lectura, así que el cursor cambia */
+.display-comprobante-wrapper input {
+    cursor: text; /* O 'default' si prefieres que no parezca editable */
+    color: var(--texto-secundario); /* Un poco más gris para diferenciar que es automático */
+}
+
+/* Eliminar el estilo punteado anterior si quedó por ahí */
+.display-comprobante-wrapper::after {
+    display: none;
+}
+
+/* ===============================================================
+   RESPONSIVE MOBILE - AGREGAR AL FINAL DE TU ARCHIVO CSS
+   =============================================================== */
+
+/* ==================== TABLETS (768px - 1024px) ==================== */
+@media (max-width: 1024px) {
+    :root {
+        --ancho-sidebar: 260px;
+    }
+
+    .header-sistema {
+        padding: 0 1.5rem;
+    }
+
+    .area-trabajo {
+        padding: 1.5rem;
+    }
+
+    .contenedor-formulario-yape {
+        padding: 2rem;
+    }
+
+    .grid-reportes {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==================== MÓVILES (≤768px) ==================== */
+@media (max-width: 768px) {
+    
+    /* HEADER MÓVIL */
+    .header-sistema {
+        height: 60px;
+        padding: 0 1.25rem;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.98);
+    }
+    .header-izquierda { gap: 0.75rem; }
+    .logo-sistema { height: 32px; }
+    .info-usuario, .nombre-cajero, .turno-actual { display: none; }
+
+    /* BOTONES HEADER COMPACTOS */
+    .btn-cerrar-sesion, #btnAbrirCaja {
+        min-width: auto !important;
+        padding: 0.4rem 0.8rem !important;
+        height: 34px !important;
+        font-size: 0.8rem !important;
+        border-radius: 8px !important;
+        gap: 0 !important;
+    }
+    .btn-cerrar-sesion span:not(.icono-btn), #btnAbrirCaja span { display: none; } 
+    .btn-cerrar-sesion .icono-btn, #btnAbrirCaja .icono-btn { font-size: 1.1rem; margin: 0; }
+
+    /* SIDEBAR Y ESTRUCTURA */
+    .contenedor-principal { margin-top: 60px; height: calc(100vh - 60px); }
+    .sidebar {
+        position: fixed; left: -100%; top: 60px; height: calc(100vh - 60px); width: 260px;
+        z-index: 999; transition: left 0.3s ease; padding: 1rem; box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    }
+    .sidebar.mobile-open { left: 0; }
+    
+    /* ÁREA DE TRABAJO */
+    .area-trabajo { 
+        padding: 1.25rem; 
+        width: 100%; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        gap: 1.5rem; 
+    }
+    .vista-seccion { width: 100%; max-width: 100%; }
+
+    /* FORMULARIOS DE VENTAS */
+    .layout-split {
+        display: flex; flex-direction: column; gap: 0; border-radius: 16px; overflow: hidden;
+        margin-bottom: 2rem; border: 1px solid rgba(0,0,0,0.05);
+    }
+    .panel-seleccion { padding: 1.5rem; width: 100%; border-right: none; border-bottom: 1px solid #f0f0f0; }
+    .panel-transaccion { padding: 1.5rem; width: 100%; }
+
+    .cabecera-simple { margin-bottom: 1rem; flex-direction: row; justify-content: space-between; align-items: center; }
+    .cabecera-simple h3 { font-size: 1.1rem; margin: 0; }
+
+    /* GRID FAMILIAS TÁCTIL */
+    .grid-familias-moderna { 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 0.75rem; 
+        padding-bottom: 0.5rem; 
+    }
+    .card-familia { padding: 0.75rem 0.5rem; }
+    .card-familia .emoji { font-size: 1.6rem; }
+    .card-familia .label { font-size: 0.65rem; margin-top: 4px; }
+
+    /* INPUTS Y BOTONES FORMULARIO */
+    .input-hero { height: 50px; margin-bottom: 1rem; }
+    .input-hero input { font-size: 2rem; }
+    .input-hero .moneda { font-size: 1.4rem; }
+    
+    .selector-bancos.wrap-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .chip-banco { padding: 0.7rem; font-size: 0.8rem; }
+    
+    .btn-registrar-grande { 
+        padding: 0.9rem; font-size: 0.95rem; margin-top: 1.5rem; 
+        border-radius: 12px; justify-content: center; gap: 10px;
+    }
+
+    /* TABLAS */
+    .contenedor-tabla-registro { padding: 1.25rem; border-radius: 16px; margin-bottom: 1rem; }
+    .cabecera-tabla { flex-direction: row; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    .titulo-seccion { flex: 1; min-width: 150px; }
+    .titulo-seccion h2 { font-size: 1.2rem; }
+    
+    .btn-refresh-moderno, .btn-nuevo-usuario { width: auto; padding: 0.5rem 1rem; font-size: 0.8rem; }
+    
+    .tabla-transacciones { min-width: 600px; font-size: 0.8rem; }
+    .tabla-transacciones th, .tabla-transacciones td { padding: 0.6rem 0.5rem; }
+    
+    /* REPORTES Y GRÁFICOS */
+    .filtros-reporte-unificados { padding: 1.5rem; gap: 1.25rem; }
+    .grid-reportes { grid-template-columns: 1fr !important; gap: 1rem; }
+    .grid-graficos { grid-template-columns: 1fr; gap: 1.5rem; }
+    
+    /* CIERRE DE CAJA */
+    .contenedor-cierre { padding: 1.5rem; }
+    .grid-resumen-cierre { grid-template-columns: 1fr; gap: 0.75rem; }
+    .card-dato { padding: 1rem 1.25rem; flex-direction: row; justify-content: space-between; align-items: center; }
+    .card-dato .valor { font-size: 1.2rem; }
+    .card-dato.total .valor { font-size: 1.6rem; }
+    
+    /* --- MODALES MÓVILES (CORREGIDO: Con espacio para botones) --- */
+    .modal { padding: 0; align-items: flex-end; }
+    
+    .modal-contenido-bonito { 
+        width: 100%; margin: 0; 
+        border-radius: 20px 20px 0 0; 
+        max-height: 85vh; 
+        display: flex; flex-direction: column; 
+        background: white; 
+    }
+    
+    .modal-header { 
+        flex-shrink: 0; padding: 1.25rem; border-bottom: 1px solid #eee; 
+    }
+    
+    #formUsuario { 
+        overflow-y: auto; 
+        padding: 1.5rem; 
+        /* Padding extra abajo para que los botones sean accesibles al scrollear */
+        padding-bottom: 4rem; 
+        -webkit-overflow-scrolling: touch; 
+    }
+    
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+    
+    .modal-footer { 
+        flex-direction: column-reverse; 
+        gap: 0.75rem; margin-top: 2rem; 
+    }
+    
+    .btn-guardar, .btn-cancelar { 
+        width: 100%; padding: 1rem; font-size: 1rem; margin: 0; 
+    }
+}
+/* ==================== MÓVILES PEQUEÑOS (≤480px) ==================== */
+@media (max-width: 480px) {
+    
+    .header-sistema {
+        height: 60px;
+        padding: 0 0.75rem;
+    }
+
+    .contenedor-principal {
+        margin-top: 60px;
+        height: calc(100vh - 60px);
+    }
+
+    .sidebar {
+        top: 60px;
+        height: calc(100vh - 60px);
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .sidebar-overlay {
+        top: 60px;
+    }
+
+    .logo-sistema {
+        height: 36px;
+    }
+
+    .btn-hamburguesa {
+        width: 38px;
+        height: 38px;
+    }
+
+    .btn-cerrar-sesion {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-cerrar-sesion span:not(.icono-btn) {
+        display: none;
+    }
+
+    .area-trabajo {
+        padding: 0.75rem;
+    }
+
+    .contenedor-formulario-yape {
+        padding: 1rem;
+    }
+
+    .cabecera-simple h3 {
+        font-size: 1.125rem;
+    }
+
+    .grid-familias-moderna {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.625rem;
+    }
+
+    .card-familia {
+        padding: 0.875rem 0.5rem;
+    }
+
+    .card-familia .emoji {
+        font-size: 1.5rem;
+    }
+
+    .card-familia .label {
+        font-size: 0.75rem;
+    }
+
+    .panel-transaccion h2 {
+        font-size: 1.25rem;
+    }
+
+    .input-hero {
+        height: 56px;
+    }
+
+    .input-hero input {
+        font-size: 1.375rem;
+    }
+
+    .chip-banco {
+        padding: 0.625rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .selector-bancos.wrap-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-registrar-grande {
+        height: 50px;
+        font-size: 0.875rem;
+        gap: 0.5rem;
+    }
+
+    .contenedor-tabla-registro {
+        padding: 1rem;
+    }
+
+    .titulo-seccion h2 {
+        font-size: 1.125rem;
+    }
+
+    .card-reporte-accion {
+        padding: 1.25rem;
+    }
+
+    .icono-grande {
+        font-size: 2rem;
+    }
+
+    .card-reporte-accion h3 {
+        font-size: 1rem;
+    }
+
+    .contenedor-cierre {
+        padding: 1rem;
+    }
+
+    .titulo-cierre h2 {
+        font-size: 1.25rem;
+    }
+
+    .card-dato .valor {
+        font-size: 1.375rem;
+    }
+
+    .card-dato.total .valor {
+        font-size: 1.625rem;
+    }
+
+    .canvas-wrapper {
+        height: 220px;
+    }
+
+    .modal {
+        padding: 0.5rem;
+    }
+
+    .modal-contenido-bonito {
+        padding: 1.25rem;
+    }
+}
+
+/* ==================== IMPRESIÓN (Ticket) ==================== */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #ticketImpresion,
+    #ticketImpresion * {
+        visibility: visible;
+    }
+
+    #ticketImpresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    .ticket-header,
+    .ticket-body,
+    .ticket-footer {
+        page-break-inside: avoid;
+    }
+}
+
+/* ==================== LANDSCAPE MÓVIL ==================== */
+@media (max-width: 768px) and (orientation: landscape) {
+    .header-sistema {
+        height: 55px;
+    }
+
+    .contenedor-principal {
+        margin-top: 55px;
+        height: calc(100vh - 55px);
+    }
+
+    .sidebar {
+        top: 55px;
+        height: calc(100vh - 55px);
+    }
+
+    .sidebar-overlay {
+        top: 55px;
+    }
+
+    .logo-sistema {
+        height: 35px;
+    }
+
+    .grid-familias-moderna {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .layout-split {
+        flex-direction: row;
+    }
+
+    .panel-seleccion {
+        width: 40%;
+    }
+
+    .panel-transaccion {
+        width: 60%;
+    }
+}
+
+/* ==================== ANIMACIÓN DE ROTACIÓN (Refresh) ==================== */
+.girando {
+    animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

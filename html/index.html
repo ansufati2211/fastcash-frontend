@@ -117,30 +117,40 @@
                         </div>
                         <input type="hidden" id="inputFamilia">
                     </div>
-                    <div class="panel-transaccion">
-                        <form id="formYape">
-                            <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
-                            <div class="selector-bancos" id="selectorDestino">
-                                <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
-                                <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
-                                <button type="button" class="chip-banco" data-value="1"><span class="dot personal"></span> Yape</button>
-                                <button type="button" class="chip-banco" data-value="2"><span class="dot interbank"></span> Plin</button>
-                                <input type="hidden" id="inputDestino" value="3">
-                            </div>
-                            <div class="input-operacion-wrapper">
-                                <label>N° Operación (Ultimos 4 o Completo)</label>
-                                <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
-                            </div>
-                            <div class="selector-tipo" id="selectorComprobante">
-                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-                                <button type="button" class="segmento" data-value="1">Factura</button>
-                                <button type="button" class="segmento" data-value="4">Nota</button>
-                                <input type="hidden" id="inputComprobante" value="2">
-                            </div>
-                            <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span class="flecha">→</span></button>
-                        </form>
-                    </div>
+<div class="panel-transaccion">
+    <form id="formYape">
+        <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
+        
+        <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
+        
+        <div class="selector-bancos" id="selectorDestino">
+            <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
+            <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
+            <button type="button" class="chip-banco" data-value="1"><span class="dot personal"></span> Yape</button>
+            <button type="button" class="chip-banco" data-value="2"><span class="dot interbank"></span> Plin</button>
+            <input type="hidden" id="inputDestino" value="3">
+        </div>
+        
+        <div class="input-operacion-wrapper">
+            <label>N° Operación (Ultimos 4 o Completo)</label>
+            <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
+        </div>
+        
+        <div class="selector-tipo" id="selectorComprobante">
+            <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+            <button type="button" class="segmento" data-value="1">Factura</button>
+            <button type="button" class="segmento" data-value="4">Nota</button>
+            <input type="hidden" id="inputComprobante" value="2">
+        </div>
+
+        <div class="display-comprobante-wrapper">
+            <label>Número de Boleta/Factura/Nota</label>
+            <input type="text" id="txtComprobanteYape" placeholder="Ej: B001-00000000">
+        </div>
+
+        <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span class="flecha">→</span></button>
+    </form>
+</div>
                 </div>
             </section>
 
@@ -160,40 +170,45 @@
                         </div>
                         <input type="hidden" id="inputFamiliaTarjeta">
                     </div>
-                    <div class="panel-transaccion">
-                        <form id="formTarjeta">
-                            <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
-                            <label class="label-separador">Banco del POS:</label>
-<div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
-    <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
-    <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
-    <button type="button" class="chip-banco" data-value="5"><span class="dot interbank"></span> Interbank</button>
-    
-    <button type="button" class="chip-banco" data-value="9"><span class="dot regalo"></span> T.Regalo</button>
-    
-    <button type="button" class="chip-banco" data-value="7"><span class="dot scotia"></span> Scotiabank</button>
-    <button type="button" class="chip-banco" data-value="8"><span class="dot otras"></span> Otras</button>
+<div class="panel-transaccion">
+    <form id="formTarjeta">
+        <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
+        
+        <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
+        
+        <label class="label-separador">Banco del POS:</label>
+        <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
+            <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
+            <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
+            <button type="button" class="chip-banco" data-value="5"><span class="dot interbank"></span> Interbank</button>
+            <button type="button" class="chip-banco" data-value="9"><span class="dot regalo"></span> T.Regalo</button>
+            <button type="button" class="chip-banco" data-value="7"><span class="dot scotia"></span> Scotiabank</button>
+            <button type="button" class="chip-banco" data-value="8"><span class="dot otras"></span> Otras</button>
+            <input type="hidden" id="inputBancoTarjeta" value="3">
+        </div>
+        
+        <div class="input-operacion-wrapper" style="margin-top: 1rem;">
+            <label>N° Lote / Voucher</label>
+            <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
+        </div>
+        
+        <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
+            <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+            <button type="button" class="segmento" data-value="1">Factura</button>
+            <button type="button" class="segmento" data-value="4">Nota</button>
+            <input type="hidden" id="inputComprobanteTarjeta" value="2">
+        </div>
 
-    <input type="hidden" id="inputBancoTarjeta" value="3">
+        <div class="display-comprobante-wrapper">
+            <label>Número de Boleta/Factura/Nota</label>
+            <input type="text" id="txtComprobanteTarjeta" placeholder="Ej: B001-00000000">
+        </div>
+        
+        <div style="flex-grow: 1;"></div>
+        
+        <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
+    </form>
 </div>
-                            <div class="input-operacion-wrapper" style="margin-top: 1rem;">
-                                <label>N° Lote / Voucher</label>
-                                <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
-                            </div>
-                            
-                            <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
-                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-                                <button type="button" class="segmento" data-value="1">Factura</button>
-                                <button type="button" class="segmento" data-value="4">Nota</button>
-                                <input type="hidden" id="inputComprobanteTarjeta" value="2">
-                            </div>
-
-                            <div style="flex-grow: 1;"></div>
-                            
-                            <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
-                        </form>
-                    </div>
                 </div>
             </section>
 

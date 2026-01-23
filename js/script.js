@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
-        // Redirigir si no hay sesión (Descomentar en producción)
+        // Redirigir si no hay sesión
         window.location.href = 'login.html'; 
         return;
     }
@@ -57,9 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function forzarSoloNumeros(idInput) {
         const input = document.getElementById(idInput);
         if (input) {
-            // Evento 'input': Se dispara cada vez que se escribe o pega algo
             input.addEventListener('input', function() {
-                // Reemplaza todo lo que NO sea número (0-9) por vacío
                 this.value = this.value.replace(/[^0-9]/g, '');
             });
         }
@@ -91,11 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaTrabajo.style.pointerEvents = "all"; 
             }
         } else {
-            // Usamos display flex para que el botón se vea bien con el CSS nuevo
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
             if(areaTrabajo) { 
                 areaTrabajo.style.opacity = "0.8"; 
-                // areaTrabajo.style.pointerEvents = "none"; 
             }
         }
     }
@@ -162,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-// ==========================================
+    // ==========================================
     // FUNCIÓN DEL BOTÓN "CERRAR CAJA E IMPRIMIR"
     // ==========================================
     window.imprimirCierre = async () => {
@@ -180,54 +176,37 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
-            // PASO A: Obtener los montos finales desde la Base de Datos
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
 
-            // Función auxiliar para formatear dinero (segura si no existe el elemento HTML)
             const setText = (id, valor) => {
                 const el = document.getElementById(id);
                 if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
             };
 
-            // PASO B: Llenar datos de Fecha/Hora
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
 
-            // --- 1. DATOS DE USUARIO ---
             const nombreCajero = usuario.NombreCompleto || usuario.username || "Cajero";
             const elNombre = document.getElementById('ticketCajeroNombre');
             if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
 
             const elTurno = document.getElementById('ticketTurno');
-            if(elTurno) elTurno.textContent = "MAÑANA"; // O lógica de turno
+            if(elTurno) elTurno.textContent = "MAÑANA"; 
 
-            // --- 2. LLENADO DE MONTOS (VISUAL Y TICKET) ---
-            
-            // Saldos y Efectivo (Si existen en tu HTML los llenará, si no, los ignora sin error)
             setText('ticketSaldoInicialPrint', data.SaldoInicial);
             setText('ticketEfectivoPrint', data.VentasEfectivo);
+            setText('totalYape', data.VentasDigital); 
+            setText('ticketYapePrint', data.VentasDigital); 
+            setText('totalTarjeta', data.VentasTarjeta); 
+            setText('ticketTarjetaPrint', data.VentasTarjeta); 
+            setText('totalAnulado', data.TotalAnulado || 0); 
+            setText('ticketAnuladoPrint', data.TotalAnulado || 0); 
+            setText('totalGeneral', data.TotalVendido); 
+            setText('ticketTotalPrint', data.TotalVendido); 
 
-            // Ventas Digitales
-            setText('totalYape', data.VentasDigital);        // Pantalla
-            setText('ticketYapePrint', data.VentasDigital);  // Ticket
-
-            // Tarjetas
-            setText('totalTarjeta', data.VentasTarjeta);       // Pantalla
-            setText('ticketTarjetaPrint', data.VentasTarjeta); // Ticket
-
-            // 🔴 NUEVO: ANULACIONES (CORREGIDO)
-            // Usamos data.TotalAnulado que viene del SQL. Si es nulo, pone 0.
-            setText('totalAnulado', data.TotalAnulado || 0);       // Pantalla (Tarjeta Roja)
-            setText('ticketAnuladoPrint', data.TotalAnulado || 0); // Ticket Impreso
-
-            // Total General
-            setText('totalGeneral', data.TotalVendido);       // Pantalla
-            setText('ticketTotalPrint', data.TotalVendido);   // Ticket
-
-            // PASO C: Mandar la orden al Backend para cerrar la caja
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -242,12 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
             }
 
-            // PASO D: Éxito -> Imprimir y Salir
             setTimeout(() => {
-                window.print(); // Abre el diálogo de impresión
+                window.print(); 
                 alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
-                window.location.href = '../html/login.html'; // Asegúrate de la ruta correcta
+                window.location.href = '../html/login.html'; 
             }, 800);
 
         } catch (error) {
@@ -331,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
                 
-                // Restaurar comprobante a Boleta por defecto
                 if(tipo !== 'YAPE') {
                     const selectorT = document.getElementById('selectorComprobanteTarjeta');
                     if(selectorT) {
@@ -470,7 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!cuerpoTabla) return; 
 
         try {
-            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            // FIX: Agregamos ?t=TIMESTAMP para evitar caché del navegador
+            const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             if (!res.ok) throw new Error("Error cargando usuarios");
 
             const usuariosDB = await res.json();
@@ -483,8 +461,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             usuariosDB.forEach(u => {
                 const rolClase = (u.Rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
-                const estadoTexto = u.Activo ? '🟢 Activo' : '🔴 Inactivo';
-                const estiloFila = !u.Activo ? 'opacity: 0.5;' : '';
+                
+                // Manejo robusto del booleano activo
+                const esActivo = u.Activo === true || u.Activo === 1 || u.Activo === "true";
+                const estadoTexto = esActivo ? '🟢 Activo' : '🔴 Inactivo';
+                const estiloFila = !esActivo ? 'opacity: 0.5;' : '';
 
                 const fila = `<tr style="${estiloFila}">
                     <td>${u.UsuarioID}</td>
@@ -496,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>******</td>
                     <td style="display:flex; gap:10px; align-items:center;">
                         <button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
-                        ${u.Activo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
+                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
                     </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -519,7 +500,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.editarUsuario = async (idUsuario) => {
         try {
-            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            // FIX: También refrescamos aquí
+            const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
             const user = usuarios.find(u => u.UsuarioID === idUsuario);
             
@@ -528,13 +510,26 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('idUsuarioEdicion').value = user.UsuarioID;
             document.getElementById('nombreUsuario').value = user.NombreCompleto;
             document.getElementById('usernameUsuario').value = user.Username; 
+            
+            // IMPORTANTE: Si el backend devuelve null en TurnoID, poner 1 (Mañana)
             document.getElementById('turnoUsuario').value = user.TurnoID || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
-            document.getElementById('rolUsuario').value = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
             
+            // Ajustar el select de rol
+            const rolSelect = document.getElementById('rolUsuario');
+            const rolValue = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
+            // Buscar la opción correcta (puede ser por texto o valor dependiendo tu HTML)
+            // Asumimos que los values son "Administrador" y "Cajero" o ids. 
+            // Si tu HTML tiene values numéricos 1 y 2, ajusta esto.
+            // Según tu HTML anterior: value="Cajero" y value="Administrador"
+            rolSelect.value = rolValue;
+
             const selEstado = document.getElementById('estadoUsuario');
-            if(selEstado) selEstado.value = user.Activo ? 'true' : 'false';
+            if(selEstado) {
+                const esActivo = user.Activo === true || user.Activo === 1;
+                selEstado.value = esActivo ? 'true' : 'false';
+            }
 
             document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
@@ -573,9 +568,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = document.getElementById('nombreUsuario').value;
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
-            const rol = document.getElementById('rolUsuario').value === 'Administrador' ? 1 : 2;
+            
+            // Asumiendo values "Administrador" / "Cajero" en el HTML
+            const rolVal = document.getElementById('rolUsuario').value;
+            const rol = (rolVal === 'Administrador') ? 1 : 2;
+
             const selectedTurno = document.getElementById('turnoUsuario').value;
-            const esActivo = document.getElementById('estadoUsuario')?.value === 'true';
+            const estadoVal = document.getElementById('estadoUsuario')?.value;
+            const esActivo = (estadoVal === 'true');
 
             const btnGuardar = nuevoForm.querySelector('.btn-guardar');
             const txtOriginal = btnGuardar.innerHTML;
@@ -592,18 +592,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             username: usernameInput,
                             rolID: rol,
                             password: pass,
-                            activo: esActivo
+                            activo: esActivo,
+                            turnoID: parseInt(selectedTurno)
                         })
                     });
-
-                    await fetch(`${BASE_URL}/admin/asignar-turno`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            adminID: usuario.UsuarioID, 
-                            usuarioID: parseInt(idEdicion), 
-                            turnoID: parseInt(selectedTurno) 
-                        })
-                    });
+                    
                     alert("✅ Usuario actualizado correctamente");
 
                 } else {
@@ -639,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 cerrarModalUsuario();
                 nuevoForm.reset();
-                cargarUsuarios();
+                cargarUsuarios(); // Recarga la tabla
 
             } catch (error) { 
                 alert("❌ Error: " + error.message); 
@@ -652,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. REPORTES EXCEL "PREMIUM" (CON ESTILOS)
+    // 7. REPORTES EXCEL "PREMIUM"
     // ==========================================
     window.generarReporte = async (tipo) => {
         const inicio = document.getElementById('fechaInicio').value;
@@ -691,10 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // --- 1. CREAR HOJA DE TRABAJO ---
             const worksheet = XLSX.utils.json_to_sheet(data);
-
-            // --- 2. ESTILOS DE ENCABEZADO (ROJO MARCA) ---
             const range = XLSX.utils.decode_range(worksheet['!ref']);
             
             for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -702,8 +692,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!worksheet[address]) continue;
 
                 worksheet[address].s = {
-                    fill: { fgColor: { rgb: "FF003C" } }, // Tu color rojo
-                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, // Letra blanca
+                    fill: { fgColor: { rgb: "FF003C" } }, 
+                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, 
                     alignment: { horizontal: "center", vertical: "center" },
                     border: {
                         top: { style: "thin", color: { auto: 1 } },
@@ -714,7 +704,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // --- 3. ESTILOS DE CELDAS DE DATOS Y BORDES ---
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     const cellRef = XLSX.utils.encode_cell({c: C, r: R});
@@ -733,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // --- 4. AJUSTE AUTOMÁTICO DE ANCHO DE COLUMNAS ---
             const columnWidths = [];
             const keys = Object.keys(data[0]);
             
@@ -749,7 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             worksheet['!cols'] = columnWidths;
 
-            // --- 5. CREAR LIBRO Y DESCARGAR ---
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
 
@@ -820,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             borderWidth: 0, 
                             hoverOffset: 15, 
                             borderRadius: 20, 
-                            spacing: 5,       
+                            spacing: 5, 
                             backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] 
                         }]
                     },
@@ -912,21 +899,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         v.style.display = 'block'; 
                         setTimeout(() => v.classList.add('activa'), 10);
                         
-                   // BUSCA ESTA PARTE AL FINAL DE TU SCRIPT.JS (Dentro de menuItems.forEach)
-if(targetId === 'vista-cierre') {
-     fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
-        .then(r => r.json())
-        .then(d => {
-            // Llenar Yape, Tarjeta y Total
-            document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
-            document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
-            document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
-            
-            // 🔴 ESTO ES LO QUE FALTABA: PINTAR LA TARJETA ROJA AL ENTRAR
-            document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || 0).toFixed(2)}`;
-        })
-        .catch(err => console.error("Error cargando cierre:", err));
-}
+                        if(targetId === 'vista-cierre') {
+                            fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
+                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
+                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
+                                    document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || 0).toFixed(2)}`;
+                                })
+                                .catch(err => console.error("Error cargando cierre:", err));
+                        }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
                         if(targetId === 'vista-financiero') inicializarGraficos();
