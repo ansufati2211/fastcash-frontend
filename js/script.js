@@ -9,12 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
-        // Redirigir si no hay sesión
         window.location.href = 'login.html'; 
         return;
     }
     
-    const usuario = usuarioData ? JSON.parse(usuarioData) : { UsuarioID: 1, NombreCompleto: 'Modo Pruebas', Rol: 'ADMINISTRADOR' };
+    const usuario = JSON.parse(usuarioData);
 
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
@@ -22,17 +21,30 @@ document.addEventListener('DOMContentLoaded', () => {
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
     }
 
-    // GESTIÓN DE PERMISOS (Ocultar menú Admin a Cajeros)
-    const rolUsuario = (usuario.Rol || 'CAJERO').toUpperCase();
-    const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
-
-    if (rolUsuario !== 'ADMINISTRADOR') {
-        itemsAdmin.forEach(item => item.style.display = 'none');
+    // ==========================================
+    // GESTIÓN DE PERMISOS (ROBUSTA)
+    // ==========================================
+    let rolUsuario = "CAJERO";
+    
+    // Normalizamos el rol para evitar errores
+    if (usuario.Rol) {
+        rolUsuario = usuario.Rol.toUpperCase();
+    } else if (usuario.rol) {
+        rolUsuario = usuario.rol.toUpperCase();
+    } else if (usuario.RolID === 1 || usuario.rolID === 1) {
+        rolUsuario = "ADMINISTRADOR";
     }
 
-    // Cargar selector de usuarios si es Admin
-    if (rolUsuario === 'ADMINISTRADOR') {
+    console.log("👮 Rol detectado:", rolUsuario);
+
+    const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"]');
+    
+    if (rolUsuario !== 'ADMINISTRADOR') {
+        itemsAdmin.forEach(item => item.style.display = 'none');
+    } else {
+        // Solo si es admin cargamos el filtro
         cargarFiltroUsuarios();
+        cargarFiltroHistorial();
     }
 
     // =========================================================
@@ -63,8 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    forzarSoloNumeros('numOperacion');        // Campo Yape/Plin
-    forzarSoloNumeros('numOperacionTarjeta'); // Campo Lote/Voucher Tarjeta
+    forzarSoloNumeros('numOperacion');        
+    forzarSoloNumeros('numOperacionTarjeta'); 
 
     activarSelector('selectorFamilia', 'card-familia', 'inputFamilia');
     activarSelector('selectorFamiliaTarjeta', 'card-familia', 'inputFamiliaTarjeta');
@@ -154,15 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
         btnLogout.addEventListener('click', async () => {
             if(!confirm("¿Deseas cerrar sesión del sistema?")) return;
             localStorage.removeItem('usuarioSesion');
-            window.location.href = '../html/login.html';
+            window.location.href = 'login.html';
         });
     }
 
     // ==========================================
-    // FUNCIÓN DEL BOTÓN "CERRAR CAJA E IMPRIMIR"
+    // LOGICA CIERRE DE CAJA E IMPRESIÓN
     // ==========================================
     window.imprimirCierre = async () => {
-        
         if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) {
             return;
         }
@@ -176,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
             
+            // 1. Obtener los cálculos desde la Base de Datos (incluyendo el Turno actualizado)
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
@@ -186,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
             };
 
+            // 2. Llenar Datos del Ticket
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
 
@@ -193,20 +206,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const elNombre = document.getElementById('ticketCajeroNombre');
             if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
 
+            // --- CORRECCIÓN: USAR EL TURNO QUE VIENE DE LA BD ---
+            const turnoReal = data.TurnoNombre || "GENERAL"; 
             const elTurno = document.getElementById('ticketTurno');
-            if(elTurno) elTurno.textContent = "MAÑANA"; 
+            if (elTurno) elTurno.textContent = turnoReal.toUpperCase();
+            // ----------------------------------------------------
 
             setText('ticketSaldoInicialPrint', data.SaldoInicial);
             setText('ticketEfectivoPrint', data.VentasEfectivo);
-            setText('totalYape', data.VentasDigital); 
-            setText('ticketYapePrint', data.VentasDigital); 
-            setText('totalTarjeta', data.VentasTarjeta); 
-            setText('ticketTarjetaPrint', data.VentasTarjeta); 
-            setText('totalAnulado', data.TotalAnulado || 0); 
+            
+            // Si tienes un elemento para total Yape en el ticket impreso, úsalo, si no, usa el genérico
+            const elYapePrint = document.getElementById('ticketYapePrint');
+            if(elYapePrint) elYapePrint.textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
+            
+            const elTarjetaPrint = document.getElementById('ticketTarjetaPrint');
+            if(elTarjetaPrint) elTarjetaPrint.textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
+
             setText('ticketAnuladoPrint', data.TotalAnulado || 0); 
-            setText('totalGeneral', data.TotalVendido); 
             setText('ticketTotalPrint', data.TotalVendido); 
 
+            // 3. Cerrar la caja en el Backend
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -221,11 +240,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
             }
 
+            // 4. Imprimir y Salir
             setTimeout(() => {
                 window.print(); 
                 alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
-                window.location.href = '../html/login.html'; 
+                window.location.href = 'login.html'; 
             }, 800);
 
         } catch (error) {
@@ -241,6 +261,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 4. LÓGICA DE VENTAS
     // ==========================================
+    // ==========================================
+    // 4. LÓGICA DE VENTAS (CORREGIDA)
+    // ==========================================
     async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
@@ -249,8 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
-        if (!usuarioActivo) { alert("⚠️ Error de sesión"); return; }
-
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
@@ -270,9 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             numOp = document.getElementById('numOperacionTarjeta').value;
             
             const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
-            if (inputCompTarjeta) {
-                compId = inputCompTarjeta.value;
-            }
+            if (inputCompTarjeta) compId = inputCompTarjeta.value;
 
             if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
@@ -287,11 +306,11 @@ document.addEventListener('DOMContentLoaded', () => {
             clienteDoc: "00000000", 
             clienteNombre: "Publico General",
             detalles: [{ CategoriaID: parseInt(inputFam.value), Monto: monto }],
-            pagos: [{
+            pagos: [{ 
                 FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-                Monto: monto,
-                EntidadID: parseInt(entidadId),
-                NumOperacion: numOp
+                Monto: monto, 
+                EntidadID: parseInt(entidadId), 
+                NumOperacion: numOp 
             }]
         };
 
@@ -301,8 +320,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
-                const data = await res.json();
+            // Parseamos la respuesta sea cual sea el resultado
+            const data = await res.json();
+
+            // CASO 1: ERROR DETECTADO POR LA BASE DE DATOS (Duplicados, etc.)
+            if (data.Status === 'ERROR') {
+                alert(`❌ ERROR: ${data.Mensaje}`); // Aquí saldrá: "El N° Lote ya existe..."
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return; // ¡Detenemos todo aquí!
+            }
+
+            // CASO 2: ÉXITO REAL
+            if (res.ok && data.Status === 'OK') {
                 alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
@@ -320,13 +350,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
+            
             } else {
-                const err = await res.json();
-                alert(`❌ ERROR: ${err.error || err.Mensaje}`);
-                btn.innerHTML = originalText; btn.disabled = false;
+                // CASO 3: ERROR DE SERVIDOR (Java explotó antes de llegar a la BD)
+                alert(`❌ ERROR: ${data.error || data.Mensaje || "Error desconocido"}`);
+                btn.innerHTML = originalText; 
+                btn.disabled = false;
             }
+
         } catch (error) {
-            alert("❌ Error de conexión");
+            console.error(error);
+            alert("❌ Error de conexión o servidor");
             btn.innerHTML = originalText; btn.disabled = false;
         }
     }
@@ -340,21 +374,60 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 5. HISTORIAL DE VENTAS
     // ==========================================
+// ==========================================
+    // NUEVA FUNCIÓN: Llenar el combo de filtro (Solo para Admins)
+    // ==========================================
+    async function cargarFiltroHistorial() {
+        // Si no es admin, no hacemos nada
+        if (rolUsuario !== 'ADMINISTRADOR') return;
+
+        const select = document.getElementById('filtroUsuarioHistorial');
+        const wrapper = document.getElementById('wrapperFiltroHistorial');
+        
+        // Hacemos visible el selector en el HTML
+        if(wrapper) wrapper.style.display = 'block'; 
+
+        try {
+            const res = await fetch(`${BASE_URL}/admin/usuarios`);
+            if(res.ok) {
+                const usuarios = await res.json();
+                // Opción por defecto para ver todo
+                select.innerHTML = '<option value="">-- Ver Todos --</option>';
+                
+                // Llenamos con los cajeros
+                usuarios.forEach(u => {
+                    select.innerHTML += `<option value="${u.UsuarioID}">${u.NombreCompleto}</option>`;
+                });
+            }
+        } catch(e) { 
+            console.error("Error cargando filtro historial", e); 
+        }
+    }
+
+    // ==========================================
+    // 5. HISTORIAL DE VENTAS (MODIFICADO CON FILTRO)
+    // ==========================================
     window.cargarHistorial = async function() {
         const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
-        const btnRefresh = document.querySelector('#vista-anulacion .btn-refresh-moderno');
-        const icono = btnRefresh ? btnRefresh.querySelector('.icono-refresh') : null;
-
         if(!cuerpoTabla) return;
 
-        if(icono) icono.classList.add('girando');
-        if(btnRefresh) btnRefresh.disabled = true;
+        // 1. NUEVO: Obtener el valor del filtro seleccionado
+        const filtroSelect = document.getElementById('filtroUsuarioHistorial');
+        const filtroID = filtroSelect ? filtroSelect.value : '';
 
         cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
 
         try {
             const uid = usuario.UsuarioID || usuario.usuarioID;
-            const res = await fetch(`${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`);
+            
+            // 2. NUEVO: Construir URL agregando el parámetro ?filtro=... si existe
+            let url = `${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`;
+            
+            if(filtroID) {
+                url += `&filtro=${filtroID}`;
+            }
+
+            const res = await fetch(url);
             
             if(!res.ok) throw new Error("Error cargando historial");
 
@@ -362,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas hoy.</td></tr>';
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
             } else {
                 ventas.forEach(v => {
                     const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -387,11 +460,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) { 
             cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión. Intente nuevamente.</td></tr>'; 
-        } finally {
-            setTimeout(() => {
-                if(icono) icono.classList.remove('girando');
-                if(btnRefresh) btnRefresh.disabled = false;
-            }, 500);
         }
     };
 
@@ -421,14 +489,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS
+    // 6. GESTIÓN DE USUARIOS (FILTRO Y CRUD)
     // ==========================================
+    
+    // --------------------------------------------------------
+    // 👇👇👇 AQUÍ ESTÁ LA CORRECCIÓN QUE NECESITABAS 👇👇👇
+    // --------------------------------------------------------
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
-        const contenedor = document.getElementById('contenedorFiltroUsuario');
+        const contenedor = document.getElementById('contenedorFiltroUsuario'); // 1. Obtenemos el div
         
         if(!select) return;
-        if(contenedor) contenedor.style.display = 'block';
+
+        // 2. ¡IMPORTANTE! Lo hacemos visible
+        if(contenedor) contenedor.style.display = 'block'; 
 
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios`);
@@ -441,13 +515,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch(e) { console.error("Error cargando usuarios filtro", e); }
     }
+    // --------------------------------------------------------
 
     async function cargarUsuarios() {
         const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
         if (!cuerpoTabla) return; 
 
         try {
-            // FIX: Agregamos ?t=TIMESTAMP para evitar caché del navegador
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             if (!res.ok) throw new Error("Error cargando usuarios");
 
@@ -461,8 +535,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             usuariosDB.forEach(u => {
                 const rolClase = (u.Rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
-                
-                // Manejo robusto del booleano activo
                 const esActivo = u.Activo === true || u.Activo === 1 || u.Activo === "true";
                 const estadoTexto = esActivo ? '🟢 Activo' : '🔴 Inactivo';
                 const estiloFila = !esActivo ? 'opacity: 0.5;' : '';
@@ -500,7 +572,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.editarUsuario = async (idUsuario) => {
         try {
-            // FIX: También refrescamos aquí
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
             const user = usuarios.find(u => u.UsuarioID === idUsuario);
@@ -511,18 +582,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('nombreUsuario').value = user.NombreCompleto;
             document.getElementById('usernameUsuario').value = user.Username; 
             
-            // IMPORTANTE: Si el backend devuelve null en TurnoID, poner 1 (Mañana)
             document.getElementById('turnoUsuario').value = user.TurnoID || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
-            // Ajustar el select de rol
             const rolSelect = document.getElementById('rolUsuario');
             const rolValue = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
-            // Buscar la opción correcta (puede ser por texto o valor dependiendo tu HTML)
-            // Asumimos que los values son "Administrador" y "Cajero" o ids. 
-            // Si tu HTML tiene values numéricos 1 y 2, ajusta esto.
-            // Según tu HTML anterior: value="Cajero" y value="Administrador"
             rolSelect.value = rolValue;
 
             const selEstado = document.getElementById('estadoUsuario');
@@ -569,7 +634,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
             
-            // Asumiendo values "Administrador" / "Cajero" en el HTML
             const rolVal = document.getElementById('rolUsuario').value;
             const rol = (rolVal === 'Administrador') ? 1 : 2;
 
@@ -632,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 cerrarModalUsuario();
                 nuevoForm.reset();
-                cargarUsuarios(); // Recarga la tabla
+                cargarUsuarios();
 
             } catch (error) { 
                 alert("❌ Error: " + error.message); 
@@ -645,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. REPORTES EXCEL "PREMIUM"
+    // 7. REPORTES EXCEL (Generar y Descargar)
     // ==========================================
     window.generarReporte = async (tipo) => {
         const inicio = document.getElementById('fechaInicio').value;
@@ -685,71 +749,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const worksheet = XLSX.utils.json_to_sheet(data);
-            const range = XLSX.utils.decode_range(worksheet['!ref']);
-            
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const address = XLSX.utils.encode_col(C) + "1"; 
-                if (!worksheet[address]) continue;
-
-                worksheet[address].s = {
-                    fill: { fgColor: { rgb: "FF003C" } }, 
-                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, 
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: {
-                        top: { style: "thin", color: { auto: 1 } },
-                        bottom: { style: "thin", color: { auto: 1 } },
-                        left: { style: "thin", color: { auto: 1 } },
-                        right: { style: "thin", color: { auto: 1 } }
-                    }
-                };
-            }
-
-            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-                    if (!worksheet[cellRef]) continue;
-
-                    worksheet[cellRef].s = {
-                        font: { name: "Arial", sz: 10 },
-                        alignment: { vertical: "center", horizontal: "left" }, 
-                        border: {
-                            top: { style: "thin", color: { rgb: "CCCCCC" } },
-                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
-                            left: { style: "thin", color: { rgb: "CCCCCC" } },
-                            right: { style: "thin", color: { rgb: "CCCCCC" } }
-                        }
-                    };
-                }
-            }
-
-            const columnWidths = [];
-            const keys = Object.keys(data[0]);
-            
-            keys.forEach((key, index) => {
-                let maxLength = key.length;
-                data.forEach(row => {
-                    const cellValue = row[key] ? String(row[key]) : "";
-                    if (cellValue.length > maxLength) {
-                        maxLength = cellValue.length;
-                    }
-                });
-                columnWidths.push({ wch: maxLength + 5 });
-            });
-            worksheet['!cols'] = columnWidths;
-
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-
-            const nombreArchivo = `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`;
-            
-            XLSX.writeFile(workbook, nombreArchivo);
+            XLSX.writeFile(workbook, `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`);
 
             if(btn) {
                 btn.innerHTML = '<span>✅</span> ¡Descargado!';
-                setTimeout(() => { 
-                    btn.innerHTML = txtOriginal; 
-                    btn.disabled = false; 
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000);
             }
 
         } catch (e) {
@@ -761,20 +767,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 8. GRÁFICOS DASHBOARD (MODO PREMIUM)
+    // 8. GRÁFICOS DASHBOARD
     // ==========================================
     let chartPastel = null; 
     let chartBarras = null;
     
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
-        const btnRefresh = document.querySelector('#vista-financiero .btn-refresh-moderno');
-        const icono = btnRefresh ? btnRefresh.querySelector('.icono-refresh') : null;
-
         if (contenedor.style.display === 'none') return;
-
-        if(icono) icono.classList.add('girando');
-        if(btnRefresh) btnRefresh.disabled = true;
 
         const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
         const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
@@ -790,9 +790,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json(); 
 
-            Chart.defaults.font.family = "'Inconsolata', monospace";
-            Chart.defaults.color = '#666';
-
             // 1. GRÁFICO PASTEL
             if(data.categorias) {
                 const ctxP = document.getElementById('graficoPastel').getContext('2d');
@@ -804,20 +801,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         labels: data.categorias.map(i => i.label),
                         datasets: [{ 
                             data: data.categorias.map(i => i.value), 
-                            borderWidth: 0, 
-                            hoverOffset: 15, 
-                            borderRadius: 20, 
-                            spacing: 5, 
                             backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] 
                         }]
                     },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, cutout: '75%', 
-                        plugins: {
-                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
-                            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, cornerRadius: 8 }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
                 });
             }
 
@@ -826,10 +813,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ctxB = document.getElementById('graficoBarras').getContext('2d');
                 if(chartBarras) chartBarras.destroy();
 
-                let gradientRed = ctxB.createLinearGradient(0, 0, 0, 400);
-                gradientRed.addColorStop(0, 'rgba(255, 0, 60, 0.9)');
-                gradientRed.addColorStop(1, 'rgba(255, 0, 60, 0.2)');
-
                 chartBarras = new Chart(ctxB, {
                     type: 'bar',
                     data: {
@@ -837,38 +820,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         datasets: [{ 
                             label: 'Total Ventas (S/)', 
                             data: data.pagos.map(i => i.value), 
-                            backgroundColor: gradientRed, 
-                            borderRadius: { topLeft: 15, topRight: 15 }, 
-                            borderSkipped: false,
-                            barPercentage: 0.6,
+                            backgroundColor: '#2563eb',
+                            borderRadius: 10
                         }]
                     },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { callbacks: { label: function(context) { return ' S/ ' + context.parsed.y.toFixed(2); } } }
-                        },
-                        scales: { 
-                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e5e5e5' }, border: { display: false } },
-                            x: { grid: { display: false }, border: { display: false } }
-                        } 
-                    }
+                    options: { responsive: true, maintainAspectRatio: false }
                 });
             }
-        } catch (e) { 
-            console.error("Error gráficos", e); 
-        } finally {
-            setTimeout(() => {
-                if(icono) icono.classList.remove('girando');
-                if(btnRefresh) btnRefresh.disabled = false;
-            }, 500);
-        }
+        } catch (e) { console.error("Error gráficos", e); }
     };
 
 
     // ==========================================
-    // 9. MENÚ LATERAL Y RELOJ
+    // 9. NAVEGACIÓN Y MENÚ
     // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
@@ -908,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
                                     document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || 0).toFixed(2)}`;
                                 })
-                                .catch(err => console.error("Error cargando cierre:", err));
+                                .catch(err => console.error(err));
                         }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
@@ -924,4 +888,127 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
     window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
+
+
+    // ==========================================
+    // 7. REPORTES EXCEL "PREMIUM" (CON ESTILOS)
+    // ==========================================
+    window.generarReporte = async (tipo) => {
+        const inicio = document.getElementById('fechaInicio').value;
+        const fin = document.getElementById('fechaFin').value;
+        const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
+
+        const params = new URLSearchParams();
+        if (inicio) params.append('inicio', inicio);
+        if (fin) params.append('fin', fin);
+
+        if (usuario.Rol === 'ADMINISTRADOR') {
+            if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
+        } else {
+            params.append('usuarioID', usuario.UsuarioID);
+        }
+
+        let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
+        const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
+
+        const btn = event.target.closest('button'); 
+        const txtOriginal = btn ? btn.innerHTML : '';
+        
+        if (btn) {
+            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
+            btn.disabled = true;
+        }
+
+        try {
+            const res = await fetch(urlFinal);
+            if (!res.ok) throw new Error("Error en el servidor");
+            
+            const data = await res.json();
+            if (!data || data.length === 0) {
+                alert("⚠️ No hay datos con esos filtros.");
+                if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
+                return;
+            }
+
+            // 1. CREAR HOJA DE CÁLCULO
+            const worksheet = XLSX.utils.json_to_sheet(data);
+
+            // 2. ESTILOS PERSONALIZADOS
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            
+            // A) Estilo para ENCABEZADOS (Fila 1)
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const address = XLSX.utils.encode_col(C) + "1"; // A1, B1, C1...
+                if (!worksheet[address]) continue;
+
+                worksheet[address].s = {
+                    fill: { fgColor: { rgb: "FF003C" } }, // Rojo corporativo
+                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, // Letra blanca negrita
+                    alignment: { horizontal: "center", vertical: "center" },
+                    border: {
+                        top: { style: "thin", color: { auto: 1 } },
+                        bottom: { style: "thin", color: { auto: 1 } },
+                        left: { style: "thin", color: { auto: 1 } },
+                        right: { style: "thin", color: { auto: 1 } }
+                    }
+                };
+            }
+
+            // B) Estilo para DATOS (Filas 2 en adelante)
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                    if (!worksheet[cellRef]) continue;
+
+                    worksheet[cellRef].s = {
+                        font: { name: "Arial", sz: 10 },
+                        alignment: { vertical: "center", horizontal: "left" }, 
+                        border: {
+                            top: { style: "thin", color: { rgb: "CCCCCC" } },
+                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                            left: { style: "thin", color: { rgb: "CCCCCC" } },
+                            right: { style: "thin", color: { rgb: "CCCCCC" } }
+                        }
+                    };
+                }
+            }
+
+            // C) Auto-ajustar Ancho de Columnas
+            const columnWidths = [];
+            const keys = Object.keys(data[0]);
+            
+            keys.forEach((key, index) => {
+                let maxLength = key.length; // Empieza con el largo del título
+                data.forEach(row => {
+                    const cellValue = row[key] ? String(row[key]) : "";
+                    if (cellValue.length > maxLength) {
+                        maxLength = cellValue.length;
+                    }
+                });
+                columnWidths.push({ wch: maxLength + 5 }); // +5 de margen
+            });
+            worksheet['!cols'] = columnWidths;
+
+            // 3. DESCARGAR ARCHIVO
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
+
+            const nombreArchivo = `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`;
+            
+            XLSX.writeFile(workbook, nombreArchivo);
+
+            if(btn) {
+                btn.innerHTML = '<span>✅</span> ¡Descargado!';
+                setTimeout(() => { 
+                    btn.innerHTML = txtOriginal; 
+                    btn.disabled = false; 
+                }, 2000);
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("❌ Error generando Excel: " + e.message);
+            if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
+        }
+    };
 });

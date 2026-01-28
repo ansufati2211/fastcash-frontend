@@ -220,9 +220,18 @@
                             <h2>🚫 Historial de Ventas (Hoy)</h2>
                             <p>Supervisión y Anulaciones en tiempo real.</p>
                         </div>
-                        <button class="btn-refresh-moderno" onclick="cargarHistorial()">
-                            <span class="icono-refresh">🔄</span> Refrescar
-                        </button>
+                        <div class="controles-derecha" style="display: flex; align-items: center; gap: 10px;">
+        
+        <div id="wrapperFiltroHistorial" style="display: none;">
+            <select id="filtroUsuarioHistorial" class="input-moderno" onchange="cargarHistorial()" style="padding: 0.6rem; min-width: 150px;">
+                <option value="">-- Ver Todos --</option>
+            </select>
+        </div>
+
+        <button class="btn-refresh-moderno" onclick="cargarHistorial()">
+            <span class="icono-refresh">🔄</span> Refrescar
+        </button>
+    </div>
                     </div> <div class="tabla-responsive">
                         <table class="tabla-transacciones">
                             <thead>
@@ -377,14 +386,17 @@
                     
                     <div id="ticketImpresion" class="ticket-oculto">
                         <div class="ticket-header">
-                            <h3>ROJAS SUPER S.A.C.</h3>
-                            <p>RUC: 20601234567</p>
-                            <hr class="dashed">
-                            <h4>CIERRE DE TURNO</h4>
-                            <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
-                            <p>Cajero: <span id="ticketCajeroNombre"></span></p>
-                            <hr class="dashed">
-                        </div>
+<div class="ticket-header">
+    <h3>ROJAS SUPER N.VILLA</h3>
+    <p>RUC: 20601234567</p>
+    <hr class="dashed">
+    <h4>CIERRE DE TURNO</h4>
+    <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
+    <p>Cajero: <span id="ticketCajeroNombre"></span></p>
+    
+    
+    <hr class="dashed">
+</div>
                         <div class="ticket-body">
                             <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
                             <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
