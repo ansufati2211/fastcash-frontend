@@ -259,14 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 4. LÓGICA DE VENTAS
-    // ==========================================
-    // ==========================================
-    // 4. LÓGICA DE VENTAS (CORREGIDA)
+    // 4. LÓGICA DE VENTAS (ACTUALIZADA)
     // ==========================================
     async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
+        // 1. Validaciones básicas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
             alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
         }
@@ -281,10 +279,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let entidadId = 1, numOp = null, compId = 2;
         
+        // --- NUEVO: Variable para el comprobante externo ---
+        let comprobanteExt = null; 
+        // --------------------------------------------------
+
         if (tipo === 'YAPE') {
             entidadId = document.getElementById('inputDestino').value;
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
+            
+            // Capturamos el valor del input Yape (si existe)
+            const inputExt = document.getElementById('txtComprobanteYape');
+            if(inputExt) comprobanteExt = inputExt.value.trim();
+
             if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
         } else {
             entidadId = document.getElementById('inputBancoTarjeta').value;
@@ -292,6 +299,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
             if (inputCompTarjeta) compId = inputCompTarjeta.value;
+
+            // Capturamos el valor del input Tarjeta (si existe)
+            const inputExt = document.getElementById('txtComprobanteTarjeta');
+            if(inputExt) comprobanteExt = inputExt.value.trim();
 
             if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
@@ -305,6 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
             clienteNombre: "Publico General",
+            
+            // --- AQUÍ ENVIAMOS EL DATO AL BACKEND ---
+            comprobanteExterno: comprobanteExt, 
+            // ----------------------------------------
+
             detalles: [{ CategoriaID: parseInt(inputFam.value), Monto: monto }],
             pagos: [{ 
                 FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
@@ -320,18 +336,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
 
-            // Parseamos la respuesta sea cual sea el resultado
             const data = await res.json();
 
-            // CASO 1: ERROR DETECTADO POR LA BASE DE DATOS (Duplicados, etc.)
             if (data.Status === 'ERROR') {
-                alert(`❌ ERROR: ${data.Mensaje}`); // Aquí saldrá: "El N° Lote ya existe..."
+                alert(`❌ ERROR: ${data.Mensaje}`);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                return; // ¡Detenemos todo aquí!
+                return;
             }
 
-            // CASO 2: ÉXITO REAL
             if (res.ok && data.Status === 'OK') {
                 alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
                 form.reset();
@@ -339,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
                 
+                // Reseteamos selects visuales
                 if(tipo !== 'YAPE') {
                     const selectorT = document.getElementById('selectorComprobanteTarjeta');
                     if(selectorT) {
@@ -346,13 +360,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
                         document.getElementById('inputComprobanteTarjeta').value = "2";
                     }
+                } else {
+                    // Reset visual para Yape también por si acaso
+                    const selectorY = document.getElementById('selectorComprobante');
+                    if(selectorY) {
+                        selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                        selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
+                        document.getElementById('inputComprobante').value = "2";
+                    }
                 }
 
                 btn.innerHTML = '¡ÉXITO!';
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
             
             } else {
-                // CASO 3: ERROR DE SERVIDOR (Java explotó antes de llegar a la BD)
                 alert(`❌ ERROR: ${data.error || data.Mensaje || "Error desconocido"}`);
                 btn.innerHTML = originalText; 
                 btn.disabled = false;
