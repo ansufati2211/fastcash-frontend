@@ -1908,6 +1908,13 @@ input[type="date"] {
     .btn-guardar, .btn-cancelar { 
         width: 100%; padding: 1rem; font-size: 1rem; margin: 0; 
     }
+
+    .card-grafico {
+        flex: 1 1 100%; 
+        height: 300px; 
+        width: 300px;
+        margin: 0 auto;
+    }
 }
 
 @media (max-width: 480px) {
