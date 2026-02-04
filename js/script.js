@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
-        window.location.href = 'login.html'; 
+        window.location.href = '../html/login.html'; // Ajusta ruta si es necesario
         return;
     }
     
@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
-        nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.username || 'Usuario';
+        // Corrección PostgreSQL: nombrecompleto (minúscula)
+        nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || 'Usuario';
     }
 
     // ==========================================
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     let rolUsuario = "CAJERO";
     
-    // Normalizamos el rol para evitar errores
+    // Normalizamos el rol para evitar errores de mayúsculas/minúsculas
     if (usuario.Rol) {
         rolUsuario = usuario.Rol.toUpperCase();
     } else if (usuario.rol) {
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function verificarEstadoCaja() {
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioID;
+            const uid = usuario.UsuarioID || usuario.usuarioid || usuario.usuarioID;
             const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
             if (res.ok) {
                 const data = await res.json();
@@ -137,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${BASE_URL}/caja/abrir`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        usuarioID: usuario.UsuarioID || usuario.usuarioID, 
+                        usuarioID: usuario.UsuarioID || usuario.usuarioid, 
                         saldoInicial: 0.00 
                     })
                 });
@@ -166,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnLogout.addEventListener('click', async () => {
             if(!confirm("¿Deseas cerrar sesión del sistema?")) return;
             localStorage.removeItem('usuarioSesion');
-            window.location.href = 'login.html';
+            window.location.href = '../html/login.html';
         });
     }
 
@@ -185,13 +186,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioID;
+            const uid = usuario.UsuarioID || usuario.usuarioid;
             
-            // 1. Obtener los cálculos desde la Base de Datos (incluyendo el Turno actualizado)
+            // 1. Obtener los cálculos desde la Base de Datos
             const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
+            
+            // CORRECCIÓN POSTGRES: Las claves vienen en minúscula o PascalCase según tu DTO
+            // Verificamos ambas por seguridad
+            const saldoIni = data.SaldoInicial || data.saldoinicial || 0;
+            const vEfec = data.VentasEfectivo || data.ventasefectivo || 0;
+            const vDig = data.VentasDigital || data.ventasdigital || 0;
+            const vTarj = data.VentasTarjeta || data.ventastarjeta || 0;
+            const vTotal = data.TotalVendido || data.totalvendido || 0;
+            const vAnulado = data.TotalAnulado || data.totalanulado || 0;
+            const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
+            const turnoNombre = data.TurnoNombre || data.turnonombre || "GENERAL";
 
             const setText = (id, valor) => {
                 const el = document.getElementById(id);
@@ -202,28 +214,24 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
 
-            const nombreCajero = usuario.NombreCompleto || usuario.username || "Cajero";
+            const nombreCajero = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || "Cajero";
             const elNombre = document.getElementById('ticketCajeroNombre');
             if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
 
-            // --- CORRECCIÓN: USAR EL TURNO QUE VIENE DE LA BD ---
-            const turnoReal = data.TurnoNombre || "GENERAL"; 
             const elTurno = document.getElementById('ticketTurno');
-            if (elTurno) elTurno.textContent = turnoReal.toUpperCase();
-            // ----------------------------------------------------
+            if (elTurno) elTurno.textContent = turnoNombre.toUpperCase();
 
-            setText('ticketSaldoInicialPrint', data.SaldoInicial);
-            setText('ticketEfectivoPrint', data.VentasEfectivo);
+            setText('ticketSaldoInicialPrint', saldoIni);
+            setText('ticketEfectivoPrint', vEfec);
             
-            // Si tienes un elemento para total Yape en el ticket impreso, úsalo, si no, usa el genérico
             const elYapePrint = document.getElementById('ticketYapePrint');
-            if(elYapePrint) elYapePrint.textContent = `S/ ${parseFloat(data.VentasDigital || 0).toFixed(2)}`;
+            if(elYapePrint) elYapePrint.textContent = `S/ ${parseFloat(vDig).toFixed(2)}`;
             
             const elTarjetaPrint = document.getElementById('ticketTarjetaPrint');
-            if(elTarjetaPrint) elTarjetaPrint.textContent = `S/ ${parseFloat(data.VentasTarjeta || 0).toFixed(2)}`;
+            if(elTarjetaPrint) elTarjetaPrint.textContent = `S/ ${parseFloat(vTarj).toFixed(2)}`;
 
-            setText('ticketAnuladoPrint', data.TotalAnulado || 0); 
-            setText('ticketTotalPrint', data.TotalVendido); 
+            setText('ticketAnuladoPrint', vAnulado); 
+            setText('ticketTotalPrint', vTotal); 
 
             // 3. Cerrar la caja en el Backend
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
@@ -231,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     usuarioID: uid, 
-                    saldoFinalReal: data.SaldoEsperadoEnCaja 
+                    saldoFinalReal: saldoFinalEsperado 
                 })
             });
 
@@ -245,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.print(); 
                 alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
-                window.location.href = 'login.html'; 
+                window.location.href = '../html/login.html'; 
             }, 800);
 
         } catch (error) {
@@ -278,17 +286,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
         let entidadId = 1, numOp = null, compId = 2;
-        
-        // --- NUEVO: Variable para el comprobante externo ---
         let comprobanteExt = null; 
-        // --------------------------------------------------
 
         if (tipo === 'YAPE') {
             entidadId = document.getElementById('inputDestino').value;
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
             
-            // Capturamos el valor del input Yape (si existe)
             const inputExt = document.getElementById('txtComprobanteYape');
             if(inputExt) comprobanteExt = inputExt.value.trim();
 
@@ -300,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
             if (inputCompTarjeta) compId = inputCompTarjeta.value;
 
-            // Capturamos el valor del input Tarjeta (si existe)
             const inputExt = document.getElementById('txtComprobanteTarjeta');
             if(inputExt) comprobanteExt = inputExt.value.trim();
 
@@ -311,22 +314,20 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
+        // CORRECCIÓN POSTGRES: Enviamos claves en PascalCase porque el DTO Java tiene @JsonProperty
         const payload = {
-            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioID, 
+            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioid, 
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
             clienteNombre: "Publico General",
-            
-            // --- AQUÍ ENVIAMOS EL DATO AL BACKEND ---
             comprobanteExterno: comprobanteExt, 
-            // ----------------------------------------
 
-            detalles: [{ CategoriaID: parseInt(inputFam.value), Monto: monto }],
+            detalles: [{ "CategoriaID": parseInt(inputFam.value), "Monto": monto }], // Claves con Mayúscula
             pagos: [{ 
-                FormaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-                Monto: monto, 
-                EntidadID: parseInt(entidadId), 
-                NumOperacion: numOp 
+                "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', 
+                "Monto": monto, 
+                "EntidadID": parseInt(entidadId), 
+                "NumOperacion": numOp 
             }]
         };
 
@@ -338,15 +339,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
 
-            if (data.Status === 'ERROR') {
-                alert(`❌ ERROR: ${data.Mensaje}`);
+            // Postgres a veces devuelve Status en minúscula o mayúscula según el SP
+            const status = data.Status || data.status;
+            const mensaje = data.Mensaje || data.mensaje;
+            const comprobante = data.Comprobante || data.comprobante;
+
+            if (status === 'ERROR') {
+                alert(`❌ ERROR: ${mensaje}`);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
             }
 
-            if (res.ok && data.Status === 'OK') {
-                alert(`✅ VENTA EXITOSA\nTicket: ${data.Comprobante}`);
+            if (res.ok && status === 'OK') {
+                alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
@@ -361,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('inputComprobanteTarjeta').value = "2";
                     }
                 } else {
-                    // Reset visual para Yape también por si acaso
                     const selectorY = document.getElementById('selectorComprobante');
                     if(selectorY) {
                         selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
@@ -374,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
             
             } else {
-                alert(`❌ ERROR: ${data.error || data.Mensaje || "Error desconocido"}`);
+                alert(`❌ ERROR: ${data.error || mensaje || "Error desconocido"}`);
                 btn.innerHTML = originalText; 
                 btn.disabled = false;
             }
@@ -395,61 +400,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 5. HISTORIAL DE VENTAS
     // ==========================================
-// ==========================================
-    // NUEVA FUNCIÓN: Llenar el combo de filtro (Solo para Admins)
-    // ==========================================
     async function cargarFiltroHistorial() {
-        // Si no es admin, no hacemos nada
         if (rolUsuario !== 'ADMINISTRADOR') return;
-
         const select = document.getElementById('filtroUsuarioHistorial');
         const wrapper = document.getElementById('wrapperFiltroHistorial');
-        
-        // Hacemos visible el selector en el HTML
         if(wrapper) wrapper.style.display = 'block'; 
 
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios`);
             if(res.ok) {
                 const usuarios = await res.json();
-                // Opción por defecto para ver todo
                 select.innerHTML = '<option value="">-- Ver Todos --</option>';
-                
-                // Llenamos con los cajeros
                 usuarios.forEach(u => {
-                    select.innerHTML += `<option value="${u.UsuarioID}">${u.NombreCompleto}</option>`;
+                    select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
-        } catch(e) { 
-            console.error("Error cargando filtro historial", e); 
-        }
+        } catch(e) { console.error("Error cargando filtro historial", e); }
     }
 
-    // ==========================================
-    // 5. HISTORIAL DE VENTAS (MODIFICADO CON FILTRO)
-    // ==========================================
     window.cargarHistorial = async function() {
         const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
         if(!cuerpoTabla) return;
 
-        // 1. NUEVO: Obtener el valor del filtro seleccionado
         const filtroSelect = document.getElementById('filtroUsuarioHistorial');
         const filtroID = filtroSelect ? filtroSelect.value : '';
 
         cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioID;
-            
-            // 2. NUEVO: Construir URL agregando el parámetro ?filtro=... si existe
+            const uid = usuario.UsuarioID || usuario.usuarioid;
             let url = `${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`;
-            
-            if(filtroID) {
-                url += `&filtro=${filtroID}`;
-            }
+            if(filtroID) url += `&filtro=${filtroID}`;
 
             const res = await fetch(url);
-            
             if(!res.ok) throw new Error("Error cargando historial");
 
             const ventas = await res.json();
@@ -459,20 +442,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
             } else {
                 ventas.forEach(v => {
-                    const fecha = new Date(v.FechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    const esAnulado = v.Estado === 'ANULADO';
+                    // Postgres minúsculas
+                    const fechaEmision = v.FechaEmision || v.fechaemision;
+                    const estado = v.Estado || v.estado;
+                    const cajero = v.Cajero || v.cajero;
+                    const formaPago = v.FormaPago || v.formapago;
+                    const familia = v.Familia || v.familia;
+                    const refOp = v.RefOperacion || v.refoperacion || v.Comprobante || v.comprobante;
+                    const importe = v.ImporteTotal || v.importetotal;
+                    const ventaId = v.VentaID || v.ventaid;
+
+                    const fecha = new Date(fechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const esAnulado = estado === 'ANULADO';
                     
                     const fila = `
                         <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
-                            <td style="font-weight:bold; color:#444;">${v.Cajero || 'Cajero'}</td>
-                            <td class="col-tipo">${v.FormaPago === 'QR' || v.FormaPago === 'YAPE' ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
-                            <td>${v.Familia || 'Varios'}</td>
-                            <td><div style="font-size:0.85rem; font-weight:bold;">${v.RefOperacion || v.Comprobante}</div></td>
-                            <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal).toFixed(2)}</td>
+                            <td style="font-weight:bold; color:#444;">${cajero || 'Cajero'}</td>
+                            <td class="col-tipo">${formaPago === 'QR' || formaPago === 'YAPE' ? '📱 YAPE' : (formaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                            <td>${familia || 'Varios'}</td>
+                            <td><div style="font-size:0.85rem; font-weight:bold;">${refOp}</div></td>
+                            <td class="dato-monto">S/ ${parseFloat(importe).toFixed(2)}</td>
                             <td>${fecha}</td>
-                            <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${v.Estado}</span></td>
+                            <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
                             <td>
-                                <button class="btn-anular" onclick="solicitarAnulacion(${v.VentaID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
                             </td>
                         </tr>`;
                     cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -493,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     ventaID: ventaId, 
-                    usuarioID: usuario.UsuarioID || usuario.usuarioID, 
+                    usuarioID: usuario.UsuarioID || usuario.usuarioid, 
                     motivo: "Anulación Manual" 
                 })
             });
@@ -512,17 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 6. GESTIÓN DE USUARIOS (FILTRO Y CRUD)
     // ==========================================
-    
-    // --------------------------------------------------------
-    // 👇👇👇 AQUÍ ESTÁ LA CORRECCIÓN QUE NECESITABAS 👇👇👇
-    // --------------------------------------------------------
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
-        const contenedor = document.getElementById('contenedorFiltroUsuario'); // 1. Obtenemos el div
-        
+        const contenedor = document.getElementById('contenedorFiltroUsuario'); 
         if(!select) return;
-
-        // 2. ¡IMPORTANTE! Lo hacemos visible
         if(contenedor) contenedor.style.display = 'block'; 
 
         try {
@@ -531,12 +517,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const usuarios = await res.json();
                 select.innerHTML = '<option value="">-- Todos los Cajeros --</option>';
                 usuarios.forEach(u => {
-                    select.innerHTML += `<option value="${u.UsuarioID}">${u.NombreCompleto}</option>`;
+                    select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
         } catch(e) { console.error("Error cargando usuarios filtro", e); }
     }
-    // --------------------------------------------------------
 
     async function cargarUsuarios() {
         const cuerpoTabla = document.getElementById('cuerpoTablaUsuarios');
@@ -555,22 +540,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             usuariosDB.forEach(u => {
-                const rolClase = (u.Rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
-                const esActivo = u.Activo === true || u.Activo === 1 || u.Activo === "true";
+                // Adaptación Postgres
+                const rol = u.Rol || u.rol;
+                const uid = u.UsuarioID || u.usuarioid;
+                const nombre = u.NombreCompleto || u.nombrecompleto;
+                const username = u.Username || u.username;
+                const turno = u.TurnoActual || u.turnoactual;
+                const activo = u.Activo || u.activo;
+
+                const rolClase = (rol || '').toUpperCase() === 'ADMINISTRADOR' ? 'admin' : 'cajero';
+                const esActivo = activo === true || activo === 1 || activo === "true";
                 const estadoTexto = esActivo ? '🟢 Activo' : '🔴 Inactivo';
                 const estiloFila = !esActivo ? 'opacity: 0.5;' : '';
 
                 const fila = `<tr style="${estiloFila}">
-                    <td>${u.UsuarioID}</td>
-                    <td>${u.NombreCompleto}</td>
-                    <td><strong>${u.Username}</strong></td>
-                    <td>${u.TurnoActual || '-'}</td>
-                    <td><span class="badge-rol ${rolClase}">${u.Rol}</span></td>
+                    <td>${uid}</td>
+                    <td>${nombre}</td>
+                    <td><strong>${username}</strong></td>
+                    <td>${turno || '-'}</td>
+                    <td><span class="badge-rol ${rolClase}">${rol}</span></td>
                     <td>${estadoTexto}</td>
                     <td>******</td>
                     <td style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn-editar" onclick="editarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
-                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${u.UsuarioID})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
+                        <button class="btn-editar" onclick="editarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
+                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
                     </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -595,25 +588,33 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
-            const user = usuarios.find(u => u.UsuarioID === idUsuario);
             
+            // Adaptación ID postgres
+            const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
             if (!user) return;
 
-            document.getElementById('idUsuarioEdicion').value = user.UsuarioID;
-            document.getElementById('nombreUsuario').value = user.NombreCompleto;
-            document.getElementById('usernameUsuario').value = user.Username; 
-            
-            document.getElementById('turnoUsuario').value = user.TurnoID || 1;
+            // Datos
+            const uid = user.UsuarioID || user.usuarioid;
+            const nombre = user.NombreCompleto || user.nombrecompleto;
+            const username = user.Username || user.username;
+            const turnoID = user.TurnoID || user.turnoid || 1;
+            const rol = user.Rol || user.rol;
+            const activo = user.Activo || user.activo;
+
+            document.getElementById('idUsuarioEdicion').value = uid;
+            document.getElementById('nombreUsuario').value = nombre;
+            document.getElementById('usernameUsuario').value = username; 
+            document.getElementById('turnoUsuario').value = turnoID;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
             const rolSelect = document.getElementById('rolUsuario');
-            const rolValue = (user.Rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
+            const rolValue = (rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
             rolSelect.value = rolValue;
 
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) {
-                const esActivo = user.Activo === true || user.Activo === 1;
+                const esActivo = activo === true || activo === 1;
                 selEstado.value = esActivo ? 'true' : 'false';
             }
 
@@ -681,12 +682,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             turnoID: parseInt(selectedTurno)
                         })
                     });
-                    
                     alert("✅ Usuario actualizado correctamente");
 
                 } else {
                     const nuevoUsuario = {
-                        adminID: usuario.UsuarioID || usuario.usuarioID,
+                        adminID: usuario.UsuarioID || usuario.usuarioid,
                         nombreCompleto: nombre,
                         username: usernameInput, 
                         password: pass,
@@ -707,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            adminID: usuario.UsuarioID, 
+                            adminID: usuario.UsuarioID || usuario.usuarioid, 
                             usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
                             turnoID: parseInt(selectedTurno) 
                         })
@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 7. REPORTES EXCEL (Generar y Descargar)
+    // 7. REPORTES EXCEL
     // ==========================================
     window.generarReporte = async (tipo) => {
         const inicio = document.getElementById('fechaInicio').value;
@@ -741,10 +741,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (inicio) params.append('inicio', inicio);
         if (fin) params.append('fin', fin);
 
-        if (usuario.Rol === 'ADMINISTRADOR') {
+        if (rolUsuario === 'ADMINISTRADOR') {
             if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
         } else {
-            params.append('usuarioID', usuario.UsuarioID);
+            params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
         }
 
         let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
@@ -770,6 +770,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const worksheet = XLSX.utils.json_to_sheet(data);
+            
+            // ESTILOS EXCEL (Ajuste básico para que funcione)
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const address = XLSX.utils.encode_col(C) + "1";
+                if (!worksheet[address]) continue;
+                worksheet[address].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "FF003C" } } };
+            }
+
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
             XLSX.writeFile(workbook, `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`);
@@ -802,8 +811,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const params = new URLSearchParams();
         if(fechaDash) params.append('fecha', fechaDash);
-        if(userDash && usuario.Rol === 'ADMINISTRADOR') params.append('usuarioID', userDash);
-        if(usuario.Rol !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID);
+        
+        if(userDash && rolUsuario === 'ADMINISTRADOR') params.append('usuarioID', userDash);
+        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
 
         try {
             const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`);
@@ -885,13 +895,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => v.classList.add('activa'), 10);
                         
                         if(targetId === 'vista-cierre') {
-                            fetch(`${BASE_URL}/reportes/cierre-actual/${usuario.UsuarioID || usuario.usuarioID}`)
+                            const uid = usuario.UsuarioID || usuario.usuarioid;
+                            fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`)
                                 .then(r => r.json())
                                 .then(d => {
-                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || 0).toFixed(2)}`;
-                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || 0).toFixed(2)}`;
-                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || 0).toFixed(2)}`;
-                                    document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || 0).toFixed(2)}`;
+                                    // Postgres Minúsculas
+                                    document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || d.ventasdigital || 0).toFixed(2)}`;
+                                    document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || d.ventastarjeta || 0).toFixed(2)}`;
+                                    document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || d.totalvendido || 0).toFixed(2)}`;
+                                    document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || d.totalanulado || 0).toFixed(2)}`;
                                 })
                                 .catch(err => console.error(err));
                         }
@@ -909,127 +921,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.abrirModalUsuario = () => document.getElementById('modalUsuario').classList.add('mostrar');
     window.cerrarModalUsuario = () => document.getElementById('modalUsuario').classList.remove('mostrar');
-
-
-    // ==========================================
-    // 7. REPORTES EXCEL "PREMIUM" (CON ESTILOS)
-    // ==========================================
-    window.generarReporte = async (tipo) => {
-        const inicio = document.getElementById('fechaInicio').value;
-        const fin = document.getElementById('fechaFin').value;
-        const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
-
-        const params = new URLSearchParams();
-        if (inicio) params.append('inicio', inicio);
-        if (fin) params.append('fin', fin);
-
-        if (usuario.Rol === 'ADMINISTRADOR') {
-            if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
-        } else {
-            params.append('usuarioID', usuario.UsuarioID);
-        }
-
-        let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
-        const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
-
-        const btn = event.target.closest('button'); 
-        const txtOriginal = btn ? btn.innerHTML : '';
-        
-        if (btn) {
-            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
-            btn.disabled = true;
-        }
-
-        try {
-            const res = await fetch(urlFinal);
-            if (!res.ok) throw new Error("Error en el servidor");
-            
-            const data = await res.json();
-            if (!data || data.length === 0) {
-                alert("⚠️ No hay datos con esos filtros.");
-                if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
-                return;
-            }
-
-            // 1. CREAR HOJA DE CÁLCULO
-            const worksheet = XLSX.utils.json_to_sheet(data);
-
-            // 2. ESTILOS PERSONALIZADOS
-            const range = XLSX.utils.decode_range(worksheet['!ref']);
-            
-            // A) Estilo para ENCABEZADOS (Fila 1)
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const address = XLSX.utils.encode_col(C) + "1"; // A1, B1, C1...
-                if (!worksheet[address]) continue;
-
-                worksheet[address].s = {
-                    fill: { fgColor: { rgb: "FF003C" } }, // Rojo corporativo
-                    font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } }, // Letra blanca negrita
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: {
-                        top: { style: "thin", color: { auto: 1 } },
-                        bottom: { style: "thin", color: { auto: 1 } },
-                        left: { style: "thin", color: { auto: 1 } },
-                        right: { style: "thin", color: { auto: 1 } }
-                    }
-                };
-            }
-
-            // B) Estilo para DATOS (Filas 2 en adelante)
-            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-                    if (!worksheet[cellRef]) continue;
-
-                    worksheet[cellRef].s = {
-                        font: { name: "Arial", sz: 10 },
-                        alignment: { vertical: "center", horizontal: "left" }, 
-                        border: {
-                            top: { style: "thin", color: { rgb: "CCCCCC" } },
-                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
-                            left: { style: "thin", color: { rgb: "CCCCCC" } },
-                            right: { style: "thin", color: { rgb: "CCCCCC" } }
-                        }
-                    };
-                }
-            }
-
-            // C) Auto-ajustar Ancho de Columnas
-            const columnWidths = [];
-            const keys = Object.keys(data[0]);
-            
-            keys.forEach((key, index) => {
-                let maxLength = key.length; // Empieza con el largo del título
-                data.forEach(row => {
-                    const cellValue = row[key] ? String(row[key]) : "";
-                    if (cellValue.length > maxLength) {
-                        maxLength = cellValue.length;
-                    }
-                });
-                columnWidths.push({ wch: maxLength + 5 }); // +5 de margen
-            });
-            worksheet['!cols'] = columnWidths;
-
-            // 3. DESCARGAR ARCHIVO
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-
-            const nombreArchivo = `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`;
-            
-            XLSX.writeFile(workbook, nombreArchivo);
-
-            if(btn) {
-                btn.innerHTML = '<span>✅</span> ¡Descargado!';
-                setTimeout(() => { 
-                    btn.innerHTML = txtOriginal; 
-                    btn.disabled = false; 
-                }, 2000);
-            }
-
-        } catch (e) {
-            console.error(e);
-            alert("❌ Error generando Excel: " + e.message);
-            if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
-        }
-    };
 });

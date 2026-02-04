@@ -48,10 +48,31 @@ formularioLogin.addEventListener('submit', async function(e) {
             // --- ÉXITO ---
             const data = await response.json(); 
             
-            // Guardamos sesión
-            localStorage.setItem('usuarioSesion', JSON.stringify(data));
+            // ==============================================================
+            // 🛠️ CORRECCIÓN CRÍTICA PARA POSTGRESQL 🛠️
+            // PostgreSQL devuelve los nombres de columna en MINÚSCULAS.
+            // Adaptamos las claves para que coincidan con la respuesta del SP.
+            // ==============================================================
+
+            // Creamos un objeto de sesión limpio y consistente
+            const sessionData = {
+                // Postgres devuelve 'usuarioid', 'nombrecompleto', 'rol'
+                UsuarioID: data.usuarioid, 
+                NombreCompleto: data.nombrecompleto,
+                Rol: data.rol,
+                Username: username 
+            };
             
-            mostrarNotificacion(`¡Bienvenido, ${data.NombreCompleto || username}!`, 'exito');
+            // Verificamos que los datos hayan llegado
+            if (!sessionData.UsuarioID) {
+                throw new Error("Error interno: El servidor no devolvió el ID de usuario.");
+            }
+
+            // Guardamos sesión
+            localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
+            
+            // Notificación de éxito
+            mostrarNotificacion(`¡Bienvenido, ${sessionData.NombreCompleto || username}!`, 'exito');
             
             // Animación de salida
             const contenedor = document.querySelector('.contenedor-login');
@@ -62,7 +83,7 @@ formularioLogin.addEventListener('submit', async function(e) {
             
             // --- REDIRECCIÓN A INDEX.HTML ---
             setTimeout(() => {
-                window.location.href = '/html/index.html'; 
+                window.location.href = '../html/index.html'; // Ajuste de ruta relativa (si js está en /js y html en /html)
             }, 800);
 
         } else {
@@ -93,6 +114,7 @@ formularioLogin.addEventListener('submit', async function(e) {
 // --- FUNCIONES AUXILIARES ---
 
 function sacudirInput(input) {
+    if (!input) return; // Validación extra
     input.focus();
     input.style.animation = 'sacudir 0.5s ease';
     input.style.borderColor = 'var(--color-primario)';
