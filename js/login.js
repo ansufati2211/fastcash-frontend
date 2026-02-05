@@ -4,7 +4,6 @@ const API_URL = 'http://localhost:8080/api/auth/login';
 // Referencias al DOM
 const inputPassword = document.getElementById('password');
 const formularioLogin = document.getElementById('formularioLogin');
-// CAMBIO: Ahora buscamos por id="username"
 const inputUsuario = document.getElementById('username'); 
 
 // Validación y Envío del formulario
@@ -16,7 +15,6 @@ formularioLogin.addEventListener('submit', async function(e) {
     const password = inputPassword.value.trim();
     
     // --- VERIFICACIÓN DE SEGURIDAD (CLIENTE) ---
-    
     if (!username || !password) {
         mostrarNotificacion('Por favor completa todos los campos', 'error');
         sacudirInput(!username ? inputUsuario : inputPassword);
@@ -24,7 +22,6 @@ formularioLogin.addEventListener('submit', async function(e) {
     }
     
     // --- CONEXIÓN CON EL BACKEND ---
-    
     const botonLogin = document.querySelector('.boton-login');
     const textoOriginal = botonLogin.innerHTML;
     
@@ -49,23 +46,19 @@ formularioLogin.addEventListener('submit', async function(e) {
             const data = await response.json(); 
             
             // ==============================================================
-            // 🛠️ CORRECCIÓN CRÍTICA PARA POSTGRESQL 🛠️
-            // PostgreSQL devuelve los nombres de columna en MINÚSCULAS.
-            // Adaptamos las claves para que coincidan con la respuesta del SP.
+            // 🛠️ CORRECCIÓN CRÍTICA PARA POSTGRESQL (Mayúsculas/Minúsculas)
             // ==============================================================
-
-            // Creamos un objeto de sesión limpio y consistente
             const sessionData = {
-                // Postgres devuelve 'usuarioid', 'nombrecompleto', 'rol'
-                UsuarioID: data.usuarioid, 
-                NombreCompleto: data.nombrecompleto,
-                Rol: data.rol,
+                // Intenta leer 'usuarioid' (Postgres Map) O 'UsuarioID' (Java DTO)
+                UsuarioID: data.usuarioid || data.UsuarioID || data.usuarioID, 
+                NombreCompleto: data.nombrecompleto || data.NombreCompleto,
+                Rol: data.rol || data.Rol || data.RolID,
                 Username: username 
             };
             
-            // Verificamos que los datos hayan llegado
+            // Verificamos que los datos críticos existan
             if (!sessionData.UsuarioID) {
-                throw new Error("Error interno: El servidor no devolvió el ID de usuario.");
+                throw new Error("Error: El servidor no devolvió el ID de usuario.");
             }
 
             // Guardamos sesión
@@ -74,16 +67,17 @@ formularioLogin.addEventListener('submit', async function(e) {
             // Notificación de éxito
             mostrarNotificacion(`¡Bienvenido, ${sessionData.NombreCompleto || username}!`, 'exito');
             
-            // Animación de salida
+            // Animación de salida visual
             const contenedor = document.querySelector('.contenedor-login');
             if(contenedor) {
                 contenedor.style.animation = 'alejarZoom 0.5s ease forwards';
                 contenedor.style.opacity = '0';
             }
             
-            // --- REDIRECCIÓN A INDEX.HTML ---
+            // --- REDIRECCIÓN ---
+            // Como login.html e index.html están en la misma carpeta, solo ponemos el nombre
             setTimeout(() => {
-                window.location.href = '../html/index.html'; // Ajuste de ruta relativa (si js está en /js y html en /html)
+                window.location.href = 'index.html'; 
             }, 800);
 
         } else {
@@ -114,7 +108,7 @@ formularioLogin.addEventListener('submit', async function(e) {
 // --- FUNCIONES AUXILIARES ---
 
 function sacudirInput(input) {
-    if (!input) return; // Validación extra
+    if (!input) return;
     input.focus();
     input.style.animation = 'sacudir 0.5s ease';
     input.style.borderColor = 'var(--color-primario)';

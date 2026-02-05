@@ -9,16 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     if (!usuarioData) { 
-        window.location.href = '../html/login.html'; // Ajusta ruta si es necesario
+        window.location.href = '../html/login.html'; 
         return;
     }
     
     const usuario = JSON.parse(usuarioData);
 
+    // Compatibilidad ID (Postgres puede devolver minúsculas)
+    const UID = usuario.UsuarioID || usuario.usuarioid || usuario.id;
+
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
-        // Corrección PostgreSQL: nombrecompleto (minúscula)
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || 'Usuario';
     }
 
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     let rolUsuario = "CAJERO";
     
-    // Normalizamos el rol para evitar errores de mayúsculas/minúsculas
+    // Normalizamos el rol
     if (usuario.Rol) {
         rolUsuario = usuario.Rol.toUpperCase();
     } else if (usuario.rol) {
@@ -43,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (rolUsuario !== 'ADMINISTRADOR') {
         itemsAdmin.forEach(item => item.style.display = 'none');
     } else {
-        // Solo si es admin cargamos el filtro
         cargarFiltroUsuarios();
         cargarFiltroHistorial();
     }
@@ -105,14 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
             if(areaTrabajo) { 
                 areaTrabajo.style.opacity = "0.8"; 
+                areaTrabajo.style.pointerEvents = "none"; // Bloqueamos clicks si está cerrada
             }
         }
     }
 
     async function verificarEstadoCaja() {
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid || usuario.usuarioID;
-            const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
+            const res = await fetch(`${BASE_URL}/caja/estado/${UID}`);
             if (res.ok) {
                 const data = await res.json();
                 actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
@@ -138,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${BASE_URL}/caja/abrir`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        usuarioID: usuario.UsuarioID || usuario.usuarioid, 
+                        usuarioID: UID, 
                         saldoInicial: 0.00 
                     })
                 });
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarEstadoVisualCaja(true);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error || "Error al abrir caja");
+                    throw new Error(err.error || err.mensaje || "Error al abrir caja");
                 }
             } catch (error) {
                 alert("❌ Error: " + error.message);
@@ -186,16 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid;
-            
             // 1. Obtener los cálculos desde la Base de Datos
-            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
+            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${UID}`);
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
             
-            // CORRECCIÓN POSTGRES: Las claves vienen en minúscula o PascalCase según tu DTO
-            // Verificamos ambas por seguridad
+            // CORRECCIÓN POSTGRES: Soportar mayúsculas/minúsculas
             const saldoIni = data.SaldoInicial || data.saldoinicial || 0;
             const vEfec = data.VentasEfectivo || data.ventasefectivo || 0;
             const vDig = data.VentasDigital || data.ventasdigital || 0;
@@ -234,18 +232,19 @@ document.addEventListener('DOMContentLoaded', () => {
             setText('ticketTotalPrint', vTotal); 
 
             // 3. Cerrar la caja en el Backend
+            // IMPORTANTE: Enviamos claves exactas que espera el DTO CierreCajaRequest
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    usuarioID: uid, 
-                    saldoFinalReal: saldoFinalEsperado 
+                    usuarioID: UID, 
+                    saldoFinalReal: parseFloat(saldoFinalEsperado)
                 })
             });
 
             if(!resCierre.ok) {
                 const err = await resCierre.json();
-                throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
+                throw new Error(err.Mensaje || err.mensaje || err.error || "Error al cerrar la caja.");
             }
 
             // 4. Imprimir y Salir
@@ -267,17 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 4. LÓGICA DE VENTAS (ACTUALIZADA)
+    // 4. LÓGICA DE VENTAS (AJUSTADA POSTGRES)
     // ==========================================
     async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
-        // 1. Validaciones básicas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
             alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
         }
 
-        let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
@@ -285,11 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
         if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
-        let entidadId = 1, numOp = null, compId = 2;
+        let entidadId = 1, numOp = null, compId = 2; // Default Yape (1) y Boleta (2)
         let comprobanteExt = null; 
 
         if (tipo === 'YAPE') {
-            entidadId = document.getElementById('inputDestino').value;
+            entidadId = document.getElementById('inputDestino').value || 1; // Default Yape
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
             
@@ -298,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
         } else {
-            entidadId = document.getElementById('inputBancoTarjeta').value;
+            entidadId = document.getElementById('inputBancoTarjeta').value || 3; // Default BCP
             numOp = document.getElementById('numOperacionTarjeta').value;
             
             const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
@@ -314,15 +311,20 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
-        // CORRECCIÓN POSTGRES: Enviamos claves en PascalCase porque el DTO Java tiene @JsonProperty
+        // CRÍTICO POSTGRES: Nombres de claves EXACTOS (PascalCase)
+        // El SP espera: "CategoriaID", "Monto", "FormaPago", "EntidadID"
         const payload = {
-            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioid, 
+            usuarioID: UID, 
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
-            clienteNombre: "Publico General",
-            comprobanteExterno: comprobanteExt, 
+            clienteNombre: "PUBLICO GENERAL",
+            comprobanteExterno: comprobanteExt || null,
 
-            detalles: [{ "CategoriaID": parseInt(inputFam.value), "Monto": monto }], // Claves con Mayúscula
+            detalles: [{ 
+                "CategoriaID": parseInt(inputFam.value), 
+                "Monto": monto 
+            }], 
+            
             pagos: [{ 
                 "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', 
                 "Monto": monto, 
@@ -333,56 +335,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(`${BASE_URL}/ventas/registrar`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             const data = await res.json();
 
-            // Postgres a veces devuelve Status en minúscula o mayúscula según el SP
+            // Validar respuesta (puede venir status/Status)
             const status = data.Status || data.status;
             const mensaje = data.Mensaje || data.mensaje;
             const comprobante = data.Comprobante || data.comprobante;
 
-            if (status === 'ERROR') {
-                alert(`❌ ERROR: ${mensaje}`);
+            if (!res.ok || status === 'ERROR') {
+                alert(`❌ ERROR: ${data.error || mensaje || "Error al registrar"}`);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
             }
 
-            if (res.ok && status === 'OK') {
-                alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
-                form.reset();
-                const cont = document.getElementById(idContenedorFam);
-                if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
-                inputFam.value = "";
-                
-                // Reseteamos selects visuales
-                if(tipo !== 'YAPE') {
-                    const selectorT = document.getElementById('selectorComprobanteTarjeta');
-                    if(selectorT) {
-                        selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                        selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
-                        document.getElementById('inputComprobanteTarjeta').value = "2";
-                    }
-                } else {
-                    const selectorY = document.getElementById('selectorComprobante');
-                    if(selectorY) {
-                        selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                        selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
-                        document.getElementById('inputComprobante').value = "2";
-                    }
-                }
-
-                btn.innerHTML = '¡ÉXITO!';
-                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
+            // ÉXITO
+            alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
+            form.reset();
+            const cont = document.getElementById(idContenedorFam);
+            if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
+            inputFam.value = "";
             
+            // Reseteamos selects a defaults
+            if(tipo !== 'YAPE') {
+                const selectorT = document.getElementById('selectorComprobanteTarjeta');
+                if(selectorT) {
+                    selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                    selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
+                    document.getElementById('inputComprobanteTarjeta').value = "2";
+                }
             } else {
-                alert(`❌ ERROR: ${data.error || mensaje || "Error desconocido"}`);
-                btn.innerHTML = originalText; 
-                btn.disabled = false;
+                const selectorY = document.getElementById('selectorComprobante');
+                if(selectorY) {
+                    selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                    selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
+                    document.getElementById('inputComprobante').value = "2";
+                }
             }
+
+            btn.innerHTML = '¡ÉXITO!';
+            setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
 
         } catch (error) {
             console.error(error);
@@ -415,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
-        } catch(e) { console.error("Error cargando filtro historial", e); }
+        } catch(e) { console.error("Error filtro historial", e); }
     }
 
     window.cargarHistorial = async function() {
@@ -425,11 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroSelect = document.getElementById('filtroUsuarioHistorial');
         const filtroID = filtroSelect ? filtroSelect.value : '';
 
-        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
+        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando...</td></tr>';
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid;
-            let url = `${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`;
+            let url = `${BASE_URL}/ventas/historial/${UID}?_=${new Date().getTime()}`;
             if(filtroID) url += `&filtro=${filtroID}`;
 
             const res = await fetch(url);
@@ -439,10 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">📭 Sin ventas registradas.</td></tr>';
             } else {
                 ventas.forEach(v => {
-                    // Postgres minúsculas
                     const fechaEmision = v.FechaEmision || v.fechaemision;
                     const estado = v.Estado || v.estado;
                     const cajero = v.Cajero || v.cajero;
@@ -465,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${fecha}</td>
                             <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
                             <td>
-                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫</button>
                             </td>
                         </tr>`;
                     cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -473,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) { 
-            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión. Intente nuevamente.</td></tr>'; 
+            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error conexión.</td></tr>'; 
         }
     };
 
@@ -486,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     ventaID: ventaId, 
-                    usuarioID: usuario.UsuarioID || usuario.usuarioid, 
+                    usuarioID: UID, 
                     motivo: "Anulación Manual" 
                 })
             });
@@ -501,9 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { alert("❌ Error de red"); }
     };
 
-
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS (FILTRO Y CRUD)
+    // 6. GESTIÓN DE USUARIOS
     // ==========================================
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
@@ -520,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
-        } catch(e) { console.error("Error cargando usuarios filtro", e); }
+        } catch(e) {}
     }
 
     async function cargarUsuarios() {
@@ -529,18 +523,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
-            if (!res.ok) throw new Error("Error cargando usuarios");
+            if (!res.ok) throw new Error("Error usuarios");
 
             const usuariosDB = await res.json();
             cuerpoTabla.innerHTML = '';
 
-            if (usuariosDB.length === 0) { 
-                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center;">Sin usuarios</td></tr>'; 
-                return; 
-            }
+            if (usuariosDB.length === 0) return;
 
             usuariosDB.forEach(u => {
-                // Adaptación Postgres
                 const rol = u.Rol || u.rol;
                 const uid = u.UsuarioID || u.usuarioid;
                 const nombre = u.NombreCompleto || u.nombrecompleto;
@@ -562,63 +552,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${estadoTexto}</td>
                     <td>******</td>
                     <td style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn-editar" onclick="editarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
-                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
+                        <button class="btn-editar" onclick="editarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;">✏️</button>
+                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;">🗑️</button>` : ''}
                     </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
-        } catch (error) { console.error(error); }
+        } catch (error) {}
     }
 
     window.eliminarUsuario = async (idUsuario) => {
-        if(!confirm("¿Estás seguro de DESACTIVAR este usuario?")) return;
+        if(!confirm("¿DESACTIVAR usuario?")) return;
         try {
             const res = await fetch(`${BASE_URL}/admin/eliminar/${idUsuario}`, { method: 'DELETE' });
-            if(res.ok) {
-                alert("✅ Usuario desactivado.");
-                cargarUsuarios();
-            } else {
-                alert("❌ Error al eliminar");
-            }
-        } catch(e) { alert("❌ Error de conexión"); }
+            if(res.ok) { alert("✅ Usuario desactivado."); cargarUsuarios(); }
+            else alert("❌ Error al eliminar");
+        } catch(e) { alert("❌ Error conexión"); }
     };
 
     window.editarUsuario = async (idUsuario) => {
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
-            
-            // Adaptación ID postgres
             const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
             if (!user) return;
 
-            // Datos
-            const uid = user.UsuarioID || user.usuarioid;
-            const nombre = user.NombreCompleto || user.nombrecompleto;
-            const username = user.Username || user.username;
-            const turnoID = user.TurnoID || user.turnoid || 1;
-            const rol = user.Rol || user.rol;
-            const activo = user.Activo || user.activo;
-
-            document.getElementById('idUsuarioEdicion').value = uid;
-            document.getElementById('nombreUsuario').value = nombre;
-            document.getElementById('usernameUsuario').value = username; 
-            document.getElementById('turnoUsuario').value = turnoID;
+            document.getElementById('idUsuarioEdicion').value = user.UsuarioID || user.usuarioid;
+            document.getElementById('nombreUsuario').value = user.NombreCompleto || user.nombrecompleto;
+            document.getElementById('usernameUsuario').value = user.Username || user.username; 
+            document.getElementById('turnoUsuario').value = user.TurnoID || user.turnoid || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
-            const rolSelect = document.getElementById('rolUsuario');
-            const rolValue = (rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
-            rolSelect.value = rolValue;
+            const rolVal = (user.Rol || user.rol || '').toUpperCase();
+            document.getElementById('rolUsuario').value = (rolVal === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
 
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) {
-                const esActivo = activo === true || activo === 1;
-                selEstado.value = esActivo ? 'true' : 'false';
+                const esActivo = user.Activo || user.activo;
+                selEstado.value = (esActivo === true || esActivo === 1) ? 'true' : 'false';
             }
 
-            document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
+            document.getElementById('passUsuario').placeholder = "(Vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
             document.getElementById('passUsuario').required = false;
 
@@ -635,10 +610,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('passUsuario').required = true;
             document.getElementById('passUsuario').placeholder = "Contraseña";
             document.getElementById('turnoUsuario').value = 1; 
-            
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) selEstado.value = 'true';
-            
             abrirModalUsuario();
         };
     }
@@ -650,15 +623,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         nuevoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const idEdicion = document.getElementById('idUsuarioEdicion').value;
             const nombre = document.getElementById('nombreUsuario').value;
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
-            
             const rolVal = document.getElementById('rolUsuario').value;
             const rol = (rolVal === 'Administrador') ? 1 : 2;
-
             const selectedTurno = document.getElementById('turnoUsuario').value;
             const estadoVal = document.getElementById('estadoUsuario')?.value;
             const esActivo = (estadoVal === 'true');
@@ -670,8 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 if (idEdicion) {
                     await fetch(`${BASE_URL}/admin/actualizar`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             usuarioID: parseInt(idEdicion),
                             nombreCompleto: nombre,
@@ -682,49 +651,36 @@ document.addEventListener('DOMContentLoaded', () => {
                             turnoID: parseInt(selectedTurno)
                         })
                     });
-                    alert("✅ Usuario actualizado correctamente");
-
+                    alert("✅ Usuario actualizado");
                 } else {
-                    const nuevoUsuario = {
-                        adminID: usuario.UsuarioID || usuario.usuarioid,
-                        nombreCompleto: nombre,
-                        username: usernameInput, 
-                        password: pass,
-                        rolID: rol
-                    };
-
                     const res = await fetch(`${BASE_URL}/admin/crear-usuario`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(nuevoUsuario)
+                        body: JSON.stringify({
+                            adminID: UID,
+                            nombreCompleto: nombre,
+                            username: usernameInput, 
+                            password: pass,
+                            rolID: rol
+                        })
                     });
-
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.error || "Error al crear usuario");
-                    }
+                    if (!res.ok) throw new Error("Error al crear");
                     const dataRes = await res.json();
                     
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            adminID: usuario.UsuarioID || usuario.usuarioid, 
+                            adminID: UID, 
                             usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
                             turnoID: parseInt(selectedTurno) 
                         })
                     });
-                    alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
+                    alert(`✅ Usuario creado: ${usernameInput}`);
                 }
-                
                 cerrarModalUsuario();
                 nuevoForm.reset();
                 cargarUsuarios();
-
-            } catch (error) { 
-                alert("❌ Error: " + error.message); 
-            } finally { 
-                btnGuardar.innerHTML = txtOriginal; 
-                btnGuardar.disabled = false; 
-            }
+            } catch (error) { alert("❌ Error: " + error.message); } 
+            finally { btnGuardar.innerHTML = txtOriginal; btnGuardar.disabled = false; }
         });
     }
 
@@ -744,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rolUsuario === 'ADMINISTRADOR') {
             if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
         } else {
-            params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
+            params.append('usuarioID', UID);
         }
 
         let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
@@ -752,45 +708,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btn = event.target.closest('button'); 
         const txtOriginal = btn ? btn.innerHTML : '';
-        
-        if (btn) {
-            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
-            btn.disabled = true;
-        }
+        if (btn) { btn.innerHTML = '⚙️ Generando...'; btn.disabled = true; }
 
         try {
             const res = await fetch(urlFinal);
-            if (!res.ok) throw new Error("Error en el servidor");
+            if (!res.ok) throw new Error("Error servidor");
             
             const data = await res.json();
             if (!data || data.length === 0) {
-                alert("⚠️ No hay datos con esos filtros.");
+                alert("⚠️ No hay datos.");
                 if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
                 return;
             }
 
             const worksheet = XLSX.utils.json_to_sheet(data);
-            
-            // ESTILOS EXCEL (Ajuste básico para que funcione)
-            const range = XLSX.utils.decode_range(worksheet['!ref']);
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const address = XLSX.utils.encode_col(C) + "1";
-                if (!worksheet[address]) continue;
-                worksheet[address].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "FF003C" } } };
-            }
-
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
             XLSX.writeFile(workbook, `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`);
 
             if(btn) {
-                btn.innerHTML = '<span>✅</span> ¡Descargado!';
+                btn.innerHTML = '✅ ¡Listo!';
                 setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000);
             }
-
         } catch (e) {
-            console.error(e);
-            alert("❌ Error generando Excel: " + e.message);
+            alert("❌ Error Excel: " + e.message);
             if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
         }
     };
@@ -813,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(fechaDash) params.append('fecha', fechaDash);
         
         if(userDash && rolUsuario === 'ADMINISTRADOR') params.append('usuarioID', userDash);
-        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
+        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', UID);
 
         try {
             const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`);
@@ -825,7 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if(data.categorias) {
                 const ctxP = document.getElementById('graficoPastel').getContext('2d');
                 if(chartPastel) chartPastel.destroy();
-
                 chartPastel = new Chart(ctxP, {
                     type: 'doughnut',
                     data: {
@@ -843,13 +783,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if(data.pagos) {
                 const ctxB = document.getElementById('graficoBarras').getContext('2d');
                 if(chartBarras) chartBarras.destroy();
-
                 chartBarras = new Chart(ctxB, {
                     type: 'bar',
                     data: {
                         labels: data.pagos.map(i => i.label),
                         datasets: [{ 
-                            label: 'Total Ventas (S/)', 
+                            label: 'Ventas (S/)', 
                             data: data.pagos.map(i => i.value), 
                             backgroundColor: '#2563eb',
                             borderRadius: 10
@@ -895,11 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => v.classList.add('activa'), 10);
                         
                         if(targetId === 'vista-cierre') {
-                            const uid = usuario.UsuarioID || usuario.usuarioid;
-                            fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`)
+                            fetch(`${BASE_URL}/reportes/cierre-actual/${UID}`)
                                 .then(r => r.json())
                                 .then(d => {
-                                    // Postgres Minúsculas
                                     document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || d.ventasdigital || 0).toFixed(2)}`;
                                     document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || d.ventastarjeta || 0).toFixed(2)}`;
                                     document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || d.totalvendido || 0).toFixed(2)}`;
