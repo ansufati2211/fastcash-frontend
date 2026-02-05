@@ -15,12 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const usuario = JSON.parse(usuarioData);
 
-    // Compatibilidad ID (Postgres puede devolver minúsculas)
-    const UID = usuario.UsuarioID || usuario.usuarioid || usuario.id;
-
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
+        // Corrección PostgreSQL: nombrecompleto (minúscula)
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || 'Usuario';
     }
 
@@ -29,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     let rolUsuario = "CAJERO";
     
-    // Normalizamos el rol
+    // Normalizamos el rol para evitar errores de mayúsculas/minúsculas
     if (usuario.Rol) {
         rolUsuario = usuario.Rol.toUpperCase();
     } else if (usuario.rol) {
@@ -45,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (rolUsuario !== 'ADMINISTRADOR') {
         itemsAdmin.forEach(item => item.style.display = 'none');
     } else {
+        // Solo si es admin cargamos el filtro
         cargarFiltroUsuarios();
         cargarFiltroHistorial();
     }
@@ -96,24 +95,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarEstadoVisualCaja(estaAbierta) {
         CAJA_ABIERTA = estaAbierta;
-        if (estaAbierta) {
-            if(btnAbrirCaja) btnAbrirCaja.style.display = 'none';
-            if(areaTrabajo) { 
+        
+        // 1. Control del Botón en el Header
+        if(btnAbrirCaja) btnAbrirCaja.style.display = estaAbierta ? 'none' : 'flex';
+
+        // 2. Control del Área de Trabajo (La parte importante)
+        if(areaTrabajo) { 
+            if (estaAbierta) {
+                // CAJA ABIERTA: Todo habilitado para todos
                 areaTrabajo.style.opacity = "1"; 
                 areaTrabajo.style.pointerEvents = "all"; 
-            }
-        } else {
-            if(btnAbrirCaja) btnAbrirCaja.style.display = 'flex'; 
-            if(areaTrabajo) { 
-                areaTrabajo.style.opacity = "0.8"; 
-                areaTrabajo.style.pointerEvents = "none"; // Bloqueamos clicks si está cerrada
+            } else {
+                // CAJA CERRADA
+                if (rolUsuario === 'ADMINISTRADOR') {
+                    // 🛡️ EXCEPCIÓN ADMIN: Permitimos ver e interactuar con Reportes/Dashboards
+                    // (Las ventas seguirán protegidas por la validación del botón "Registrar")
+                    areaTrabajo.style.opacity = "1"; 
+                    areaTrabajo.style.pointerEvents = "all"; 
+                } else {
+                    // 🔒 CAJERO: Bloqueo total visual hasta que abra caja
+                    areaTrabajo.style.opacity = "0.5"; 
+                    areaTrabajo.style.pointerEvents = "none"; 
+                }
             }
         }
     }
 
     async function verificarEstadoCaja() {
         try {
-            const res = await fetch(`${BASE_URL}/caja/estado/${UID}`);
+            const uid = usuario.UsuarioID || usuario.usuarioid || usuario.usuarioID;
+            const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
             if (res.ok) {
                 const data = await res.json();
                 actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
@@ -139,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${BASE_URL}/caja/abrir`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        usuarioID: UID, 
+                        usuarioID: usuario.UsuarioID || usuario.usuarioid, 
                         saldoInicial: 0.00 
                     })
                 });
@@ -149,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarEstadoVisualCaja(true);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error || err.mensaje || "Error al abrir caja");
+                    throw new Error(err.error || "Error al abrir caja");
                 }
             } catch (error) {
                 alert("❌ Error: " + error.message);
@@ -187,13 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            const uid = usuario.UsuarioID || usuario.usuarioid;
+            
             // 1. Obtener los cálculos desde la Base de Datos
-            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${UID}`);
+            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`);
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
             
-            // CORRECCIÓN POSTGRES: Soportar mayúsculas/minúsculas
+            // CORRECCIÓN POSTGRES: Las claves vienen en minúscula o PascalCase según tu DTO
             const saldoIni = data.SaldoInicial || data.saldoinicial || 0;
             const vEfec = data.VentasEfectivo || data.ventasefectivo || 0;
             const vDig = data.VentasDigital || data.ventasdigital || 0;
@@ -232,19 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
             setText('ticketTotalPrint', vTotal); 
 
             // 3. Cerrar la caja en el Backend
-            // IMPORTANTE: Enviamos claves exactas que espera el DTO CierreCajaRequest
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    usuarioID: UID, 
-                    saldoFinalReal: parseFloat(saldoFinalEsperado)
+                    usuarioID: uid, 
+                    saldoFinalReal: saldoFinalEsperado 
                 })
             });
 
             if(!resCierre.ok) {
                 const err = await resCierre.json();
-                throw new Error(err.Mensaje || err.mensaje || err.error || "Error al cerrar la caja.");
+                throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
             }
 
             // 4. Imprimir y Salir
@@ -266,15 +278,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 4. LÓGICA DE VENTAS (AJUSTADA POSTGRES)
+    // 4. LÓGICA DE VENTAS (ACTUALIZADA)
     // ==========================================
     async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
+        // 1. Validaciones básicas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
-            alert("🔒 CAJA CERRADA\nAbre turno primero."); return;
+            alert("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas."); return;
         }
 
+        let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
@@ -282,11 +296,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
         if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
-        let entidadId = 1, numOp = null, compId = 2; // Default Yape (1) y Boleta (2)
+        let entidadId = 1, numOp = null, compId = 2;
         let comprobanteExt = null; 
 
         if (tipo === 'YAPE') {
-            entidadId = document.getElementById('inputDestino').value || 1; // Default Yape
+            entidadId = document.getElementById('inputDestino').value;
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
             
@@ -295,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
         } else {
-            entidadId = document.getElementById('inputBancoTarjeta').value || 3; // Default BCP
+            entidadId = document.getElementById('inputBancoTarjeta').value;
             numOp = document.getElementById('numOperacionTarjeta').value;
             
             const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
@@ -311,20 +325,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
-        // CRÍTICO POSTGRES: Nombres de claves EXACTOS (PascalCase)
-        // El SP espera: "CategoriaID", "Monto", "FormaPago", "EntidadID"
+        // CORRECCIÓN POSTGRES: Enviamos claves en PascalCase
         const payload = {
-            usuarioID: UID, 
+            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioid, 
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
-            clienteNombre: "PUBLICO GENERAL",
-            comprobanteExterno: comprobanteExt || null,
+            clienteNombre: "Publico General",
+            comprobanteExterno: comprobanteExt, 
 
-            detalles: [{ 
-                "CategoriaID": parseInt(inputFam.value), 
-                "Monto": monto 
-            }], 
-            
+            detalles: [{ "CategoriaID": parseInt(inputFam.value), "Monto": monto }], 
             pagos: [{ 
                 "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', 
                 "Monto": monto, 
@@ -335,51 +344,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(`${BASE_URL}/ventas/registrar`, {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             const data = await res.json();
 
-            // Validar respuesta (puede venir status/Status)
+            // Postgres a veces devuelve Status en minúscula o mayúscula
             const status = data.Status || data.status;
             const mensaje = data.Mensaje || data.mensaje;
             const comprobante = data.Comprobante || data.comprobante;
 
-            if (!res.ok || status === 'ERROR') {
-                alert(`❌ ERROR: ${data.error || mensaje || "Error al registrar"}`);
+            if (status === 'ERROR') {
+                alert(`❌ ERROR: ${mensaje}`);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
             }
 
-            // ÉXITO
-            alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
-            form.reset();
-            const cont = document.getElementById(idContenedorFam);
-            if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
-            inputFam.value = "";
-            
-            // Reseteamos selects a defaults
-            if(tipo !== 'YAPE') {
-                const selectorT = document.getElementById('selectorComprobanteTarjeta');
-                if(selectorT) {
-                    selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                    selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
-                    document.getElementById('inputComprobanteTarjeta').value = "2";
+            if (res.ok && status === 'OK') {
+                alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
+                form.reset();
+                const cont = document.getElementById(idContenedorFam);
+                if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
+                inputFam.value = "";
+                
+                // Reseteamos selects visuales
+                if(tipo !== 'YAPE') {
+                    const selectorT = document.getElementById('selectorComprobanteTarjeta');
+                    if(selectorT) {
+                        selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                        selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
+                        document.getElementById('inputComprobanteTarjeta').value = "2";
+                    }
+                } else {
+                    const selectorY = document.getElementById('selectorComprobante');
+                    if(selectorY) {
+                        selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
+                        selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
+                        document.getElementById('inputComprobante').value = "2";
+                    }
                 }
-            } else {
-                const selectorY = document.getElementById('selectorComprobante');
-                if(selectorY) {
-                    selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                    selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
-                    document.getElementById('inputComprobante').value = "2";
-                }
-            }
 
-            btn.innerHTML = '¡ÉXITO!';
-            setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
+                btn.innerHTML = '¡ÉXITO!';
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
+            
+            } else {
+                alert(`❌ ERROR: ${data.error || mensaje || "Error desconocido"}`);
+                btn.innerHTML = originalText; 
+                btn.disabled = false;
+            }
 
         } catch (error) {
             console.error(error);
@@ -412,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
-        } catch(e) { console.error("Error filtro historial", e); }
+        } catch(e) { console.error("Error cargando filtro historial", e); }
     }
 
     window.cargarHistorial = async function() {
@@ -422,10 +436,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroSelect = document.getElementById('filtroUsuarioHistorial');
         const filtroID = filtroSelect ? filtroSelect.value : '';
 
-        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando...</td></tr>';
+        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
 
         try {
-            let url = `${BASE_URL}/ventas/historial/${UID}?_=${new Date().getTime()}`;
+            const uid = usuario.UsuarioID || usuario.usuarioid;
+            let url = `${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`;
             if(filtroID) url += `&filtro=${filtroID}`;
 
             const res = await fetch(url);
@@ -435,9 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">📭 Sin ventas registradas.</td></tr>';
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
             } else {
                 ventas.forEach(v => {
+                    // Postgres minúsculas
                     const fechaEmision = v.FechaEmision || v.fechaemision;
                     const estado = v.Estado || v.estado;
                     const cajero = v.Cajero || v.cajero;
@@ -460,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${fecha}</td>
                             <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
                             <td>
-                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫</button>
+                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
                             </td>
                         </tr>`;
                     cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -468,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) { 
-            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error conexión.</td></tr>'; 
+            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión. Intente nuevamente.</td></tr>'; 
         }
     };
 
@@ -481,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     ventaID: ventaId, 
-                    usuarioID: UID, 
+                    usuarioID: usuario.UsuarioID || usuario.usuarioid, 
                     motivo: "Anulación Manual" 
                 })
             });
@@ -496,8 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { alert("❌ Error de red"); }
     };
 
+
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS
+    // 6. GESTIÓN DE USUARIOS (FILTRO Y CRUD)
     // ==========================================
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
@@ -514,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
-        } catch(e) {}
+        } catch(e) { console.error("Error cargando usuarios filtro", e); }
     }
 
     async function cargarUsuarios() {
@@ -523,14 +540,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
-            if (!res.ok) throw new Error("Error usuarios");
+            if (!res.ok) throw new Error("Error cargando usuarios");
 
             const usuariosDB = await res.json();
             cuerpoTabla.innerHTML = '';
 
-            if (usuariosDB.length === 0) return;
+            if (usuariosDB.length === 0) { 
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center;">Sin usuarios</td></tr>'; 
+                return; 
+            }
 
             usuariosDB.forEach(u => {
+                // Adaptación Postgres
                 const rol = u.Rol || u.rol;
                 const uid = u.UsuarioID || u.usuarioid;
                 const nombre = u.NombreCompleto || u.nombrecompleto;
@@ -552,48 +573,63 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${estadoTexto}</td>
                     <td>******</td>
                     <td style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn-editar" onclick="editarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;">✏️</button>
-                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;">🗑️</button>` : ''}
+                        <button class="btn-editar" onclick="editarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Editar">✏️</button>
+                        ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" style="cursor:pointer; border:none; background:none; font-size:1.2rem;" title="Desactivar">🗑️</button>` : ''}
                     </td>
                 </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
             });
-        } catch (error) {}
+        } catch (error) { console.error(error); }
     }
 
     window.eliminarUsuario = async (idUsuario) => {
-        if(!confirm("¿DESACTIVAR usuario?")) return;
+        if(!confirm("¿Estás seguro de DESACTIVAR este usuario?")) return;
         try {
             const res = await fetch(`${BASE_URL}/admin/eliminar/${idUsuario}`, { method: 'DELETE' });
-            if(res.ok) { alert("✅ Usuario desactivado."); cargarUsuarios(); }
-            else alert("❌ Error al eliminar");
-        } catch(e) { alert("❌ Error conexión"); }
+            if(res.ok) {
+                alert("✅ Usuario desactivado.");
+                cargarUsuarios();
+            } else {
+                alert("❌ Error al eliminar");
+            }
+        } catch(e) { alert("❌ Error de conexión"); }
     };
 
     window.editarUsuario = async (idUsuario) => {
         try {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
+            
+            // Adaptación ID postgres
             const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
             if (!user) return;
 
-            document.getElementById('idUsuarioEdicion').value = user.UsuarioID || user.usuarioid;
-            document.getElementById('nombreUsuario').value = user.NombreCompleto || user.nombrecompleto;
-            document.getElementById('usernameUsuario').value = user.Username || user.username; 
-            document.getElementById('turnoUsuario').value = user.TurnoID || user.turnoid || 1;
+            // Datos
+            const uid = user.UsuarioID || user.usuarioid;
+            const nombre = user.NombreCompleto || user.nombrecompleto;
+            const username = user.Username || user.username;
+            const turnoID = user.TurnoID || user.turnoid || 1;
+            const rol = user.Rol || user.rol;
+            const activo = user.Activo || user.activo;
+
+            document.getElementById('idUsuarioEdicion').value = uid;
+            document.getElementById('nombreUsuario').value = nombre;
+            document.getElementById('usernameUsuario').value = username; 
+            document.getElementById('turnoUsuario').value = turnoID;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
-            const rolVal = (user.Rol || user.rol || '').toUpperCase();
-            document.getElementById('rolUsuario').value = (rolVal === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
+            const rolSelect = document.getElementById('rolUsuario');
+            const rolValue = (rol === 'ADMINISTRADOR') ? 'Administrador' : 'Cajero';
+            rolSelect.value = rolValue;
 
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) {
-                const esActivo = user.Activo || user.activo;
-                selEstado.value = (esActivo === true || esActivo === 1) ? 'true' : 'false';
+                const esActivo = activo === true || activo === 1;
+                selEstado.value = esActivo ? 'true' : 'false';
             }
 
-            document.getElementById('passUsuario').placeholder = "(Vacío para no cambiar)";
+            document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
             document.getElementById('passUsuario').required = false;
 
@@ -610,8 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('passUsuario').required = true;
             document.getElementById('passUsuario').placeholder = "Contraseña";
             document.getElementById('turnoUsuario').value = 1; 
+            
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) selEstado.value = 'true';
+            
             abrirModalUsuario();
         };
     }
@@ -623,12 +661,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         nuevoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const idEdicion = document.getElementById('idUsuarioEdicion').value;
             const nombre = document.getElementById('nombreUsuario').value;
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
+            
             const rolVal = document.getElementById('rolUsuario').value;
             const rol = (rolVal === 'Administrador') ? 1 : 2;
+
             const selectedTurno = document.getElementById('turnoUsuario').value;
             const estadoVal = document.getElementById('estadoUsuario')?.value;
             const esActivo = (estadoVal === 'true');
@@ -640,7 +681,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 if (idEdicion) {
                     await fetch(`${BASE_URL}/admin/actualizar`, {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             usuarioID: parseInt(idEdicion),
                             nombreCompleto: nombre,
@@ -651,87 +693,211 @@ document.addEventListener('DOMContentLoaded', () => {
                             turnoID: parseInt(selectedTurno)
                         })
                     });
-                    alert("✅ Usuario actualizado");
+                    alert("✅ Usuario actualizado correctamente");
+
                 } else {
+                    const nuevoUsuario = {
+                        adminID: usuario.UsuarioID || usuario.usuarioid,
+                        nombreCompleto: nombre,
+                        username: usernameInput, 
+                        password: pass,
+                        rolID: rol
+                    };
+
                     const res = await fetch(`${BASE_URL}/admin/crear-usuario`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            adminID: UID,
-                            nombreCompleto: nombre,
-                            username: usernameInput, 
-                            password: pass,
-                            rolID: rol
-                        })
+                        body: JSON.stringify(nuevoUsuario)
                     });
-                    if (!res.ok) throw new Error("Error al crear");
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || "Error al crear usuario");
+                    }
                     const dataRes = await res.json();
                     
                     await fetch(`${BASE_URL}/admin/asignar-turno`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            adminID: UID, 
+                            adminID: usuario.UsuarioID || usuario.usuarioid, 
                             usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
                             turnoID: parseInt(selectedTurno) 
                         })
                     });
-                    alert(`✅ Usuario creado: ${usernameInput}`);
+                    alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
                 }
+                
                 cerrarModalUsuario();
                 nuevoForm.reset();
                 cargarUsuarios();
-            } catch (error) { alert("❌ Error: " + error.message); } 
-            finally { btnGuardar.innerHTML = txtOriginal; btnGuardar.disabled = false; }
+
+            } catch (error) { 
+                alert("❌ Error: " + error.message); 
+            } finally { 
+                btnGuardar.innerHTML = txtOriginal; 
+                btnGuardar.disabled = false; 
+            }
         });
     }
 
 
     // ==========================================
-    // 7. REPORTES EXCEL
+    // 7. REPORTES EXCEL PROFESIONALES (CON TÍTULO SUPERIOR)
     // ==========================================
     window.generarReporte = async (tipo) => {
         const inicio = document.getElementById('fechaInicio').value;
         const fin = document.getElementById('fechaFin').value;
         const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
 
+        // 1. Preparar parámetros
         const params = new URLSearchParams();
         if (inicio) params.append('inicio', inicio);
         if (fin) params.append('fin', fin);
 
+        // Lógica de permisos para el filtro
         if (rolUsuario === 'ADMINISTRADOR') {
             if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
         } else {
-            params.append('usuarioID', UID);
+            params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
         }
 
         let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
         const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
 
+        // 2. Feedback visual en el botón
         const btn = event.target.closest('button'); 
         const txtOriginal = btn ? btn.innerHTML : '';
-        if (btn) { btn.innerHTML = '⚙️ Generando...'; btn.disabled = true; }
+        
+        if (btn) {
+            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
+            btn.disabled = true;
+        }
 
         try {
             const res = await fetch(urlFinal);
-            if (!res.ok) throw new Error("Error servidor");
+            if (!res.ok) throw new Error("Error al obtener datos del servidor");
             
             const data = await res.json();
+            
             if (!data || data.length === 0) {
-                alert("⚠️ No hay datos.");
+                alert("⚠️ No se encontraron registros con esos filtros.");
                 if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
                 return;
             }
 
-            const worksheet = XLSX.utils.json_to_sheet(data);
+            // ======================================================
+            // 🎨 MAQUETACIÓN Y ESTILOS
+            // ======================================================
+            
+            // A. Definir el Título según el tipo
+            const tituloPrincipal = (tipo === 'CAJAS') 
+                ? "REPORTE DE CIERRE DE CAJA TIENDA ROJAS" 
+                : "REPORTE DE VENTA DETALLADO TIENDA ROJAS";
+
+            // B. Crear Hoja (IMPORTANTE: origin: 'A2' baja la tabla una fila)
+            const worksheet = XLSX.utils.json_to_sheet(data, { origin: 'A2' });
+
+            // C. Insertar el Título en A1
+            XLSX.utils.sheet_add_aoa(worksheet, [[tituloPrincipal]], { origin: 'A1' });
+
+            // D. Combinar celdas del título (Merge)
+            const headers = Object.keys(data[0]);
+            const ultimaColumnaIndex = headers.length - 1;
+
+            if(!worksheet['!merges']) worksheet['!merges'] = [];
+            worksheet['!merges'].push({ 
+                s: { r: 0, c: 0 },                // Inicio: A1
+                e: { r: 0, c: ultimaColumnaIndex } // Fin: Última columna de la fila 1
+            });
+
+            // --- DEFINICIÓN DE ESTILOS ---
+
+            const estiloTitulo = {
+                font: { name: "Arial", sz: 14, bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "2C3E50" } }, // Gris Oscuro/Azulino profesional
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { bottom: { style: "medium", color: { rgb: "000000" } } }
+            };
+
+            const estiloEncabezado = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "FF003C" } }, // Rojo FastCash
+                alignment: { horizontal: "center", vertical: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+
+            const estiloCelda = {
+                font: { name: "Arial", sz: 10, color: { rgb: "333333" } },
+                alignment: { vertical: "center", horizontal: "left" },
+                border: {
+                    top: { style: "thin", color: { rgb: "CCCCCC" } },
+                    bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                    left: { style: "thin", color: { rgb: "CCCCCC" } },
+                    right: { style: "thin", color: { rgb: "CCCCCC" } }
+                }
+            };
+
+            // E. Aplicar Estilos Celda por Celda
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+                    if (!worksheet[cellAddress]) continue;
+
+                    // Fila 0: Título Principal
+                    if (R === 0) {
+                        worksheet[cellAddress].s = estiloTitulo;
+                    } 
+                    // Fila 1: Encabezados de Tabla (Antes era R===0, ahora es R===1 por el desplazamiento)
+                    else if (R === 1) {
+                        worksheet[cellAddress].s = estiloEncabezado;
+                    } 
+                    // Fila 2+: Datos
+                    else {
+                        worksheet[cellAddress].s = estiloCelda;
+                    }
+                }
+            }
+
+            // F. Auto-ajustar Ancho de Columnas
+            const anchoColumnas = [];
+            headers.forEach(key => {
+                let maxLen = key.length;
+                // Revisamos los primeros 50 registros para calcular ancho
+                data.slice(0, 50).forEach(row => {
+                    const val = row[key] ? String(row[key]) : "";
+                    if (val.length > maxLen) maxLen = val.length;
+                });
+                anchoColumnas.push({ wch: maxLen + 5 });
+            });
+            worksheet['!cols'] = anchoColumnas;
+
+            // ======================================================
+            // 💾 GUARDAR ARCHIVO
+            // ======================================================
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-            XLSX.writeFile(workbook, `Reporte_${tipo}_${inicio || 'HOY'}.xlsx`);
+            
+            const fechaStr = inicio || new Date().toISOString().split('T')[0];
+            XLSX.writeFile(workbook, `Reporte_${tipo}_${fechaStr}.xlsx`);
 
+            // Feedback Final
             if(btn) {
-                btn.innerHTML = '✅ ¡Listo!';
-                setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000);
+                btn.innerHTML = '<span>✅</span> ¡Descargado!';
+                setTimeout(() => { 
+                    btn.innerHTML = txtOriginal; 
+                    btn.disabled = false; 
+                }, 2000);
             }
+
         } catch (e) {
-            alert("❌ Error Excel: " + e.message);
+            console.error(e);
+            alert("❌ Error generando Excel: " + e.message);
             if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
         }
     };
@@ -754,7 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(fechaDash) params.append('fecha', fechaDash);
         
         if(userDash && rolUsuario === 'ADMINISTRADOR') params.append('usuarioID', userDash);
-        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', UID);
+        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
 
         try {
             const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`);
@@ -766,6 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(data.categorias) {
                 const ctxP = document.getElementById('graficoPastel').getContext('2d');
                 if(chartPastel) chartPastel.destroy();
+
                 chartPastel = new Chart(ctxP, {
                     type: 'doughnut',
                     data: {
@@ -783,12 +950,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if(data.pagos) {
                 const ctxB = document.getElementById('graficoBarras').getContext('2d');
                 if(chartBarras) chartBarras.destroy();
+
                 chartBarras = new Chart(ctxB, {
                     type: 'bar',
                     data: {
                         labels: data.pagos.map(i => i.label),
                         datasets: [{ 
-                            label: 'Ventas (S/)', 
+                            label: 'Total Ventas (S/)', 
                             data: data.pagos.map(i => i.value), 
                             backgroundColor: '#2563eb',
                             borderRadius: 10
@@ -834,9 +1002,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => v.classList.add('activa'), 10);
                         
                         if(targetId === 'vista-cierre') {
-                            fetch(`${BASE_URL}/reportes/cierre-actual/${UID}`)
+                            const uid = usuario.UsuarioID || usuario.usuarioid;
+                            fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`)
                                 .then(r => r.json())
                                 .then(d => {
+                                    // Postgres Minúsculas
                                     document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || d.ventasdigital || 0).toFixed(2)}`;
                                     document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || d.ventastarjeta || 0).toFixed(2)}`;
                                     document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || d.totalvendido || 0).toFixed(2)}`;
