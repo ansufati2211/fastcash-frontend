@@ -1,5 +1,8 @@
-// URL de tu Backend Spring Boot
-const API_URL = 'http://localhost:8080/api/auth/login';
+// ==========================================
+// 1. CONFIGURACIÓN DE CONEXIÓN (RAILWAY)
+// ==========================================
+// URL de tu Backend en la nube + el prefijo "/api"
+const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
 
 // Referencias al DOM
 const inputPassword = document.getElementById('password');
@@ -21,7 +24,7 @@ formularioLogin.addEventListener('submit', async function(e) {
         return;
     }
     
-    // --- CONEXIÓN CON EL BACKEND ---
+    // --- EFECTO VISUAL DE CARGA ---
     const botonLogin = document.querySelector('.boton-login');
     const textoOriginal = botonLogin.innerHTML;
     
@@ -30,7 +33,8 @@ formularioLogin.addEventListener('submit', async function(e) {
     botonLogin.innerHTML = '<span>Verificando...</span> ⏳';
     
     try {
-        const response = await fetch(API_URL, {
+        // CORRECCIÓN: Usamos BASE_URL (que ya incluye /api) + el endpoint específico
+        const response = await fetch(`${BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -45,18 +49,15 @@ formularioLogin.addEventListener('submit', async function(e) {
             // --- ÉXITO ---
             const data = await response.json(); 
             
-            // ==============================================================
-            // 🛠️ CORRECCIÓN CRÍTICA PARA POSTGRESQL (Mayúsculas/Minúsculas)
-            // ==============================================================
+            // Adaptación a mayúsculas/minúsculas para compatibilidad total
             const sessionData = {
-                // Intenta leer 'usuarioid' (Postgres Map) O 'UsuarioID' (Java DTO)
                 UsuarioID: data.usuarioid || data.UsuarioID || data.usuarioID, 
                 NombreCompleto: data.nombrecompleto || data.NombreCompleto,
                 Rol: data.rol || data.Rol || data.RolID,
                 Username: username 
             };
             
-            // Verificamos que los datos críticos existan
+            // Verificación crítica
             if (!sessionData.UsuarioID) {
                 throw new Error("Error: El servidor no devolvió el ID de usuario.");
             }
@@ -64,18 +65,15 @@ formularioLogin.addEventListener('submit', async function(e) {
             // Guardamos sesión
             localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
             
-            // Notificación de éxito
+            // Notificación y redirección
             mostrarNotificacion(`¡Bienvenido, ${sessionData.NombreCompleto || username}!`, 'exito');
             
-            // Animación de salida visual
             const contenedor = document.querySelector('.contenedor-login');
             if(contenedor) {
                 contenedor.style.animation = 'alejarZoom 0.5s ease forwards';
                 contenedor.style.opacity = '0';
             }
             
-            // --- REDIRECCIÓN ---
-            // Como login.html e index.html están en la misma carpeta, solo ponemos el nombre
             setTimeout(() => {
                 window.location.href = 'index.html'; 
             }, 800);
@@ -91,8 +89,8 @@ formularioLogin.addEventListener('submit', async function(e) {
         console.error("Error:", error);
         
         let mensaje = error.message;
-        if(error.message === 'Failed to fetch') {
-            mensaje = 'No se pudo conectar con el servidor (Backend apagado)';
+        if(error.message.includes('Failed to fetch')) {
+            mensaje = 'No se pudo conectar con el servidor (Backend apagado o URL incorrecta)';
         }
 
         mostrarNotificacion(mensaje, 'error');
@@ -152,23 +150,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     }, 3000);
 }
 
-// Animaciones de entrada
-document.addEventListener('DOMContentLoaded', () => {
-    const inputs = document.querySelectorAll('input');
-    const botones = document.querySelectorAll('button');
-    
-    [...inputs, ...botones].forEach((el, indice) => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(10px)';
-        el.style.transition = 'all 0.5s ease';
-        
-        setTimeout(() => {
-            el.style.opacity = '1';
-            el.style.transform = 'translateY(0)';
-        }, 300 + (indice * 100));
-    });
-});
-
+// Estilos dinámicos para animaciones
 const estilo = document.createElement('style');
 estilo.textContent = `
     @keyframes sacudir {

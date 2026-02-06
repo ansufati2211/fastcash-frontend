@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 0. CONFIGURACIÓN INICIAL Y SESIÓN
     // ==========================================
-    const BASE_URL = 'http://localhost:8080/api';
+    // ⚠️ IMPORTANTE: Se agrega "/api" al final de la URL de Railway
+    const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
     let CAJA_ABIERTA = false; 
 
     // Recuperar sesión
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
-        // Corrección PostgreSQL: nombrecompleto (minúscula)
+        // Corrección PostgreSQL: nombrecompleto (minúscula) o CamelCase
         nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || 'Usuario';
     }
 
@@ -43,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (rolUsuario !== 'ADMINISTRADOR') {
         itemsAdmin.forEach(item => item.style.display = 'none');
     } else {
-        // Solo si es admin cargamos el filtro
+        // Solo si es admin cargamos los filtros
         cargarFiltroUsuarios();
         cargarFiltroHistorial();
     }
@@ -99,21 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Control del Botón en el Header
         if(btnAbrirCaja) btnAbrirCaja.style.display = estaAbierta ? 'none' : 'flex';
 
-        // 2. Control del Área de Trabajo (La parte importante)
+        // 2. Control del Área de Trabajo
         if(areaTrabajo) { 
             if (estaAbierta) {
-                // CAJA ABIERTA: Todo habilitado para todos
+                // CAJA ABIERTA: Todo habilitado
                 areaTrabajo.style.opacity = "1"; 
                 areaTrabajo.style.pointerEvents = "all"; 
             } else {
                 // CAJA CERRADA
                 if (rolUsuario === 'ADMINISTRADOR') {
-                    // 🛡️ EXCEPCIÓN ADMIN: Permitimos ver e interactuar con Reportes/Dashboards
-                    // (Las ventas seguirán protegidas por la validación del botón "Registrar")
+                    // EXCEPCIÓN ADMIN: Puede ver reportes aunque caja esté cerrada
                     areaTrabajo.style.opacity = "1"; 
                     areaTrabajo.style.pointerEvents = "all"; 
                 } else {
-                    // 🔒 CAJERO: Bloqueo total visual hasta que abra caja
+                    // CAJERO: Bloqueo total visual hasta abrir caja
                     areaTrabajo.style.opacity = "0.5"; 
                     areaTrabajo.style.pointerEvents = "none"; 
                 }
@@ -206,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const data = await resReporte.json(); 
             
-            // CORRECCIÓN POSTGRES: Las claves vienen en minúscula o PascalCase según tu DTO
             const saldoIni = data.SaldoInicial || data.saldoinicial || 0;
             const vEfec = data.VentasEfectivo || data.ventasefectivo || 0;
             const vDig = data.VentasDigital || data.ventasdigital || 0;
@@ -350,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
 
-            // Postgres a veces devuelve Status en minúscula o mayúscula
             const status = data.Status || data.status;
             const mensaje = data.Mensaje || data.mensaje;
             const comprobante = data.Comprobante || data.comprobante;
@@ -453,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
             } else {
                 ventas.forEach(v => {
-                    // Postgres minúsculas
                     const fechaEmision = v.FechaEmision || v.fechaemision;
                     const estado = v.Estado || v.estado;
                     const cajero = v.Cajero || v.cajero;
@@ -551,7 +548,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             usuariosDB.forEach(u => {
-                // Adaptación Postgres
                 const rol = u.Rol || u.rol;
                 const uid = u.UsuarioID || u.usuarioid;
                 const nombre = u.NombreCompleto || u.nombrecompleto;
@@ -600,11 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${BASE_URL}/admin/usuarios?t=${new Date().getTime()}`);
             const usuarios = await res.json();
             
-            // Adaptación ID postgres
             const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
             if (!user) return;
 
-            // Datos
             const uid = user.UsuarioID || user.usuarioid;
             const nombre = user.NombreCompleto || user.nombrecompleto;
             const username = user.Username || user.username;
