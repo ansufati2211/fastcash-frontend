@@ -10,10 +10,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* Estilos rápidos para el panel Admin y Badges */
+        .admin-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-tab { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: bold; }
+        .btn-tab:hover { background-color: #0056b3; }
+        .tabla-datos { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .tabla-datos th, .tabla-datos td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .tabla-datos th { background-color: #f8f9fa; }
+        .badge-ok { color: green; font-weight: bold; background: #e6fffa; padding: 2px 8px; border-radius: 4px; }
+        .badge-no { color: red; font-weight: bold; background: #fff5f5; padding: 2px 8px; border-radius: 4px; }
+        .btn-success { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-edit { background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        /* Dot genérico para bancos dinámicos */
+        .dot.generic { background-color: #555; }
+    </style>
 </head>
 <body>
 
@@ -71,6 +85,13 @@
 
                 <li class="titulo-seccion-menu admin">ADMINISTRACIÓN</li>
                 
+                <li class="item-menu admin" id="btn-nav-admin" style="display: none;" data-target="vista-admin-maestros">
+                    <a href="#" onclick="mostrarSeccionAdmin()">
+                        <div class="icono-wrapper">⚙️</div>
+                        <span class="texto-menu">Configuración</span>
+                    </a>
+                </li>
+
                 <li class="item-menu admin" data-target="vista-reportes">
                     <a href="#">
                         <div class="icono-wrapper"><img src="/img/icon/reporte-icon.png" class="icon-foto"></div>
@@ -105,52 +126,44 @@
                 <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
                         <div class="cabecera-simple"><h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--:--</span></div>
+                        
                         <div class="grid-familias-moderna" id="selectorFamilia">
-                            <button type="button" class="card-familia" data-value="3"><span class="emoji">🥤</span><span class="label">Bebidas</span></button>
-                            <button type="button" class="card-familia" data-value="1"><span class="emoji">🍞</span><span class="label">Comestibles</span></button>
-                            <button type="button" class="card-familia" data-value="6"><span class="emoji">🥦</span><span class="label">Frescos</span></button>
-                            <button type="button" class="card-familia" data-value="2"><span class="emoji">🍷</span><span class="label">Licores</span></button>
-                            <button type="button" class="card-familia" data-value="4"><span class="emoji">🧹</span><span class="label">Limpieza</span></button>
-                            <button type="button" class="card-familia" data-value="7"><span class="emoji">🧴</span><span class="label">Plásticos</span></button>
-                            <button type="button" class="card-familia" data-value="8"><span class="emoji">✏️</span><span class="label">Librería</span></button>
-                            <button type="button" class="card-familia" data-value="9"><span class="emoji">🛍️</span><span class="label">Bazar</span></button>
+                            <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
                         <input type="hidden" id="inputFamilia">
                     </div>
-<div class="panel-transaccion">
-    <form id="formYape">
-        <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
-        
-        <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
-        
-        <div class="selector-bancos" id="selectorDestino">
-            <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
-            <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
-            <button type="button" class="chip-banco" data-value="1"><span class="dot personal"></span> Yape</button>
-            <button type="button" class="chip-banco" data-value="2"><span class="dot interbank"></span> Plin</button>
-            <input type="hidden" id="inputDestino" value="3">
-        </div>
-        
-        <div class="input-operacion-wrapper">
-            <label>N° Operación (Ultimos 4 o Completo)</label>
-            <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
-        </div>
-        
-        <div class="selector-tipo" id="selectorComprobante">
-            <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-            <button type="button" class="segmento" data-value="1">Factura</button>
-            <button type="button" class="segmento" data-value="4">Nota</button>
-            <input type="hidden" id="inputComprobante" value="2">
-        </div>
 
-        <div class="display-comprobante-wrapper">
-            <label>Número de Boleta/Factura/Nota (Opcional)</label>
-            <input type="text" id="txtComprobanteYape" placeholder="Ej: B001-00000000">
-        </div>
+                    <div class="panel-transaccion">
+                        <form id="formYape">
+                            <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
+                            
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
+                            
+                            <div class="selector-bancos" id="selectorDestino">
+                                <p style="font-size:0.8rem;">Cargando entidades...</p>
+                            </div>
+                            <input type="hidden" id="inputDestino">
+                            
+                            <div class="input-operacion-wrapper">
+                                <label>N° Operación (Ultimos 4 o Completo)</label>
+                                <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
+                            </div>
+                            
+                            <div class="selector-tipo" id="selectorComprobante">
+                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+                                <button type="button" class="segmento" data-value="1">Factura</button>
+                                <button type="button" class="segmento" data-value="4">Nota</button>
+                                <input type="hidden" id="inputComprobante" value="2">
+                            </div>
 
-        <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span class="flecha">→</span></button>
-    </form>
-</div>
+                            <div class="display-comprobante-wrapper">
+                                <label>Número de Boleta/Factura/Nota (Opcional)</label>
+                                <input type="text" id="txtComprobanteYape" placeholder="Ej: B001-00000000">
+                            </div>
+
+                            <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span class="flecha">→</span></button>
+                        </form>
+                    </div>
                 </div>
             </section>
 
@@ -158,57 +171,48 @@
                  <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
                         <div class="cabecera-simple"><h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--:--</span></div>
+                        
                         <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
-                            <button type="button" class="card-familia" data-value="3"><span class="emoji">🥤</span><span class="label">Bebidas</span></button>
-                            <button type="button" class="card-familia" data-value="1"><span class="emoji">🍞</span><span class="label">Comestibles</span></button>
-                            <button type="button" class="card-familia" data-value="6"><span class="emoji">🥦</span><span class="label">Frescos</span></button>
-                            <button type="button" class="card-familia" data-value="2"><span class="emoji">🍷</span><span class="label">Licores</span></button>
-                            <button type="button" class="card-familia" data-value="4"><span class="emoji">🧹</span><span class="label">Limpieza</span></button>
-                            <button type="button" class="card-familia" data-value="7"><span class="emoji">🧴</span><span class="label">Plásticos</span></button>
-                            <button type="button" class="card-familia" data-value="8"><span class="emoji">✏️</span><span class="label">Librería</span></button>
-                            <button type="button" class="card-familia" data-value="9"><span class="emoji">🛍️</span><span class="label">Bazar</span></button>
+                            <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
                         <input type="hidden" id="inputFamiliaTarjeta">
                     </div>
-<div class="panel-transaccion">
-    <form id="formTarjeta">
-        <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
-        
-        <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
-        
-        <label class="label-separador">Banco del POS:</label>
-        <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
-            <button type="button" class="chip-banco seleccionado" data-value="3"><span class="dot bcp"></span> BCP</button>
-            <button type="button" class="chip-banco" data-value="4"><span class="dot bbva"></span> BBVA</button>
-            <button type="button" class="chip-banco" data-value="5"><span class="dot interbank"></span> Interbank</button>
-            <button type="button" class="chip-banco" data-value="9"><span class="dot regalo"></span> T.Regalo</button>
-            <button type="button" class="chip-banco" data-value="7"><span class="dot scotia"></span> Scotiabank</button>
-            <button type="button" class="chip-banco" data-value="8"><span class="dot otras"></span> Otras</button>
-            <input type="hidden" id="inputBancoTarjeta" value="3">
-        </div>
-        
-        <div class="input-operacion-wrapper" style="margin-top: 1rem;">
-            <label>N° Lote / Voucher</label>
-            <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
-        </div>
-        
-        <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
-            <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-            <button type="button" class="segmento" data-value="1">Factura</button>
-            <button type="button" class="segmento" data-value="4">Nota</button>
-            <input type="hidden" id="inputComprobanteTarjeta" value="2">
-        </div>
 
-        <div class="display-comprobante-wrapper">
-            <label>Número de Boleta/Factura/Nota (Opcional)</label>
-            <input type="text" id="txtComprobanteTarjeta" placeholder="Ej: B001-00000000">
-        </div>
-        
-        <div style="flex-grow: 1;"></div>
-        
-        <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
-    </form>
-</div>
+                    <div class="panel-transaccion">
+                        <form id="formTarjeta">
+                            <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
+                            
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
+                            
+                            <label class="label-separador">Banco del POS:</label>
+                            
+                            <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
+                                <p style="font-size:0.8rem;">Cargando bancos...</p>
+                            </div>
+                            <input type="hidden" id="inputBancoTarjeta">
+                            
+                            <div class="input-operacion-wrapper" style="margin-top: 1rem;">
+                                <label>N° Lote / Voucher</label>
+                                <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
+                            </div>
+                            
+                            <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
+                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+                                <button type="button" class="segmento" data-value="1">Factura</button>
+                                <button type="button" class="segmento" data-value="4">Nota</button>
+                                <input type="hidden" id="inputComprobanteTarjeta" value="2">
+                            </div>
+
+                            <div class="display-comprobante-wrapper">
+                                <label>Número de Boleta/Factura/Nota (Opcional)</label>
+                                <input type="text" id="txtComprobanteTarjeta" placeholder="Ej: B001-00000000">
+                            </div>
+                            
+                            <div style="flex-grow: 1;"></div>
+                            
+                            <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
+                        </form>
+                    </div>
                 </div>
             </section>
 
@@ -222,17 +226,18 @@
                         </div>
                         <div class="controles-derecha" style="display: flex; align-items: center; gap: 10px;">
         
-        <div id="wrapperFiltroHistorial" style="display: none;">
-            <select id="filtroUsuarioHistorial" class="input-moderno" onchange="cargarHistorial()" style="padding: 0.6rem; min-width: 150px;">
-                <option value="">-- Ver Todos --</option>
-            </select>
-        </div>
+                            <div id="wrapperFiltroHistorial" style="display: none;">
+                                <select id="filtroUsuarioHistorial" class="input-moderno" onchange="cargarHistorial()" style="padding: 0.6rem; min-width: 150px;">
+                                    <option value="">-- Ver Todos --</option>
+                                </select>
+                            </div>
 
-        <button class="btn-refresh-moderno" onclick="cargarHistorial()">
-            <span class="icono-refresh">🔄</span> Refrescar
-        </button>
-    </div>
-                    </div> <div class="tabla-responsive">
+                            <button class="btn-refresh-moderno" onclick="cargarHistorial()">
+                                <span class="icono-refresh">🔄</span> Refrescar
+                            </button>
+                        </div>
+                    </div> 
+                    <div class="tabla-responsive">
                         <table class="tabla-transacciones">
                             <thead>
                                 <tr>
@@ -240,6 +245,29 @@
                             </thead>
                             <tbody id="cuerpoTablaTransacciones"></tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="vista-admin-maestros" class="vista-seccion">
+                <div class="contenedor-tabla-registro">
+                    <div class="cabecera-tabla">
+                        <div class="titulo-seccion">
+                            <h2>⚙️ Configuración del Sistema</h2>
+                            <p>Gestiona Categorías y Entidades Financieras</p>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-container">
+                        <div class="admin-tabs" style="margin-bottom: 20px;">
+                            <button onclick="cargarAdminCategorias()" class="btn-tab">📦 Categorías</button>
+                            <button onclick="cargarAdminEntidades()" class="btn-tab">🏦 Bancos y Billeteras</button>
+                        </div>
+                        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+
+                        <div id="admin-workspace">
+                            <p style="color: #666; text-align: center; padding: 20px;">Seleccione una opción arriba para comenzar.</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -314,7 +342,6 @@
                                     <th>Turno</th>
                                     <th>Rol</th>
                                     <th>Estado</th>
-                                    <th>Password</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -349,7 +376,8 @@
                     </div>
                 </div>
             </section>
-<section id="vista-cierre" class="vista-seccion">
+
+            <section id="vista-cierre" class="vista-seccion">
                 <div class="contenedor-cierre">
                     <div class="cabecera-cierre">
                         <div class="titulo-cierre">
@@ -386,17 +414,14 @@
                     
                     <div id="ticketImpresion" class="ticket-oculto">
                         <div class="ticket-header">
-<div class="ticket-header">
-    <h3>ROJAS SUPER N.VILLA</h3>
-    <p>RUC: 20601234567</p>
-    <hr class="dashed">
-    <h4>CIERRE DE TURNO</h4>
-    <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
-    <p>Cajero: <span id="ticketCajeroNombre"></span></p>
-    
-    
-    <hr class="dashed">
-</div>
+                            <h3>ROJAS SUPER N.VILLA</h3>
+                            <p>RUC: 20601234567</p>
+                            <hr class="dashed">
+                            <h4>CIERRE DE TURNO</h4>
+                            <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
+                            <p>Cajero: <span id="ticketCajeroNombre"></span></p>
+                            <hr class="dashed">
+                        </div>
                         <div class="ticket-body">
                             <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
                             <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
@@ -465,6 +490,44 @@
                 
                 <div class="modal-footer">
                     <button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-admin" class="modal">
+        <div class="modal-contenido-bonito">
+            <div class="modal-header">
+                <h2 id="modal-admin-titulo">Nuevo Registro</h2>
+                <span class="cerrar-modal" onclick="cerrarModalAdmin()">&times;</span>
+            </div>
+            
+            <form id="form-admin">
+                <input type="hidden" id="admin-id"> <div class="form-group">
+                    <label>Nombre:</label>
+                    <input type="text" id="admin-nombre" class="input-moderno" required style="width: 100%; padding: 10px;">
+                </div>
+
+                <div class="form-group" id="group-admin-tipo" style="display:none;">
+                    <label>Tipo:</label>
+                    <select id="admin-tipo" class="input-select-modal" style="width: 100%;">
+                        <option value="BANCO">Banco</option>
+                        <option value="BILLETERA">Billetera Digital</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Estado:</label>
+                    <select id="admin-activo" class="input-select-modal" style="width: 100%;">
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancelar" onclick="cerrarModalAdmin()">Cancelar</button>
                     <button type="submit" class="btn-guardar">Guardar Cambios</button>
                 </div>
             </form>

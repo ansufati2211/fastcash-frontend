@@ -2116,3 +2116,174 @@ input[type="date"] {
         transform: rotate(360deg);
     }
 }
+/* =========================================
+   ESTILOS FALTANTES: PANEL ADMINISTRACIÓN
+   ========================================= */
+
+/* 1. Contenedor y Pestañas del Panel Admin */
+.admin-container {
+    background: #fff;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    margin-top: 20px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.btn-tab {
+    padding: 10px 24px;
+    background-color: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.btn-tab:hover {
+    background-color: #e2e8f0;
+    color: #334155;
+}
+
+.btn-tab:focus {
+    background-color: var(--color-primario);
+    color: white;
+    border-color: var(--color-primario);
+    outline: none;
+}
+
+/* 2. Tabla Específica de Administración (Diferente a la de transacciones) */
+.tabla-datos {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 15px;
+    font-size: 0.95rem;
+}
+
+.tabla-datos th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-align: left;
+    padding: 16px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla-datos td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.tabla-datos tr:hover {
+    background-color: #f8fafc;
+}
+
+/* 3. Badges de Estado (Específicos para Admin: Activo/Inactivo) */
+.badge-ok {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-no {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 4. Botones de Acción Nuevos (Usados en el script de Admin) */
+.btn-success {
+    background-color: #10b981; /* Verde Esmeralda */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover { 
+    background-color: #059669; 
+    transform: translateY(-1px);
+}
+
+.btn-edit {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-edit:hover {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+/* 5. Ajustes para el Modal de Admin (Inputs más limpios) */
+#modal-admin .modal-contenido-bonito {
+    max-width: 420px;
+}
+
+#modal-admin label {
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 0.9rem;
+}
+
+#modal-admin input, 
+#modal-admin select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background-color: #fff;
+}
+
+#modal-admin input:focus, 
+#modal-admin select:focus {
+    border-color: var(--color-primario);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 0, 60, 0.1);
+}

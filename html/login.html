@@ -4,55 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="/img/img/LogoYapeRojas.png" type="image/png">
-    <title>YapePay - Iniciar Sesión</title>
+    <title>Acceso Seguro - Rojas Market</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="iconos-fondo">
-        <div class="icono-flotante">💳</div>
-        <div class="icono-flotante">📱</div>
-        <div class="icono-flotante">💰</div>
-        <div class="icono-flotante">🔒</div>
-        <div class="icono-flotante">⚡</div>
-        <div class="icono-flotante">📊</div>
-    </div>
-
-    <div class="particulas">
-        <div class="particula"></div>
-        <div class="particula"></div>
-        <div class="particula"></div>
-        <div class="particula"></div>
-        <div class="particula"></div>
+    
+    <div class="fondo-animado">
+        <div class="circulo c1"></div>
+        <div class="circulo c2"></div>
     </div>
 
     <div class="contenedor-login">
+        
         <div class="panel-izquierdo">
-                <div class="contenido-info">
-                <h1>Bienvenido al Sistema de Gestion y Control de Yape </h1>
+            <div class="contenido-glass">
+                <div class="branding">
+                    <h1>Sistema de Gestión<br><span>Comercial</span></h1>
+                    <p>Control integral de ventas, inventarios y finanzas.</p>
+                </div>
 
-                <div class="caracteristicas">
-                    <div class="item-caracteristica">
-                        <div class="icono-caracteristica"> <img src="/img/icon/pago-icon.png" class="icon-foto" alt=""></div>
-                        <div class="texto-caracteristica">
-                            <h3>Pagos Registrados</h3>
-                            <p>Toda transaccion quedara registrada</p>
+                <div class="features-list">
+                    <div class="feature">
+                        <div class="icon-box"><i class="fas fa-shield-alt"></i></div>
+                        <div>
+                            <h4>Seguridad Bancaria</h4>
+                            <small>Encriptación de datos SSL</small>
                         </div>
                     </div>
-                    <div class="item-caracteristica">
-                        <div class="icono-caracteristica"><img src="/img/icon/reporte-icon.png" class="icon-foto" alt=""></div>
-                        <div class="texto-caracteristica">
-                            <h3>Reportes Detallados</h3>
-                            <p>Analiza tus movimientos financieros</p>
+                    <div class="feature">
+                        <div class="icon-box"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <h4>Tiempo Real</h4>
+                            <small>Sincronización instantánea</small>
                         </div>
                     </div>
-                    <div class="item-caracteristica">
-                        <div class="icono-caracteristica"><img src="/img/icon/candado-icon.png" class="icon-foto" alt=""></div>
-                        <div class="texto-caracteristica">
-                            <h3>100% Seguro</h3>
-                            <p>Protección de datos garantizada</p>
+                    <div class="feature">
+                        <div class="icon-box"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <h4>Analítica Avanzada</h4>
+                            <small>Reportes inteligentes</small>
                         </div>
                     </div>
                 </div>
@@ -60,49 +54,47 @@
         </div>
 
         <div class="panel-derecho">
-            <div class="contenedor-formulario">
-                <div class="encabezado-formulario">
-                        <div class="logo">
-                        <img src="/img/img/LogoYapeRojas.png" class="logoRojas" alt="">
-                        </div>
-                    <h2>Iniciar Sesión</h2>
-                    <p>Ingresa tus credenciales para acceder</p>
+            <div class="form-wrapper">
+                <div class="header-form">
+                    <img src="/img/img/LogoYapeRojas.png" class="logo-login" alt="Logo Rojas">
+                    <h2>Bienvenido</h2>
+                    <p>Ingrese sus credenciales autorizadas</p>
                 </div>
 
-                <form class="formulario-login" id="formularioLogin">
-                    <div class="grupo-formulario">
+                <form id="formularioLogin" autocomplete="off">
+                    <div class="input-group">
                         <label for="username">Usuario</label>
-                        <div class="envoltorio-input">
-                            <span class="icono-input">👤</span>
-                            <input 
-                                type="text" 
-                                id="username" 
-                                name="username" 
-                                placeholder="Ej: admin"
-                                required
-                            >
+                        <div class="input-field">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="username" placeholder="Ej: admin" required>
                         </div>
                     </div>
 
-                    <div class="grupo-formulario">
+                    <div class="input-group">
                         <label for="password">Contraseña</label>
-                        <div class="envoltorio-input">
-                            <span class="icono-input">🔒</span>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password" 
-                                placeholder="••••••••"
-                                required
-                            >
+                        <div class="input-field">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="password" placeholder="••••••••" required>
+                            <i class="far fa-eye toggle-pass" id="btnTogglePass" title="Ver contraseña"></i>
                         </div>
                     </div>
+                    <div class="options-login">
+    <label class="remember-me">
+        <input type="checkbox" id="chkRemember">
+        <span class="checkmark"></span>
+        Recordar mi usuario
+    </label>
+    </div>
 
-                    <button type="submit" class="boton-login">
-                        <span>Iniciar Sesión</span>
-                        <span class="flecha-boton">→</span>
+                    <button type="submit" class="btn-login">
+                        <span>Ingresar al Sistema</span>
+                        <i class="fas fa-arrow-right"></i>
                     </button>
                 </form>
+
+                <div class="footer-form">
+                    <p>© 2026 Rojas Market S.A.C. Todos los derechos reservados.</p>
+                </div>
             </div>
         </div>
     </div>

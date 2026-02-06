@@ -1,173 +1,150 @@
 // ==========================================
-// 1. CONFIGURACIÓN DE CONEXIÓN (RAILWAY)
+// 1. CONFIGURACIÓN
 // ==========================================
-// URL de tu Backend en la nube + el prefijo "/api"
 const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
 
-// Referencias al DOM
-const inputPassword = document.getElementById('password');
-const formularioLogin = document.getElementById('formularioLogin');
-const inputUsuario = document.getElementById('username'); 
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- REFERENCIAS DOM ---
+    const btnToggle = document.getElementById('btnTogglePass');
+    const inputPass = document.getElementById('password');
+    const formulario = document.getElementById('formularioLogin');
+    const inputUser = document.getElementById('username');
+    const btnLogin = document.querySelector('.btn-login');
+    const chkRemember = document.getElementById('chkRemember'); // Nuevo Checkbox
 
-// Validación y Envío del formulario
-formularioLogin.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // Limpiamos espacios vacíos
-    const username = inputUsuario.value.trim();
-    const password = inputPassword.value.trim();
-    
-    // --- VERIFICACIÓN DE SEGURIDAD (CLIENTE) ---
-    if (!username || !password) {
-        mostrarNotificacion('Por favor completa todos los campos', 'error');
-        sacudirInput(!username ? inputUsuario : inputPassword);
-        return;
+    // --- 1. LÓGICA RECORDAR SESIÓN (AL CARGAR) ---
+    const savedUser = localStorage.getItem('fastcash_saved_user');
+    if (savedUser) {
+        inputUser.value = savedUser;
+        chkRemember.checked = true;
+        // Opcional: Poner el foco en la contraseña automáticamente
+        inputPass.focus(); 
     }
-    
-    // --- EFECTO VISUAL DE CARGA ---
-    const botonLogin = document.querySelector('.boton-login');
-    const textoOriginal = botonLogin.innerHTML;
-    
-    botonLogin.style.pointerEvents = 'none'; 
-    botonLogin.style.opacity = '0.8';
-    botonLogin.innerHTML = '<span>Verificando...</span> ⏳';
-    
-    try {
-        // CORRECCIÓN: Usamos BASE_URL (que ya incluye /api) + el endpoint específico
-        const response = await fetch(`${BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                username: username, 
-                password: password 
-            })
-        });
 
-        if (response.ok) {
-            // --- ÉXITO ---
-            const data = await response.json(); 
-            
-            // Adaptación a mayúsculas/minúsculas para compatibilidad total
-            const sessionData = {
-                UsuarioID: data.usuarioid || data.UsuarioID || data.usuarioID, 
-                NombreCompleto: data.nombrecompleto || data.NombreCompleto,
-                Rol: data.rol || data.Rol || data.RolID,
-                Username: username 
-            };
-            
-            // Verificación crítica
-            if (!sessionData.UsuarioID) {
-                throw new Error("Error: El servidor no devolvió el ID de usuario.");
+    // --- LÓGICA VER/OCULTAR CONTRASEÑA ---
+    btnToggle.addEventListener('click', () => {
+        const tipo = inputPass.getAttribute('type') === 'password' ? 'text' : 'password';
+        inputPass.setAttribute('type', tipo);
+        
+        btnToggle.classList.toggle('fa-eye');
+        btnToggle.classList.toggle('fa-eye-slash');
+    });
+
+    // --- LÓGICA LOGIN ---
+    formulario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = inputUser.value.trim();
+        const password = inputPass.value.trim();
+
+        if (!username || !password) {
+            mostrarToast('Por favor complete todos los campos', 'error');
+            return;
+        }
+
+        // Estado de carga
+        const textoOriginal = btnLogin.innerHTML;
+        btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        btnLogin.disabled = true;
+        btnLogin.style.opacity = '0.7';
+
+        try {
+            const response = await fetch(`${BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Normalizar datos
+                const sessionData = {
+                    UsuarioID: data.usuarioid || data.UsuarioID || data.usuarioID,
+                    NombreCompleto: data.nombrecompleto || data.NombreCompleto,
+                    Rol: data.rol || data.Rol,
+                    token: data.token
+                };
+
+                if (!sessionData.UsuarioID) throw new Error("ID de usuario no recibido");
+
+                // --- 2. LÓGICA RECORDAR SESIÓN (AL GUARDAR) ---
+                if (chkRemember.checked) {
+                    localStorage.setItem('fastcash_saved_user', username);
+                } else {
+                    localStorage.removeItem('fastcash_saved_user');
+                }
+
+                // Guardar Sesión Actual
+                localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
+                
+                mostrarToast(`¡Bienvenido, ${sessionData.NombreCompleto}!`, 'success');
+                
+                // Animación de salida
+                document.querySelector('.contenedor-login').style.transform = 'scale(0.95)';
+                document.querySelector('.contenedor-login').style.opacity = '0';
+                
+                setTimeout(() => window.location.href = 'index.html', 1000);
+
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Credenciales incorrectas');
             }
 
-            // Guardamos sesión
-            localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
+        } catch (error) {
+            console.error(error);
+            mostrarToast(error.message, 'error');
             
-            // Notificación y redirección
-            mostrarNotificacion(`¡Bienvenido, ${sessionData.NombreCompleto || username}!`, 'exito');
-            
-            const contenedor = document.querySelector('.contenedor-login');
-            if(contenedor) {
-                contenedor.style.animation = 'alejarZoom 0.5s ease forwards';
-                contenedor.style.opacity = '0';
-            }
-            
+            inputUser.style.borderColor = 'var(--color-primario)';
+            inputPass.style.borderColor = 'var(--color-primario)';
             setTimeout(() => {
-                window.location.href = 'index.html'; 
-            }, 800);
+                inputUser.style.borderColor = '';
+                inputPass.style.borderColor = '';
+            }, 2000);
 
-        } else {
-            // --- ERROR DE CREDENCIALES ---
-            const errorData = await response.json().catch(() => ({}));
-            const mensajeError = errorData.error || 'Credenciales incorrectas';
-            throw new Error(mensajeError); 
+            btnLogin.innerHTML = textoOriginal;
+            btnLogin.disabled = false;
+            btnLogin.style.opacity = '1';
         }
-
-    } catch (error) {
-        console.error("Error:", error);
-        
-        let mensaje = error.message;
-        if(error.message.includes('Failed to fetch')) {
-            mensaje = 'No se pudo conectar con el servidor (Backend apagado o URL incorrecta)';
-        }
-
-        mostrarNotificacion(mensaje, 'error');
-        sacudirInput(inputPassword);
-        sacudirInput(inputUsuario);
-        
-        botonLogin.innerHTML = textoOriginal;
-        botonLogin.style.pointerEvents = 'auto';
-        botonLogin.style.opacity = '1';
-    }
+    });
 });
 
-// --- FUNCIONES AUXILIARES ---
-
-function sacudirInput(input) {
-    if (!input) return;
-    input.focus();
-    input.style.animation = 'sacudir 0.5s ease';
-    input.style.borderColor = 'var(--color-primario)';
+// --- SISTEMA DE NOTIFICACIONES (TOAST) ---
+// (Mantener el código del toast igual que antes)
+function mostrarToast(mensaje, tipo = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'toast-notificacion';
+    toast.textContent = mensaje;
     
-    setTimeout(() => {
-        input.style.animation = '';
-        input.style.borderColor = '';
-    }, 500);
-}
-
-function mostrarNotificacion(mensaje, tipo = 'info') {
-    const notificacionExistente = document.querySelector('.notificacion');
-    if (notificacionExistente) notificacionExistente.remove();
-
-    const notificacion = document.createElement('div');
-    notificacion.className = `notificacion notificacion-${tipo}`;
-    notificacion.textContent = mensaje;
-    
-    const colorFondo = tipo === 'exito' ? '#4ade80' : 'var(--color-primario)';
-    
-    notificacion.style.cssText = `
+    toast.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${colorFondo};
+        background: ${tipo === 'error' ? '#ef4444' : '#10b981'};
         color: white;
-        border-radius: 10px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 1000;
-        animation: deslizarDerecha 0.3s ease;
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        animation: slideIn 0.3s ease forwards;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     `;
-    
-    document.body.appendChild(notificacion);
-    
+
+    document.body.appendChild(toast);
+
     setTimeout(() => {
-        notificacion.style.animation = 'deslizarFueraDerecha 0.3s ease forwards';
-        setTimeout(() => notificacion.remove(), 300);
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-// Estilos dinámicos para animaciones
-const estilo = document.createElement('style');
-estilo.textContent = `
-    @keyframes sacudir {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-    @keyframes deslizarDerecha {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes deslizarFueraDerecha {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    @keyframes alejarZoom {
-        to { transform: scale(0.9); opacity: 0; }
-    }
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 `;
-document.head.appendChild(estilo);
+document.head.appendChild(styleSheet);
