@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // ==========================================
-    // 0. CONFIGURACIÓN INICIAL Y SESIÓN
+    // 0. CONFIGURACIÓN INICIAL Y SESIÓN (CORREGIDO)
     // ==========================================
     const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
     let CAJA_ABIERTA = false; 
 
-    // Recuperar sesión
+    // 1. Recuperar sesión
     const usuarioData = localStorage.getItem('usuarioSesion');
     let TOKEN = '';
     
@@ -16,19 +16,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const usuario = JSON.parse(usuarioData);
-    TOKEN = usuario.token || ''; // Aseguramos tener el token para las peticiones nuevas
+    
+    // 2. OBTENCIÓN SEGURA DEL ID (CRÍTICO: Aquí estaba el error)
+    // Buscamos todas las formas posibles en que pudo guardarse
+    const USUARIO_ID = usuario.usuarioID || usuario.UsuarioID || usuario.usuarioid || usuario.id;
+    TOKEN = usuario.token || ''; 
+
+    // 3. Validación de Seguridad: Si no hay ID, la sesión no sirve.
+    if (!USUARIO_ID) {
+        console.error("⛔ Error Crítico: ID de usuario no encontrado en la sesión.");
+        alert("Tu sesión ha caducado o es inválida. Por favor ingresa nuevamente.");
+        localStorage.removeItem('usuarioSesion');
+        window.location.href = '../html/login.html';
+        return; // Detenemos la ejecución
+    }
+
+    console.log(`✅ Sesión iniciada: ID ${USUARIO_ID} - ${usuario.NombreCompleto || usuario.nombreCompleto}`);
 
     // Mostrar nombre en el header
     const nombreCajeroEl = document.querySelector('.nombre-cajero');
     if (nombreCajeroEl) {
-        nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || 'Usuario';
+        nombreCajeroEl.textContent = usuario.NombreCompleto || usuario.nombreCompleto || usuario.username || 'Usuario';
     }
 
     // ==========================================
-    // 0.1 CARGA DINÁMICA DE MAESTROS (¡NUEVO!) 🎨
+    // 0.1 CARGA DINÁMICA DE MAESTROS
     // ==========================================
-    // Esto reemplaza a los botones fijos. Trae las categorías y bancos de la BD.
-
     const MAPA_ICONOS = {
         'Comestibles': '🍞', 'Bebidas': '🥤', 'Licores': '🍷',
         'Limpieza': '🧹', 'Cuidado Personal': '🧴', 'Frescos': '🥦',
@@ -45,24 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) return;
             const categorias = await response.json();
 
-            // Llenar en ambas vistas (Yape y Tarjeta)
             ['selectorFamilia', 'selectorFamiliaTarjeta'].forEach(idContenedor => {
                 const contenedor = document.getElementById(idContenedor);
                 const idInput = idContenedor === 'selectorFamilia' ? 'inputFamilia' : 'inputFamiliaTarjeta';
                 
                 if(contenedor) {
-                    contenedor.innerHTML = ''; // Limpiar mensaje de carga
+                    contenedor.innerHTML = ''; 
                     categorias.forEach(cat => {
                         if(cat.activo) {
                             const btn = document.createElement('button');
                             btn.type = 'button';
-                            btn.className = 'card-familia'; // Tu clase CSS existente
+                            btn.className = 'card-familia'; 
                             btn.dataset.value = cat.categoriaID;
                             
                             const icono = MAPA_ICONOS[cat.nombre] || '📦';
                             btn.innerHTML = `<span class="emoji">${icono}</span><span class="label">${cat.nombre}</span>`;
                             
-                            // Lógica de selección
                             btn.addEventListener('click', function() {
                                 contenedor.querySelectorAll('.card-familia').forEach(b => b.classList.remove('seleccionado'));
                                 this.classList.add('seleccionado');
@@ -84,12 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) return;
             const entidades = await response.json();
 
-            // 1. Selector YAPE/PLIN
             const contenedorYape = document.getElementById('selectorDestino');
             if(contenedorYape) {
                 contenedorYape.innerHTML = '';
                 entidades.forEach(ent => {
-                    // Filtramos: Solo Billeteras o Bancos populares
                     if(ent.activo && (ent.tipo === 'BILLETERA' || ent.nombre.includes('BCP') || ent.nombre.includes('BBVA'))) {
                         const btn = document.createElement('button');
                         btn.type = 'button';
@@ -113,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // 2. Selector TARJETA (Solo Bancos)
             const contenedorTarjeta = document.getElementById('selectorBancoTarjeta');
             if(contenedorTarjeta) {
                 contenedorTarjeta.innerHTML = '';
@@ -141,37 +149,26 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Error cargando bancos:", e); }
     }
 
-    // INICIALIZAR CARGAS DINÁMICAS
     cargarCategoriasVenta();
     cargarMetodosPago();
 
-
     // ==========================================
-    // GESTIÓN DE PERMISOS (ROBUSTA)
+    // GESTIÓN DE PERMISOS
     // ==========================================
     let rolUsuario = "CAJERO";
-    
-    // Normalizamos el rol para evitar errores de mayúsculas/minúsculas
-    if (usuario.Rol) {
-        rolUsuario = usuario.Rol.toUpperCase();
-    } else if (usuario.rol) {
-        rolUsuario = usuario.rol.toUpperCase();
-    } else if (usuario.RolID === 1 || usuario.rolID === 1) {
-        rolUsuario = "ADMINISTRADOR";
-    }
+    if (usuario.Rol) rolUsuario = usuario.Rol.toUpperCase();
+    else if (usuario.rol) rolUsuario = usuario.rol.toUpperCase();
+    else if (usuario.RolID === 1 || usuario.rolID === 1) rolUsuario = "ADMINISTRADOR";
 
     console.log("👮 Rol detectado:", rolUsuario);
 
-    // Seleccionamos elementos admin, incluyendo el NUEVO botón de configuración
     const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"], #btn-nav-admin');
     
     if (rolUsuario !== 'ADMINISTRADOR' && !rolUsuario.includes('ADMIN')) {
         itemsAdmin.forEach(item => item.style.display = 'none');
     } else {
-        // Solo si es admin cargamos los filtros
         cargarFiltroUsuarios();
         cargarFiltroHistorial();
-        // Mostrar botón de admin maestros
         const btnAdmin = document.getElementById('btn-nav-admin');
         if(btnAdmin) btnAdmin.style.display = 'block';
     }
@@ -182,10 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function activarSelector(idContenedor, claseItems, idInputHidden) {
         const contenedor = document.getElementById(idContenedor);
         const input = document.getElementById(idInputHidden);
-        
         if (contenedor && input) {
-            // Nota: Para categorías y bancos, esto ahora se maneja dentro de 'cargarCategoriasVenta'
-            // Pero lo dejamos para los comprobantes que siguen siendo estáticos
             const items = contenedor.querySelectorAll(`.${claseItems}`);
             items.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -208,11 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     forzarSoloNumeros('numOperacion');        
     forzarSoloNumeros('numOperacionTarjeta'); 
-
-    // YA NO LLAMAMOS A activarSelector PARA FAMILIAS/BANCOS PORQUE SON DINÁMICOS
-    // activarSelector('selectorFamilia', 'card-familia', 'inputFamilia'); <--- ELIMINADO
-    
-    // Estos sí se mantienen porque son estáticos (Boleta/Factura)
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
     activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
 
@@ -225,24 +214,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarEstadoVisualCaja(estaAbierta) {
         CAJA_ABIERTA = estaAbierta;
-        
-        // 1. Control del Botón en el Header
         if(btnAbrirCaja) btnAbrirCaja.style.display = estaAbierta ? 'none' : 'flex';
-
-        // 2. Control del Área de Trabajo
         if(areaTrabajo) { 
             if (estaAbierta) {
-                // CAJA ABIERTA: Todo habilitado
                 areaTrabajo.style.opacity = "1"; 
                 areaTrabajo.style.pointerEvents = "all"; 
             } else {
-                // CAJA CERRADA
-                if (rolUsuario === 'ADMINISTRADOR' || rolUsuario.includes('ADMIN')) {
-                    // EXCEPCIÓN ADMIN: Puede ver reportes aunque caja esté cerrada
+                if (rolUsuario.includes('ADMIN')) {
                     areaTrabajo.style.opacity = "1"; 
                     areaTrabajo.style.pointerEvents = "all"; 
                 } else {
-                    // CAJERO: Bloqueo total visual hasta abrir caja
                     areaTrabajo.style.opacity = "0.5"; 
                     areaTrabajo.style.pointerEvents = "none"; 
                 }
@@ -252,8 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function verificarEstadoCaja() {
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid || usuario.usuarioID;
-            const res = await fetch(`${BASE_URL}/caja/estado/${uid}`);
+            // USAMOS EL ID SEGURO
+            const res = await fetch(`${BASE_URL}/caja/estado/${USUARIO_ID}`);
             if (res.ok) {
                 const data = await res.json();
                 actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
@@ -276,10 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btnAbrirCaja.disabled = true;
 
             try {
+                // USAMOS EL ID SEGURO
                 const res = await fetch(`${BASE_URL}/caja/abrir`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        usuarioID: usuario.UsuarioID || usuario.usuarioid, 
+                        usuarioID: parseInt(USUARIO_ID), 
                         saldoInicial: 0.00 
                     })
                 });
@@ -289,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarEstadoVisualCaja(true);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error || "Error al abrir caja");
+                    throw new Error(err.mensaje || err.error || "Error al abrir caja");
                 }
             } catch (error) {
                 alert("❌ Error: " + error.message);
@@ -316,70 +298,51 @@ document.addEventListener('DOMContentLoaded', () => {
     // LOGICA CIERRE DE CAJA E IMPRESIÓN
     // ==========================================
     window.imprimirCierre = async () => {
-        if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) {
-            return;
-        }
+        if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) return;
 
         const btn = document.querySelector('.btn-imprimir-cierre');
-        if(btn) { 
-            btn.disabled = true; 
-            btn.innerHTML = '<span>⚙️</span> Cerrando...'; 
-        }
+        if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Cerrando...'; }
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid;
-            
-            // 1. Obtener los cálculos desde la Base de Datos
-            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`, {
+            // USAMOS EL ID SEGURO
+            const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, {
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
             if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
             
             const data = await resReporte.json(); 
-            
-            const saldoIni = data.SaldoInicial || data.saldoinicial || 0;
-            const vEfec = data.VentasEfectivo || data.ventasefectivo || 0;
-            const vDig = data.VentasDigital || data.ventasdigital || 0;
-            const vTarj = data.VentasTarjeta || data.ventastarjeta || 0;
-            const vTotal = data.TotalVendido || data.totalvendido || 0;
-            const vAnulado = data.TotalAnulado || data.totalanulado || 0;
             const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
-            const turnoNombre = data.TurnoNombre || data.turnonombre || "GENERAL";
 
             const setText = (id, valor) => {
                 const el = document.getElementById(id);
                 if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
             };
 
-            // 2. Llenar Datos del Ticket
+            // Llenar Datos del Ticket Visual
             document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
             document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
-
-            const nombreCajero = usuario.NombreCompleto || usuario.nombrecompleto || usuario.username || "Cajero";
             const elNombre = document.getElementById('ticketCajeroNombre');
-            if(elNombre) elNombre.textContent = nombreCajero.toUpperCase();
+            if(elNombre) elNombre.textContent = (usuario.NombreCompleto || usuario.nombreCompleto || "Cajero").toUpperCase();
 
-            // const elTurno = document.getElementById('ticketTurno');
-            // if (elTurno) elTurno.textContent = turnoNombre.toUpperCase();
+            // Datos financieros
+            const vDig = data.VentasDigital || data.ventasdigital || 0;
+            const vTarj = data.VentasTarjeta || data.ventastarjeta || 0;
+            const vAnulado = data.TotalAnulado || data.totalanulado || 0;
+            const vTotal = data.TotalVendido || data.totalvendido || 0;
 
-            // setText('ticketSaldoInicialPrint', saldoIni); // Si tienes este campo en el ticket
-            // setText('ticketEfectivoPrint', vEfec);
-            
             const elYapePrint = document.getElementById('ticketYapePrint');
             if(elYapePrint) elYapePrint.textContent = `S/ ${parseFloat(vDig).toFixed(2)}`;
-            
             const elTarjetaPrint = document.getElementById('ticketTarjetaPrint');
             if(elTarjetaPrint) elTarjetaPrint.textContent = `S/ ${parseFloat(vTarj).toFixed(2)}`;
-
             setText('ticketAnuladoPrint', vAnulado); 
             setText('ticketTotalPrint', vTotal); 
 
-            // 3. Cerrar la caja en el Backend
+            // Cerrar en Backend
             const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                 body: JSON.stringify({ 
-                    usuarioID: uid, 
+                    usuarioID: parseInt(USUARIO_ID), 
                     saldoFinalReal: saldoFinalEsperado 
                 })
             });
@@ -389,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
             }
 
-            // 4. Imprimir y Salir
             setTimeout(() => {
                 window.print(); 
                 alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
@@ -400,16 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(error);
             alert("❌ ERROR CRÍTICO: " + error.message);
-            if(btn) { 
-                btn.disabled = false; 
-                btn.innerHTML = '🖨️ CERRAR CAJA E IMPRIMIR'; 
-            }
+            if(btn) { btn.disabled = false; btn.innerHTML = '🖨️ CERRAR CAJA E IMPRIMIR'; }
         }
     };
 
    // ==========================================
-    // 4. LÓGICA DE VENTAS (CORREGIDA)
-    // ==========================================
+   // 4. LÓGICA DE VENTAS (CORREGIDO FINAL)
+   // ==========================================
    async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
@@ -417,55 +376,77 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas."); return;
         }
 
-        let usuarioActivo = usuario || JSON.parse(localStorage.getItem('usuarioSesion'));
         const btn = form.querySelector('.btn-registrar-grande');
         const inputFam = document.getElementById(idInputFam);
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
+        // 1. Validaciones Básicas
         if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
         if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
 
-        let entidadId = 1, numOp = null, compId = 2;
+        // Inicializamos con valores seguros
+        let entidadId = 1; 
+        let numOp = null;
+        let compId = 2;
         let comprobanteExt = null; 
 
+        // 2. Validación de Método de Pago y Entidad
         if (tipo === 'YAPE') {
-            entidadId = document.getElementById('inputDestino').value;
+            const valDestino = document.getElementById('inputDestino').value;
+            // Si tiene valor, lo usamos. Si está vacío, se queda con el 1 (Yape) por defecto.
+            if (valDestino && valDestino.trim() !== "") {
+                entidadId = valDestino;
+            }
+
             numOp = document.getElementById('numOperacion').value;
+            if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
+
             compId = document.getElementById('inputComprobante').value;
             const inputExt = document.getElementById('txtComprobanteYape');
             if(inputExt) comprobanteExt = inputExt.value.trim();
-            if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
+
         } else {
-            entidadId = document.getElementById('inputBancoTarjeta').value;
+            // Lógica Tarjeta
+            const valBanco = document.getElementById('inputBancoTarjeta').value;
+            
+            if (!valBanco || valBanco.trim() === "") {
+                alert("⚠️ Selecciona el Banco de la Tarjeta (Interbank, Scotiabank...)");
+                return;
+            }
+            entidadId = valBanco;
+
             numOp = document.getElementById('numOperacionTarjeta').value;
+            if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
+
             const inputCompT = document.getElementById('inputComprobanteTarjeta');
             if(inputCompT) compId = inputCompT.value;
             const inputExt = document.getElementById('txtComprobanteTarjeta');
             if(inputExt) comprobanteExt = inputExt.value.trim();
-            if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
 
         const originalText = btn.innerHTML;
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
-        // ✅ CORRECCIÓN CRÍTICA: Usamos camelCase para que Java lo entienda
+        // ⚠️ CORRECCIÓN CRÍTICA: Usamos PascalCase (Mayúsculas) para los DTOs internos
+        // porque Java tiene @JsonProperty("FormaPago"), etc.
         const payload = {
-            usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioid, 
+            usuarioID: parseInt(USUARIO_ID),
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
             clienteNombre: "Publico General",
             comprobanteExterno: comprobanteExt,
             
             detalles: [{ 
-                categoriaID: parseInt(inputFam.value), // Antes CategoriaID
-                monto: monto 
+                "CategoriaID": parseInt(inputFam.value), // PascalCase
+                "Monto": monto                           // PascalCase
             }], 
+            
             pagos: [{ 
-                formaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-                monto: monto, 
-                entidadID: parseInt(entidadId), 
-                numOperacion: numOp 
+                "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', // PascalCase
+                "Monto": monto,                                  // PascalCase
+                "EntidadID": parseInt(entidadId),                // PascalCase
+                "NumOperacion": numOp                            // PascalCase
             }]
         };
 
@@ -478,25 +459,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
             
-            // Soportamos respuesta mayúscula o minúscula por compatibilidad
+            // Soportamos respuesta mayúscula o minúscula
             const status = data.Status || data.status; 
             const mensaje = data.Mensaje || data.mensaje;
             const ticket = data.Comprobante || data.comprobante;
 
             if (res.ok && status === 'OK') {
                 alert(`✅ VENTA EXITOSA\nTicket: ${ticket}`);
+                
+                // Limpieza del formulario
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
                 
-                // Reset selectores visuales
-                if(tipo === 'YAPE') {
-                   document.getElementById('inputComprobante').value = "2";
-                   // Resetear visualmente los botones de segmento si existen
+                // Reset inputs visuales
+                if (tipo === 'YAPE') {
+                    document.getElementById('inputDestino').value = "1"; // Reset a Yape
+                    document.getElementById('inputComprobante').value = "2";
+                    // Limpiar selección visual de bancos
+                    const contBancos = document.getElementById('selectorDestino');
+                    if(contBancos) contBancos.querySelectorAll('.seleccionado').forEach(b => b.classList.remove('seleccionado'));
                 } else {
-                   document.getElementById('inputComprobanteTarjeta').value = "2";
+                    document.getElementById('inputBancoTarjeta').value = "";
+                    document.getElementById('inputComprobanteTarjeta').value = "2";
+                    const contBancos = document.getElementById('selectorBancoTarjeta');
+                    if(contBancos) contBancos.querySelectorAll('.seleccionado').forEach(b => b.classList.remove('seleccionado'));
                 }
+
             } else {
                 throw new Error(mensaje || "No se pudo registrar la venta");
             }
@@ -520,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. HISTORIAL DE VENTAS
     // ==========================================
     async function cargarFiltroHistorial() {
-        if (rolUsuario !== 'ADMINISTRADOR' && !rolUsuario.includes('ADMIN')) return;
+        if (!rolUsuario.includes('ADMIN')) return;
         const select = document.getElementById('filtroUsuarioHistorial');
         const wrapper = document.getElementById('wrapperFiltroHistorial');
         if(wrapper) wrapper.style.display = 'block'; 
@@ -533,7 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const usuarios = await res.json();
                 select.innerHTML = '<option value="">-- Ver Todos --</option>';
                 usuarios.forEach(u => {
-                    select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
+                    const uid = u.UsuarioID || u.usuarioid;
+                    select.innerHTML += `<option value="${uid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
                 });
             }
         } catch(e) { console.error("Error cargando filtro historial", e); }
@@ -546,11 +537,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroSelect = document.getElementById('filtroUsuarioHistorial');
         const filtroID = filtroSelect ? filtroSelect.value : '';
 
-        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos recientes...</td></tr>';
+        cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #666;">⏳ Cargando datos...</td></tr>';
 
         try {
-            const uid = usuario.UsuarioID || usuario.usuarioid;
-            let url = `${BASE_URL}/ventas/historial/${uid}?_=${new Date().getTime()}`;
+            // USAMOS EL ID SEGURO
+            let url = `${BASE_URL}/ventas/historial/${USUARIO_ID}?_=${new Date().getTime()}`;
             if(filtroID) url += `&filtro=${filtroID}`;
 
             const res = await fetch(url);
@@ -560,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cuerpoTabla.innerHTML = '';
 
             if(ventas.length === 0) {
-                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #888;">📭 No hay ventas registradas con este filtro.</td></tr>';
+                cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center;">📭 No hay ventas hoy.</td></tr>';
             } else {
                 ventas.forEach(v => {
                     const fechaEmision = v.FechaEmision || v.fechaemision;
@@ -591,9 +582,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     cuerpoTabla.insertAdjacentHTML('beforeend', fila);
                 });
             }
-
         } catch (error) { 
-            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión. Intente nuevamente.</td></tr>'; 
+            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión.</td></tr>'; 
         }
     };
 
@@ -606,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                 body: JSON.stringify({ 
                     ventaID: ventaId, 
-                    usuarioID: usuario.UsuarioID || usuario.usuarioid, 
+                    usuarioID: parseInt(USUARIO_ID), 
                     motivo: "Anulación Manual" 
                 })
             });
@@ -621,9 +611,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { alert("❌ Error de red"); }
     };
 
-
     // ==========================================
-    // 6. GESTIÓN DE USUARIOS (FILTRO Y CRUD)
+    // 6. GESTIÓN DE USUARIOS
     // ==========================================
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
@@ -664,12 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             usuariosDB.forEach(u => {
-                const rol = u.Rol || u.rol;
                 const uid = u.UsuarioID || u.usuarioid;
                 const nombre = u.NombreCompleto || u.nombrecompleto;
                 const username = u.Username || u.username;
                 const turno = u.TurnoActual || u.turnoactual;
                 const activo = u.Activo || u.activo;
+                const rol = u.Rol || u.rol;
 
                 const rolClase = (rol || '').toUpperCase().includes('ADMIN') ? 'admin' : 'cajero';
                 const esActivo = activo === true || activo === 1 || activo === "true";
@@ -693,28 +682,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) { console.error(error); }
     }
-window.eliminarUsuario = async (idUsuario) => {
-        // Confirmación clara de que es SOLO desactivación
+    window.eliminarUsuario = async (idUsuario) => {
         if(!confirm("¿Estás seguro de DESACTIVAR este usuario?\n(Podrás reactivarlo después editándolo)")) return;
-        
         try {
-            // ✅ RUTA CORRECTA: DELETE /admin/usuario/{id}
             const res = await fetch(`${BASE_URL}/admin/usuario/${idUsuario}`, { 
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
-
-            if(res.ok) {
-                alert("✅ Usuario desactivado correctamente.");
-                cargarUsuarios(); // Recargar tabla
-            } else {
-                const data = await res.json().catch(() => ({}));
-                alert(`❌ Error: ${data.message || "No se pudo desactivar"}`);
-            }
-        } catch(e) { 
-            console.error(e);
-            alert("❌ Error de conexión"); 
-        }
+            if(res.ok) { alert("✅ Usuario desactivado."); cargarUsuarios(); } 
+            else { const data = await res.json().catch(() => ({})); alert(`❌ Error: ${data.message || "No se pudo desactivar"}`); }
+        } catch(e) { alert("❌ Error de conexión"); }
     };
 
     window.editarUsuario = async (idUsuario) => {
@@ -723,33 +700,25 @@ window.eliminarUsuario = async (idUsuario) => {
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
             const usuarios = await res.json();
-            
             const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
             if (!user) return;
 
             const uid = user.UsuarioID || user.usuarioid;
-            const nombre = user.NombreCompleto || user.nombrecompleto;
-            const username = user.Username || user.username;
-            const turnoID = user.TurnoID || user.turnoid || 1;
             const rol = user.Rol || user.rol;
             const activo = user.Activo || user.activo;
 
             document.getElementById('idUsuarioEdicion').value = uid;
-            document.getElementById('nombreUsuario').value = nombre;
-            document.getElementById('usernameUsuario').value = username; 
-            document.getElementById('turnoUsuario').value = turnoID;
+            document.getElementById('nombreUsuario').value = user.NombreCompleto || user.nombrecompleto;
+            document.getElementById('usernameUsuario').value = user.Username || user.username; 
+            document.getElementById('turnoUsuario').value = user.TurnoID || user.turnoid || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
             const rolSelect = document.getElementById('rolUsuario');
-            const rolValue = (rol && rol.toUpperCase().includes('ADMIN')) ? 'Administrador' : 'Cajero';
-            rolSelect.value = rolValue;
+            rolSelect.value = (rol && rol.toUpperCase().includes('ADMIN')) ? 'Administrador' : 'Cajero';
 
             const selEstado = document.getElementById('estadoUsuario');
-            if(selEstado) {
-                const esActivo = activo === true || activo === 1;
-                selEstado.value = esActivo ? 'true' : 'false';
-            }
+            if(selEstado) selEstado.value = (activo === true || activo === 1) ? 'true' : 'false';
 
             document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
@@ -768,10 +737,8 @@ window.eliminarUsuario = async (idUsuario) => {
             document.getElementById('passUsuario').required = true;
             document.getElementById('passUsuario').placeholder = "Contraseña";
             document.getElementById('turnoUsuario').value = 1; 
-            
             const selEstado = document.getElementById('estadoUsuario');
             if(selEstado) selEstado.value = 'true';
-            
             abrirModalUsuario();
         };
     }
@@ -781,7 +748,7 @@ window.eliminarUsuario = async (idUsuario) => {
         const nuevoForm = formUsuario.cloneNode(true);
         formUsuario.parentNode.replaceChild(nuevoForm, formUsuario);
 
-nuevoForm.addEventListener('submit', async (e) => {
+        nuevoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const idEdicion = document.getElementById('idUsuarioEdicion').value;
@@ -789,7 +756,6 @@ nuevoForm.addEventListener('submit', async (e) => {
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
             const rolVal = document.getElementById('rolUsuario').value;
-            // Normalizar Rol: Si dice "Administrador" enviamos 1, sino 2
             const rol = (rolVal === 'Administrador' || rolVal == 1) ? 1 : 2;
             const selectedTurno = document.getElementById('turnoUsuario').value;
             const estadoVal = document.getElementById('estadoUsuario')?.value;
@@ -802,7 +768,6 @@ nuevoForm.addEventListener('submit', async (e) => {
 
             try {
                 if (idEdicion) {
-                    // --- MODO EDICIÓN (PUT) ---
                     const payload = { 
                         usuarioID: parseInt(idEdicion),
                         nombreCompleto: nombre,
@@ -811,7 +776,6 @@ nuevoForm.addEventListener('submit', async (e) => {
                         activo: esActivo,
                         turnoID: parseInt(selectedTurno)
                     };
-                    // Solo enviamos password si el usuario escribió algo nuevo
                     if(pass && pass.trim() !== "") payload.password = pass;
 
                     await fetch(`${BASE_URL}/admin/usuario`, {
@@ -820,144 +784,91 @@ nuevoForm.addEventListener('submit', async (e) => {
                         body: JSON.stringify(payload)
                     });
                     alert("✅ Usuario actualizado correctamente");
-
                 } else {
-                    // --- MODO CREACIÓN (POST) ---
                     const nuevoUsuario = {
                         nombreCompleto: nombre,
                         username: usernameInput, 
-                        password: pass, // Backend se encarga de cifrarla
+                        password: pass, 
                         rolID: rol
                     };
-
                     const res = await fetch(`${BASE_URL}/admin/usuario`, {
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                         body: JSON.stringify(nuevoUsuario)
                     });
-
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.mensaje || err.error || "Error al crear usuario");
-                    }
-
-                    // Si necesitas asignar turno al nuevo usuario, hazlo aquí o asegúrate
-                    // que tu backend asigne un turno por defecto.
+                    if (!res.ok) { const err = await res.json(); throw new Error(err.mensaje || err.error || "Error"); }
                     alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
                 }
-                
                 cerrarModalUsuario();
                 nuevoForm.reset();
                 cargarUsuarios();
-
-            } catch (error) { 
-                alert("❌ Error: " + error.message); 
-            } finally { 
-                btnGuardar.innerHTML = txtOriginal; 
-                btnGuardar.disabled = false; 
-            }
+            } catch (error) { alert("❌ Error: " + error.message); } 
+            finally { btnGuardar.innerHTML = txtOriginal; btnGuardar.disabled = false; }
         });
     }
 
-
     // ==========================================
-    // 7. ADMINISTRACIÓN MAESTROS (¡NUEVO!) 🛠️
+    // 7. ADMINISTRACIÓN MAESTROS
     // ==========================================
     let entidadActualAdmin = null; 
     let modoEdicionAdmin = false;
 
-    // Función para mostrar la sección Admin
     window.mostrarSeccionAdmin = function() {
         document.querySelectorAll('.item-menu').forEach(i => i.classList.remove('activo'));
         const btnAdmin = document.getElementById('btn-nav-admin');
         if(btnAdmin) btnAdmin.classList.add('activo');
-        
         document.querySelectorAll('.vista-seccion').forEach(v => v.style.display = 'none');
         document.getElementById('vista-admin-maestros').style.display = 'block';
     }
 
-    // Cargar Categorías en Tabla
     window.cargarAdminCategorias = async function() {
         entidadActualAdmin = 'CATEGORIA';
         const workspace = document.getElementById('admin-workspace');
         if(workspace) workspace.innerHTML = 'Cargando categorías...';
 
         try {
-            const res = await fetch(`${BASE_URL}/maestros/categorias`, {
-                headers: { 'Authorization': `Bearer ${TOKEN}` }
-            });
+            const res = await fetch(`${BASE_URL}/maestros/categorias`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
             const lista = await res.json();
-
             let html = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>📦 Listado de Categorías</h3>
                     <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Categoría</button>
                 </div>
-                <table class="tabla-datos">
-                    <thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-            `;
-
+                <table class="tabla-datos"><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>`;
             lista.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.categoriaID}</td>
-                        <td>${item.nombre}</td>
+                html += `<tr><td>${item.categoriaID}</td><td>${item.nombre}</td>
                         <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-                        <td>
-                            <button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-edit">✏️</button>
-                        </td>
-                    </tr>`;
+                        <td><button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-edit">✏️</button></td></tr>`;
             });
             html += '</tbody></table>';
             workspace.innerHTML = html;
-        } catch (e) {
-            if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>';
-        }
+        } catch (e) { if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>'; }
     }
 
-    // Cargar Entidades en Tabla
     window.cargarAdminEntidades = async function() {
         entidadActualAdmin = 'ENTIDAD';
         const workspace = document.getElementById('admin-workspace');
         if(workspace) workspace.innerHTML = 'Cargando entidades...';
 
         try {
-            const res = await fetch(`${BASE_URL}/maestros/entidades`, {
-                headers: { 'Authorization': `Bearer ${TOKEN}` }
-            });
+            const res = await fetch(`${BASE_URL}/maestros/entidades`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
             const lista = await res.json();
-
             let html = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>🏦 Bancos y Billeteras</h3>
                     <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Entidad</button>
                 </div>
-                <table class="tabla-datos">
-                    <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-            `;
-
+                <table class="tabla-datos"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>`;
             lista.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.entidadID}</td>
-                        <td>${item.nombre}</td>
-                        <td>${item.tipo}</td>
+                html += `<tr><td>${item.entidadID}</td><td>${item.nombre}</td><td>${item.tipo}</td>
                         <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-                        <td>
-                            <button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-edit">✏️</button>
-                        </td>
-                    </tr>`;
+                        <td><button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-edit">✏️</button></td></tr>`;
             });
             html += '</tbody></table>';
             workspace.innerHTML = html;
-        } catch (e) {
-            if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>';
-        }
+        } catch (e) { if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>'; }
     }
 
-    // --- FUNCIONES DEL MODAL ADMIN ---
     window.abrirModalCrear = function() {
         modoEdicionAdmin = false;
         document.getElementById('modal-admin-titulo').innerText = `Crear ${entidadActualAdmin === 'CATEGORIA' ? 'Categoría' : 'Entidad'}`;
@@ -990,249 +901,237 @@ nuevoForm.addEventListener('submit', async (e) => {
         document.getElementById('modal-admin').style.display = 'block';
     }
 
-    window.cerrarModalAdmin = function() {
-        document.getElementById('modal-admin').style.display = 'none';
-    }
+    window.cerrarModalAdmin = function() { document.getElementById('modal-admin').style.display = 'none'; }
 
-    // GUARDAR ADMIN (POST / PUT)
     document.getElementById('form-admin')?.addEventListener('submit', async function(e) {
         e.preventDefault();
-
         const id = document.getElementById('admin-id').value;
         const nombre = document.getElementById('admin-nombre').value;
         const activo = document.getElementById('admin-activo').value === 'true';
         
         let url = `${BASE_URL}/maestros`;
         let body = { nombre, activo };
-
-        if (entidadActualAdmin === 'CATEGORIA') {
-            url += '/categorias';
-        } else {
-            url += '/entidades';
-            body.tipo = document.getElementById('admin-tipo').value;
-        }
-
-        if (modoEdicionAdmin) {
-            url += `/${id}`;
-        }
+        if (entidadActualAdmin === 'CATEGORIA') url += '/categorias';
+        else { url += '/entidades'; body.tipo = document.getElementById('admin-tipo').value; }
+        if (modoEdicionAdmin) url += `/${id}`;
 
         try {
             const response = await fetch(url, {
                 method: modoEdicionAdmin ? 'PUT' : 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TOKEN}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                 body: JSON.stringify(body)
             });
-
             if (response.ok) {
                 alert('Operación guardada correctamente');
                 cerrarModalAdmin();
-                // Recargar tabla administrativa
-                if (entidadActualAdmin === 'CATEGORIA') cargarAdminCategorias();
-                else cargarAdminEntidades();
-                
-                // Recargar selectores principales para que se refleje en ventas
-                cargarCategoriasVenta();
-                cargarMetodosPago();
-            } else {
-                alert('No se pudo guardar.');
-            }
-        } catch (error) {
-            console.error(error);
-        }
+                if (entidadActualAdmin === 'CATEGORIA') cargarAdminCategorias(); else cargarAdminEntidades();
+                cargarCategoriasVenta(); cargarMetodosPago();
+            } else { alert('No se pudo guardar.'); }
+        } catch (error) { console.error(error); }
     });
 
-
-    // ==========================================
-    // 8. REPORTES EXCEL PROFESIONALES
+   // ==========================================
+    // 8. REPORTES EXCEL "CORPORATIVO" 👔 (CORREGIDO)
     // ==========================================
     window.generarReporte = async (tipo) => {
-        const inicio = document.getElementById('fechaInicio').value;
-        const fin = document.getElementById('fechaFin').value;
+        const inicio = document.getElementById('fechaInicio').value || 'Hoy';
+        const fin = document.getElementById('fechaFin').value || inicio;
         const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
 
-        // 1. Preparar parámetros
+        // 1. Preparar parámetros y Botón
         const params = new URLSearchParams();
-        if (inicio) params.append('inicio', inicio);
-        if (fin) params.append('fin', fin);
+        if (inicio !== 'Hoy') params.append('inicio', inicio);
+        if (fin !== 'Hoy') params.append('fin', fin);
 
-        // Lógica de permisos para el filtro
-        if (rolUsuario === 'ADMINISTRADOR') {
+        if (typeof rolUsuario !== 'undefined' && (rolUsuario === 'ADMINISTRADOR' || rolUsuario.includes('ADMIN'))) {
             if (usuarioFiltro) params.append('usuarioID', usuarioFiltro);
         } else {
-            params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
+            params.append('usuarioID', USUARIO_ID);
         }
 
         let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
-        const urlFinal = `${BASE_URL}${endpoint}?${params.toString()}`;
-
-        // 2. Feedback visual en el botón
-        const btn = event.target.closest('button'); 
+        const btn = document.querySelector(`button[onclick="generarReporte('${tipo}')"]`) || event.target.closest('button');
         const txtOriginal = btn ? btn.innerHTML : '';
-        
-        if (btn) {
-            btn.innerHTML = '<span>⚙️</span> Generando Excel...';
-            btn.disabled = true;
-        }
+        if (btn) { btn.innerHTML = '<span>⚙️</span> Procesando...'; btn.disabled = true; }
 
         try {
-            const res = await fetch(urlFinal, {
+            // 2. Obtener Datos
+            const res = await fetch(`${BASE_URL}${endpoint}?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
-            if (!res.ok) throw new Error("Error al obtener datos del servidor");
-            
+            if (!res.ok) throw new Error("Error obteniendo datos.");
             const data = await res.json();
-            
+
             if (!data || data.length === 0) {
-                alert("⚠️ No se encontraron registros con esos filtros.");
+                alert("⚠️ Sin datos para exportar.");
                 if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
                 return;
             }
 
-            // MAQUETACIÓN Y ESTILOS (TU LÓGICA EXISTENTE)
-            const tituloPrincipal = (tipo === 'CAJAS') 
-                ? "REPORTE DE CIERRE DE CAJA TIENDA ROJAS" 
-                : "REPORTE DE VENTA DETALLADO TIENDA ROJAS";
-
-            const worksheet = XLSX.utils.json_to_sheet(data, { origin: 'A2' });
-            XLSX.utils.sheet_add_aoa(worksheet, [[tituloPrincipal]], { origin: 'A1' });
-
-            const headers = Object.keys(data[0]);
-            const ultimaColumnaIndex = headers.length - 1;
-
-            if(!worksheet['!merges']) worksheet['!merges'] = [];
-            worksheet['!merges'].push({ 
-                s: { r: 0, c: 0 }, e: { r: 0, c: ultimaColumnaIndex } 
+            // 3. CALCULAR TOTALES (CORREGIDO) 💰
+            let totalGeneral = 0;
+            data.forEach(row => {
+                // Buscamos la columna de dinero EXACTA que devuelve tu Base de Datos
+                // "Monto Total" = Reporte de Ventas
+                // "totalvendido" = Reporte de Cajas
+                // "ImporteTotal" = Otros
+                const monto = row["Monto Total"] || row["totalvendido"] || row["TotalVendido"] || row["ImporteTotal"] || row["Monto"] || 0;
+                
+                totalGeneral += parseFloat(monto);
             });
 
-            // Estilos
-            const estiloTitulo = {
-                font: { name: "Arial", sz: 14, bold: true, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "2C3E50" } },
-                alignment: { horizontal: "center", vertical: "center" }
+            // 4. CREAR ESTRUCTURA DEL EXCEL
+            const wb = XLSX.utils.book_new();
+            
+            // --- Definición de Estilos ---
+            const sTitulo = { 
+                font: { sz: 16, bold: true, color: { rgb: "FFFFFF" } }, 
+                fill: { fgColor: { rgb: "B91C1C" } }, // Rojo Intenso
+                alignment: { horizontal: "center", vertical: "center" } 
+            };
+            const sSubTitulo = { 
+                font: { sz: 11, bold: true, color: { rgb: "333333" } }, 
+                alignment: { horizontal: "left" } 
+            };
+            const sHeaderTabla = { 
+                font: { bold: true, color: { rgb: "FFFFFF" } }, 
+                fill: { fgColor: { rgb: "1E293B" } }, // Gris Oscuro/Azul
+                border: { bottom: { style: "medium", color: { rgb: "000000" } } },
+                alignment: { horizontal: "center" }
+            };
+            const sCeldaData = { 
+                border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } },
+                alignment: { vertical: "center" }
+            };
+            const sMoneda = { 
+                border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } },
+                alignment: { horizontal: "right" },
+                numFmt: '"S/" #,##0.00' // Formato Contable
             };
 
-            const estiloEncabezado = {
-                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "FF003C" } },
-                alignment: { horizontal: "center", vertical: "center" }
-            };
+            // --- MAQUETACIÓN MANUAL DE LA HOJA ---
+            const wsData = [
+                ["REPORTE OFICIAL - TIENDA ROJAS"], // A1
+                [`📅 Rango: ${inicio} al ${fin}`],  // A2
+                [`👤 Generado por: ${usuario.NombreCompleto || 'Sistema'}`], // A3
+                [`💰 MONTO TOTAL DEL REPORTE: S/ ${totalGeneral.toFixed(2)}`], // A4 (Resumen)
+                [""], // A5 (Espacio)
+                Object.keys(data[0]) // A6 (Encabezados)
+            ];
 
-            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            // Agregar los datos del JSON
+            data.forEach(row => {
+                wsData.push(Object.values(row));
+            });
+
+            // Crear Hoja
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // --- APLICAR ESTILOS ---
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            
+            // 1. Fusionar Celdas del Encabezado
+            const lastCol = range.e.c;
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }, // Título
+                { s: { r: 3, c: 0 }, e: { r: 3, c: 2 } }        // Resumen Total
+            ];
+
+            // 2. Recorrer celdas para pintar
             for (let R = range.s.r; R <= range.e.r; ++R) {
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
-                    if (!worksheet[cellAddress]) continue;
+                    if (!ws[cellAddress]) continue;
 
-                    if (R === 0) worksheet[cellAddress].s = estiloTitulo;
-                    else if (R === 1) worksheet[cellAddress].s = estiloEncabezado;
+                    // Título Principal
+                    if (R === 0) { 
+                        ws[cellAddress].s = sTitulo; 
+                    }
+                    // Información Meta (Filas 1, 2, 3)
+                    else if (R >= 1 && R <= 3) {
+                        ws[cellAddress].s = sSubTitulo;
+                        // Resalta el Total
+                        if(R === 3) ws[cellAddress].s = { ...sSubTitulo, font: { bold: true, color: { rgb: "B91C1C" }, sz: 12 } };
+                    }
+                    // Encabezados de Tabla (Fila 5, index 5)
+                    else if (R === 5) {
+                        ws[cellAddress].s = sHeaderTabla;
+                    }
+                    // Datos de Tabla (Fila 6 en adelante)
+                    else if (R > 5) {
+                        const valor = ws[cellAddress].v;
+                        // Si es número o parece dinero, usar formato moneda
+                        if (typeof valor === 'number' || (typeof valor === 'string' && valor.includes('.'))) {
+                            ws[cellAddress].s = sMoneda;
+                            ws[cellAddress].t = 'n'; // Forzar tipo numérico
+                        } else {
+                            ws[cellAddress].s = sCeldaData;
+                        }
+                    }
                 }
             }
 
-            // Ajuste Ancho
-            const anchoColumnas = [];
-            headers.forEach(key => {
-                let maxLen = key.length;
-                data.slice(0, 50).forEach(row => {
-                    const val = row[key] ? String(row[key]) : "";
-                    if (val.length > maxLen) maxLen = val.length;
-                });
-                anchoColumnas.push({ wch: maxLen + 5 });
-            });
-            worksheet['!cols'] = anchoColumnas;
+            // 3. Ajustar Ancho de Columnas
+            const wscols = Object.keys(data[0]).map(key => ({ wch: 20 })); // Ancho base
+            ws['!cols'] = wscols;
 
             // Guardar
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-            
-            const fechaStr = inicio || new Date().toISOString().split('T')[0];
-            XLSX.writeFile(workbook, `Reporte_${tipo}_${fechaStr}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+            XLSX.writeFile(wb, `Reporte_Rojas_${tipo}_${inicio}.xlsx`);
 
             if(btn) {
-                btn.innerHTML = '<span>✅</span> ¡Descargado!';
+                btn.innerHTML = '<span>✅</span> ¡Listo!';
                 setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000);
             }
 
         } catch (e) {
             console.error(e);
-            alert("❌ Error generando Excel: " + e.message);
+            alert("❌ Error: " + e.message);
             if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
         }
     };
-
-
     // ==========================================
-    // 9. GRÁFICOS DASHBOARD
+    // 9. GRÁFICOS
     // ==========================================
-    let chartPastel = null; 
-    let chartBarras = null;
-    
+    let chartPastel = null, chartBarras = null;
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
         if (contenedor.style.display === 'none') return;
-
         const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
         const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
-
         const params = new URLSearchParams();
         if(fechaDash) params.append('fecha', fechaDash);
-        
         if(userDash && rolUsuario === 'ADMINISTRADOR') params.append('usuarioID', userDash);
-        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', usuario.UsuarioID || usuario.usuarioid);
+        if(rolUsuario !== 'ADMINISTRADOR') params.append('usuarioID', USUARIO_ID);
 
         try {
-            const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${TOKEN}` }
-            });
+            const res = await fetch(`${BASE_URL}/reportes/graficos-hoy?${params.toString()}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
             if(!res.ok) return;
-
             const data = await res.json(); 
 
-            // 1. GRÁFICO PASTEL
             if(data.categorias) {
                 const ctxP = document.getElementById('graficoPastel').getContext('2d');
                 if(chartPastel) chartPastel.destroy();
-
                 chartPastel = new Chart(ctxP, {
                     type: 'doughnut',
-                    data: {
-                        labels: data.categorias.map(i => i.label),
-                        datasets: [{ 
-                            data: data.categorias.map(i => i.value), 
-                            backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] 
-                        }]
-                    },
+                    data: { labels: data.categorias.map(i => i.label), datasets: [{ data: data.categorias.map(i => i.value), backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] }] },
                     options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
                 });
             }
-
-            // 2. GRÁFICO BARRAS
             if(data.pagos) {
                 const ctxB = document.getElementById('graficoBarras').getContext('2d');
                 if(chartBarras) chartBarras.destroy();
-
                 chartBarras = new Chart(ctxB, {
                     type: 'bar',
-                    data: {
-                        labels: data.pagos.map(i => i.label),
-                        datasets: [{ 
-                            label: 'Total Ventas (S/)', 
-                            data: data.pagos.map(i => i.value), 
-                            backgroundColor: '#2563eb',
-                            borderRadius: 10
-                        }]
-                    },
+                    data: { labels: data.pagos.map(i => i.label), datasets: [{ label: 'Total Ventas (S/)', data: data.pagos.map(i => i.value), backgroundColor: '#2563eb', borderRadius: 10 }] },
                     options: { responsive: true, maintainAspectRatio: false }
                 });
             }
         } catch (e) { console.error("Error gráficos", e); }
     };
 
-
     // ==========================================
-    // 10. NAVEGACIÓN Y MENÚ
+    // 10. NAVEGACIÓN
     // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
@@ -1249,45 +1148,32 @@ nuevoForm.addEventListener('submit', async (e) => {
 
     menuItems.forEach(item => {
         item.addEventListener('click', function(e) {
-            // Si es el botón de Admin y existe, dejamos pasar el evento si tiene lógica asociada
-            if(this.id === 'btn-nav-admin') {
-                // Si el href es #, prevenimos. Si tiene función onclick en HTML, la dejamos.
-            }
-            
+            if(this.id === 'btn-nav-admin') {} 
             const href = this.getAttribute('href');
             if(href === '#' || !href) e.preventDefault();
             
             menuItems.forEach(i => i.classList.remove('activo'));
             this.classList.add('activo');
-
             const targetId = this.getAttribute('data-target');
             if(targetId) {
                 vistas.forEach(v => {
                     v.style.display = 'none'; v.classList.remove('activa');
                     if(v.id === targetId) {
-                        v.style.display = 'block'; 
-                        setTimeout(() => v.classList.add('activa'), 10);
-                        
-                        // CARGAS PEREZOSAS
+                        v.style.display = 'block'; setTimeout(() => v.classList.add('activa'), 10);
                         if(targetId === 'vista-cierre') {
-                            const uid = usuario.UsuarioID || usuario.usuarioid;
-                            fetch(`${BASE_URL}/reportes/cierre-actual/${uid}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } })
+                            fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } })
                                 .then(r => r.json())
                                 .then(d => {
                                     document.getElementById('totalYape').textContent = `S/ ${parseFloat(d.VentasDigital || d.ventasdigital || 0).toFixed(2)}`;
                                     document.getElementById('totalTarjeta').textContent = `S/ ${parseFloat(d.VentasTarjeta || d.ventastarjeta || 0).toFixed(2)}`;
                                     document.getElementById('totalGeneral').textContent = `S/ ${parseFloat(d.TotalVendido || d.totalvendido || 0).toFixed(2)}`;
                                     document.getElementById('totalAnulado').textContent = `S/ ${parseFloat(d.TotalAnulado || d.totalanulado || 0).toFixed(2)}`;
-                                })
-                                .catch(err => console.error(err));
+                                }).catch(err => console.error(err));
                         }
                         if(targetId === 'vista-anulacion') cargarHistorial();
                         if(targetId === 'vista-roles') cargarUsuarios();
                         if(targetId === 'vista-financiero') inicializarGraficos();
-                        if(targetId === 'vista-admin-maestros') { 
-                            // Cargar defecto
-                            cargarAdminCategorias(); 
-                        }
+                        if(targetId === 'vista-admin-maestros') cargarAdminCategorias(); 
                     }
                 });
             }
