@@ -906,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let html = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>📦 Listado de Categorías</h3>
-                    <button onclick="abrirModalCrear()" class="btn-success">+ Nueva Categoría</button>
+                    <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Categoría</button>
                 </div>
                 <table class="tabla-datos">
                     <thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -946,7 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let html = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>🏦 Bancos y Billeteras</h3>
-                    <button onclick="abrirModalCrear()" class="btn-success">+ Nueva Entidad</button>
+                    <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Entidad</button>
                 </div>
                 <table class="tabla-datos">
                     <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>

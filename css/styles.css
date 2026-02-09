@@ -228,7 +228,6 @@ body {
     padding: 1.5rem 1rem;
     box-shadow: var(--sombra-xl);
     z-index: 90;
-    /* CAMBIO CLAVE: Permitir scroll si el menú es muy largo */
     overflow: hidden; 
     position: relative;
     height: 100%;
@@ -258,13 +257,10 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    /* CAMBIOS PARA SCROLL */
     flex: 1; 
     overflow-y: auto; 
     overflow-x: hidden; 
     padding-right: 5px; 
-    
-    /* Barra de scroll bonita */
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
@@ -350,7 +346,7 @@ body {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 .item-menu.activo .icono-wrapper {
-    background: linear-gradient(135deg, rgba(255, 0, 60, 0.12), rgba(255, 77, 109, 0.12), rgba(255, 77, 109, 0.12));
+    background: linear-gradient(135deg, rgba(255, 0, 60, 0.12), rgba(255, 77, 109, 0.12));
     border-color: rgba(255, 0, 60, 0.2);
 }
 
@@ -359,7 +355,7 @@ body {
     margin-top: auto;
     border-top: 1px solid rgba(255, 255, 255, 0.15);
     padding-top: 1rem;
-    padding-bottom: 1rem; /* Espacio extra abajo */
+    padding-bottom: 1rem;
 }
 
 /* Títulos Secciones Menú */
@@ -562,30 +558,37 @@ body {
     box-shadow: none;
 }
 
-/* Chips Bancos */
+/* =========================================
+   SELECTOR DE BANCOS (CORREGIDO RESPONSIVE)
+   ========================================= */
 .selector-bancos {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     background: #f5f5f7;
-    padding: 6px;
+    padding: 8px;
     border-radius: 12px;
+    flex-wrap: wrap; 
+    justify-content: flex-start;
 }
 
 .chip-banco {
-    flex: 1;
+    flex: 1; 
+    min-width: 80px; 
     border: none;
-    background: transparent;
-    padding: 10px;
+    background: white;
+    padding: 10px 12px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
     color: var(--texto-secundario);
-    font-size: 0.9rem;
-    transition: all 0.3s;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border: 1px solid transparent;
 }
 
 .chip-banco .dot {
@@ -593,6 +596,7 @@ body {
     height: 8px;
     border-radius: 50%;
     display: inline-block;
+    flex-shrink: 0;
 }
 .dot.bcp { background: #002a8d; }
 .dot.bbva { background: #004481; }
@@ -605,16 +609,18 @@ body {
 
 .chip-banco.seleccionado {
     background: white;
-    color: var(--texto-principal);
-    box-shadow: var(--sombra-sm);
+    color: var(--color-primario);
+    border-color: var(--color-primario);
+    box-shadow: 0 4px 10px rgba(255, 0, 60, 0.15);
+    transform: translateY(-1px);
+    z-index: 1;
 }
 
+/* CLASE ESPECIAL PARA TARJETAS */
 .selector-bancos.wrap-grid {
-    flex-wrap: wrap;
-}
-
-.selector-bancos.wrap-grid .chip-banco {
-    flex: 1 1 40%; 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
 }
 
 .label-separador {
@@ -677,7 +683,7 @@ body {
     box-shadow: 0 16px 40px rgba(255, 0, 60, 0.5);
 }
 
-/* Estilos de Inputs (Operación y Comprobante) */
+/* Estilos de Inputs */
 .input-operacion-wrapper,
 .display-comprobante-wrapper {
     background: #f5f5f7; 
@@ -748,7 +754,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Tabla Responsive */
 .tabla-responsive {
     overflow-x: auto; 
     flex: 1;
@@ -783,7 +788,20 @@ body {
     background-color: #fffbfc;
 }
 
-/* Badges de Estado */
+.col-tipo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.dato-monto {
+    font-family: "Inconsolata", monospace;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* Badges */
 .badge-estado {
     padding: 4px 10px;
     border-radius: 20px;
@@ -795,26 +813,34 @@ body {
 .badge-estado.completado { background-color: #d1fae5; color: #065f46; }
 .badge-estado.anulado { background-color: #fee2e2; color: #991b1b; }
 
-/* Botones de Acción Tabla */
-.btn-anular {
-    padding: 6px 12px;
-    border: 1px solid var(--color-primario);
-    background: transparent;
-    color: var(--color-primario);
-    border-radius: 6px;
-    font-size: 0.8rem;
+/* Botones de Acción Icono (Eliminar/Editar) */
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
     cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.btn-anular:hover { background: var(--color-primario); color: white; }
-.btn-anular:disabled { border-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; background: #f9fafb; }
+.btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn-icon:active { transform: scale(0.95); }
 
-.btn-editar { background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
-.btn-eliminar { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.btn-icon.editar { background-color: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe; }
+.btn-icon.editar:hover { background-color: #3b82f6; color: white; border-color: #3b82f6; }
 
-/* ================= DASHBOARD FINANCIERO (GRÁFICOS) ================= */
+.btn-icon.eliminar { background-color: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
+.btn-icon.eliminar:hover { background-color: #ef4444; color: white; border-color: #ef4444; }
+.btn-icon.eliminar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.acciones-wrapper { display: flex; gap: 8px; align-items: center; }
+
+/* ================= DASHBOARD FINANCIERO ================= */
 .grid-graficos {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -838,11 +864,7 @@ body {
     text-align: center;
 }
 
-.canvas-wrapper {
-    flex: 1;
-    position: relative;
-    min-height: 250px;
-}
+.canvas-wrapper { flex: 1; position: relative; min-height: 250px; }
 
 .btn-refresh-moderno {
     background-color: white;
@@ -871,9 +893,7 @@ body {
 .btn-refresh-moderno:hover .icono-refresh { transform: rotate(180deg); }
 .icono-refresh { font-size: 1.1rem; transition: transform 0.5s ease; }
 
-/* ================= PANEL ADMINISTRACIÓN (CONFIGURACIÓN) ================= */
-/* Estilos necesarios para la tabla generada dinámicamente por script.js */
-
+/* ================= PANEL ADMINISTRACIÓN ================= */
 .admin-container {
     background: #fff;
     padding: 25px;
@@ -881,6 +901,8 @@ body {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     margin-top: 20px;
     border: 1px solid rgba(0,0,0,0.05);
+    /* Permitir encoger en Flexbox */
+    min-width: 0; 
 }
 
 .admin-tabs {
@@ -906,15 +928,33 @@ body {
 .btn-tab:hover { background-color: #e2e8f0; color: #334155; }
 .btn-tab:focus { background-color: var(--color-primario); color: white; border-color: var(--color-primario); outline: none; }
 
+/* BOTÓN DE "NUEVO REGISTRO" (Estilo Premium Unificado) */
 .btn-nuevo-usuario {
-    background: var(--color-primario);
+    background: linear-gradient(135deg, #111827 0%, #374151 100%);
     color: white;
     border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
+    padding: 0.7rem 1.4rem;
+    border-radius: 50px;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+    text-transform: none;
 }
+
+.btn-nuevo-usuario:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    background: linear-gradient(135deg, #000000 0%, #1f1f1f 100%);
+}
+
+.btn-nuevo-usuario:active { transform: scale(0.98); }
 
 /* Tabla dinámica generada por script.js */
 .tabla-datos {
@@ -941,7 +981,6 @@ body {
 
 .tabla-datos tr:hover { background-color: #f8fafc; }
 
-/* Badges específicos de la tabla dinámica */
 .badge-ok {
     background-color: #dcfce7; color: #166534;
     padding: 4px 10px; border-radius: 20px;
@@ -953,18 +992,6 @@ body {
     padding: 4px 10px; border-radius: 20px;
     font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
 }
-
-/* Botón Editar generado dinámicamente */
-.btn-edit {
-    background: #eff6ff; color: #2563eb;
-    border: 1px solid #bfdbfe;
-    padding: 6px 12px; border-radius: 6px;
-    cursor: pointer; font-size: 1rem;
-    transition: all 0.2s;
-    display: inline-flex; align-items: center; justify-content: center;
-}
-
-.btn-edit:hover { background: #2563eb; color: white; border-color: #2563eb; }
 
 /* ================= REPORTES ================= */
 .filtros-reporte-unificados {
@@ -1308,17 +1335,12 @@ body {
 .btn-guardar { padding: 0.75rem 1.5rem; background: var(--color-primario); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: var(--sombra-primaria); }
 .btn-guardar:hover { background: var(--color-secundario); }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 1024px) {
-    :root { --ancho-sidebar: 260px; }
-    .header-sistema { padding: 0 1.5rem; }
-    .area-trabajo { padding: 1.5rem; }
-    .contenedor-formulario-yape { padding: 2rem; }
-    .grid-reportes { grid-template-columns: 1fr !important; }
-    .stat-card.total-highlight { grid-column: span 1; }
-}
-
+/* =========================================
+   RESPONSIVE MÓVIL (Celulares y Tablets Verticales)
+   ========================================= */
 @media (max-width: 768px) {
+    
+    /* 1. LAYOUT GENERAL (Header y Sidebar) */
     .header-sistema {
         height: 60px;
         padding: 0 1.25rem;
@@ -1349,24 +1371,140 @@ body {
     }
     .sidebar.mobile-open { left: 0; }
 
-    .area-trabajo { padding: 1.25rem; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+    .area-trabajo { 
+        padding: 1rem; 
+        width: 100%; 
+        display: flex; flex-direction: column; align-items: center; gap: 1.5rem; 
+        overflow-x: hidden; /* Evita scroll en toda la página */
+    }
     .vista-seccion { width: 100%; max-width: 100%; }
 
+    /* 2. FORMULARIOS DE VENTA */
     .layout-split { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
     .panel-seleccion { padding: 1.5rem; width: 100%; border-right: none; border-bottom: 1px solid #f0f0f0; }
     .panel-transaccion { padding: 1.5rem; width: 100%; }
-
     .grid-familias-moderna { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-    
+
+    /* 3. SELECTOR DE BANCOS (Evita desborde del BBVA, etc.) */
+    .selector-bancos {
+        flex-wrap: wrap; /* Permite que bajen a otra línea */
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .chip-banco {
+        flex: 1 1 auto; 
+        min-width: 80px; 
+        padding: 8px 10px;
+        font-size: 0.75rem;
+    }
+    /* Para la sección de Tarjetas (muchos bancos) */
+    .selector-bancos.wrap-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+
+    /* 4. CABECERAS DE SECCIÓN (Historial, Usuarios) */
+    /* Hace que el título y los botones de la derecha se apilen */
+    .cabecera-tabla {
+        flex-direction: column;
+        align-items: stretch; /* Ocupar todo el ancho */
+        gap: 1rem;
+    }
+
+    /* Controles Derecha (Filtro y Refrescar) */
+    .controles-derecha {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap; /* Por si la pantalla es muy angosta */
+    }
+    #wrapperFiltroHistorial { flex-grow: 1; margin: 0; }
+    #filtroUsuarioHistorial { width: 100%; }
+    .btn-refresh-moderno { flex-shrink: 0; }
+
+    /* 5. TABLAS GENERALES (Usuarios, Historial) */
+    .contenedor-tabla-registro { padding: 1rem; }
+    .tabla-responsive {
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+    .tabla-transacciones { min-width: 600px; } /* Mantiene ancho mínimo para scroll */
+
+    /* 6. GRÁFICOS (Uno debajo del otro) */
+    .grid-graficos {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+        height: auto !important;
+    }
+    .card-grafico {
+        width: 100% !important;
+        min-height: 300px !important;
+        margin: 0 !important;
+        flex: none !important;
+    }
+    .canvas-wrapper {
+        height: 250px !important;
+        width: 100% !important;
+    }
+
+    /* 7. CIERRE DE CAJA */
     .area-accion-final { grid-template-columns: 1fr; }
     .btn-cerrar-caja-pro { min-height: auto; padding: 1.2rem; flex-direction: row; }
-    .btn-cerrar-caja-pro .icon-btn { font-size: 1.5rem; }
     .ticket-paper { width: 100%; }
 
+    /* 8. MODALES */
     .modal { padding: 0; align-items: flex-end; }
     .modal-contenido-bonito { width: 100%; margin: 0; border-radius: 20px 20px 0 0; max-height: 85vh; }
     .modal-footer { flex-direction: column-reverse; }
     .btn-guardar, .btn-cancelar { width: 100%; padding: 1rem; margin: 0; }
+
+    /* 9. SECCIÓN CONFIGURACIÓN (ADMIN) - SOLUCIÓN COMPLETA */
+    
+    /* Ajuste del contenedor principal de Configuración */
+    #vista-admin-maestros .admin-container {
+        padding: 10px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden; /* Corta lo que sobre del contenedor blanco */
+        box-sizing: border-box;
+    }
+
+    /* Cabecera (Título y Botón "+ Nuevo") apilados */
+    #admin-workspace > div:first-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        margin-bottom: 15px !important;
+    }
+    #admin-workspace button.btn-nuevo-usuario {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* TABLA CONFIGURACIÓN CON SCROLL FORZADO */
+    #vista-admin-maestros .tabla-responsive {
+        display: block !important;
+        width: 100% !important;
+        /* Truco: un poco menos del 100% viewport para asegurar márgenes */
+        max-width: 88vw !important; 
+        margin: 0 auto;
+        overflow-x: auto !important; /* Activa el deslizamiento */
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #f0f0f0;
+        border-radius: 8px;
+    }
+
+    /* Tabla interna ancha para obligar al scroll */
+    #vista-admin-maestros .tabla-datos {
+        width: 100% !important;
+        min-width: 700px !important; /* Ancho forzado */
+        table-layout: auto !important;
+    }
 }
 
 /* ================= PRINT STYLES ================= */
