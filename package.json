@@ -1,0 +1,14 @@
+{
+  "name": "fastcash-frontend",
+  "version": "1.0.0",
+  "description": "Frontend para Sistema Rojas Market",
+  "scripts": {
+    "start": "npx http-server . -p $PORT --cors -c-1"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
