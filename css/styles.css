@@ -1335,6 +1335,72 @@ body {
 .btn-guardar { padding: 0.75rem 1.5rem; background: var(--color-primario); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: var(--sombra-primaria); }
 .btn-guardar:hover { background: var(--color-secundario); }
 
+.btn-tabla-anular {
+    background-color: white;
+    border: 1px solid #ef4444; /* Rojo error */
+    color: #ef4444;
+    padding: 6px 14px;
+    border-radius: 8px; /* Bordes redondeados modernos */
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap; /* Evita que el texto se parta */
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+.btn-tabla-anular:hover {
+    background-color: #ef4444;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-tabla-anular:active {
+    transform: scale(0.98);
+}
+
+.btn-tabla-anular:disabled {
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    background-color: #f9fafb;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-edit {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #dbeafe; /* Borde azul muy suave */
+    background-color: #eff6ff; /* Fondo azul casi blanco */
+    color: #3b82f6;            /* Icono azul */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Efecto al pasar el mouse */
+.btn-edit:hover {
+    background-color: #3b82f6; /* Se vuelve azul */
+    color: white;              /* Icono blanco */
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.btn-edit:active {
+    transform: scale(0.95);
+}
 /* =========================================
    RESPONSIVE MÓVIL (Celulares y Tablets Verticales)
    ========================================= */
