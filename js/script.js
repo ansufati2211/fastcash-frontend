@@ -576,21 +576,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const esAnulado = estado === 'ANULADO';
                     
                     const fila = `
-    <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
-        <td style="font-weight:bold; color:#444;">${cajero || 'Cajero'}</td>
-        <td class="col-tipo">${formaPago === 'QR' || formaPago === 'YAPE' ? '📱 YAPE' : (formaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
-        <td>${familia || 'Varios'}</td>
-        <td><div style="font-size:0.85rem; font-weight:bold;">${refOp}</div></td>
-        <td class="dato-monto">S/ ${parseFloat(importe).toFixed(2)}</td>
-        <td>${fecha}</td>
-        <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
-        <td>
-            <button class="btn-tabla-anular" onclick="solicitarAnulacion(${ventaId})" title="Anular Venta" ${esAnulado ? 'disabled' : ''}>
-                🚫 Anular
-            </button>
-        </td>
-    </tr>`;
-cuerpoTabla.insertAdjacentHTML('beforeend', fila);
+                        <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
+                            <td style="font-weight:bold; color:#444;">${cajero || 'Cajero'}</td>
+                            <td class="col-tipo">${formaPago === 'QR' || formaPago === 'YAPE' ? '📱 YAPE' : (formaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                            <td>${familia || 'Varios'}</td>
+                            <td><div style="font-size:0.85rem; font-weight:bold;">${refOp}</div></td>
+                            <td class="dato-monto">S/ ${parseFloat(importe).toFixed(2)}</td>
+                            <td>${fecha}</td>
+                            <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
+                            <td>
+                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                            </td>
+                        </tr>`;
+                    cuerpoTabla.insertAdjacentHTML('beforeend', fila);
                 });
             }
 
