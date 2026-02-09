@@ -407,13 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+   // ==========================================
+    // 4. LÓGICA DE VENTAS (CORREGIDA)
     // ==========================================
-    // 4. LÓGICA DE VENTAS (ACTUALIZADA)
-    // ==========================================
-    async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
+   async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         e.preventDefault();
 
-        // 1. Validaciones básicas
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
             alert("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas."); return;
         }
@@ -433,21 +432,16 @@ document.addEventListener('DOMContentLoaded', () => {
             entidadId = document.getElementById('inputDestino').value;
             numOp = document.getElementById('numOperacion').value;
             compId = document.getElementById('inputComprobante').value;
-            
             const inputExt = document.getElementById('txtComprobanteYape');
             if(inputExt) comprobanteExt = inputExt.value.trim();
-
             if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
         } else {
             entidadId = document.getElementById('inputBancoTarjeta').value;
             numOp = document.getElementById('numOperacionTarjeta').value;
-            
-            const inputCompTarjeta = document.getElementById('inputComprobanteTarjeta');
-            if (inputCompTarjeta) compId = inputCompTarjeta.value;
-
+            const inputCompT = document.getElementById('inputComprobanteTarjeta');
+            if(inputCompT) compId = inputCompT.value;
             const inputExt = document.getElementById('txtComprobanteTarjeta');
             if(inputExt) comprobanteExt = inputExt.value.trim();
-
             if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
         }
 
@@ -455,77 +449,64 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = 'Procesando...';
         btn.disabled = true;
 
+        // ✅ CORRECCIÓN CRÍTICA: Usamos camelCase para que Java lo entienda
         const payload = {
             usuarioID: usuarioActivo.UsuarioID || usuarioActivo.usuarioid, 
             tipoComprobanteID: parseInt(compId),
             clienteDoc: "00000000", 
             clienteNombre: "Publico General",
-            comprobanteExterno: comprobanteExt, 
-
-            detalles: [{ "CategoriaID": parseInt(inputFam.value), "Monto": monto }], 
+            comprobanteExterno: comprobanteExt,
+            
+            detalles: [{ 
+                categoriaID: parseInt(inputFam.value), // Antes CategoriaID
+                monto: monto 
+            }], 
             pagos: [{ 
-                "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', 
-                "Monto": monto, 
-                "EntidadID": parseInt(entidadId), 
-                "NumOperacion": numOp 
+                formaPago: tipo === 'YAPE' ? 'QR' : 'TARJETA', 
+                monto: monto, 
+                entidadID: parseInt(entidadId), 
+                numOperacion: numOp 
             }]
         };
 
         try {
             const res = await fetch(`${BASE_URL}/ventas/registrar`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                 body: JSON.stringify(payload)
             });
 
             const data = await res.json();
-            const status = data.Status || data.status;
+            
+            // Soportamos respuesta mayúscula o minúscula por compatibilidad
+            const status = data.Status || data.status; 
             const mensaje = data.Mensaje || data.mensaje;
-            const comprobante = data.Comprobante || data.comprobante;
-
-            if (status === 'ERROR') {
-                alert(`❌ ERROR: ${mensaje}`);
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
+            const ticket = data.Comprobante || data.comprobante;
 
             if (res.ok && status === 'OK') {
-                alert(`✅ VENTA EXITOSA\nTicket: ${comprobante}`);
+                alert(`✅ VENTA EXITOSA\nTicket: ${ticket}`);
                 form.reset();
                 const cont = document.getElementById(idContenedorFam);
                 if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
                 inputFam.value = "";
                 
-                // Reseteamos selects visuales (Comprobantes)
-                if(tipo !== 'YAPE') {
-                    const selectorT = document.getElementById('selectorComprobanteTarjeta');
-                    if(selectorT) {
-                        selectorT.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                        selectorT.querySelector('[data-value="2"]').classList.add('seleccionado');
-                        document.getElementById('inputComprobanteTarjeta').value = "2";
-                    }
+                // Reset selectores visuales
+                if(tipo === 'YAPE') {
+                   document.getElementById('inputComprobante').value = "2";
+                   // Resetear visualmente los botones de segmento si existen
                 } else {
-                    const selectorY = document.getElementById('selectorComprobante');
-                    if(selectorY) {
-                        selectorY.querySelectorAll('.segmento').forEach(s => s.classList.remove('seleccionado'));
-                        selectorY.querySelector('[data-value="2"]').classList.add('seleccionado');
-                        document.getElementById('inputComprobante').value = "2";
-                    }
+                   document.getElementById('inputComprobanteTarjeta').value = "2";
                 }
-
-                btn.innerHTML = '¡ÉXITO!';
-                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 1500);
-            
             } else {
-                alert(`❌ ERROR: ${data.error || mensaje || "Error desconocido"}`);
-                btn.innerHTML = originalText; 
-                btn.disabled = false;
+                throw new Error(mensaje || "No se pudo registrar la venta");
             }
 
         } catch (error) {
             console.error(error);
-            alert("❌ Error de conexión o servidor");
-            btn.innerHTML = originalText; btn.disabled = false;
+            alert(`❌ ERROR: ${error.message}`);
+        } finally {
+            btn.innerHTML = originalText; 
+            btn.disabled = false;
         }
     }
 
@@ -712,21 +693,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) { console.error(error); }
     }
-
-    window.eliminarUsuario = async (idUsuario) => {
-        if(!confirm("¿Estás seguro de DESACTIVAR este usuario?")) return;
+window.eliminarUsuario = async (idUsuario) => {
+        // Confirmación clara de que es SOLO desactivación
+        if(!confirm("¿Estás seguro de DESACTIVAR este usuario?\n(Podrás reactivarlo después editándolo)")) return;
+        
         try {
-            const res = await fetch(`${BASE_URL}/admin/eliminar/${idUsuario}`, { 
+            // ✅ RUTA CORRECTA: DELETE /admin/usuario/{id}
+            const res = await fetch(`${BASE_URL}/admin/usuario/${idUsuario}`, { 
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
+
             if(res.ok) {
-                alert("✅ Usuario desactivado.");
-                cargarUsuarios();
+                alert("✅ Usuario desactivado correctamente.");
+                cargarUsuarios(); // Recargar tabla
             } else {
-                alert("❌ Error al eliminar");
+                const data = await res.json().catch(() => ({}));
+                alert(`❌ Error: ${data.message || "No se pudo desactivar"}`);
             }
-        } catch(e) { alert("❌ Error de conexión"); }
+        } catch(e) { 
+            console.error(e);
+            alert("❌ Error de conexión"); 
+        }
     };
 
     window.editarUsuario = async (idUsuario) => {
@@ -793,71 +781,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const nuevoForm = formUsuario.cloneNode(true);
         formUsuario.parentNode.replaceChild(nuevoForm, formUsuario);
 
-        nuevoForm.addEventListener('submit', async (e) => {
+nuevoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const idEdicion = document.getElementById('idUsuarioEdicion').value;
             const nombre = document.getElementById('nombreUsuario').value;
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
-            
             const rolVal = document.getElementById('rolUsuario').value;
-            const rol = (rolVal === 'Administrador') ? 1 : 2;
-
+            // Normalizar Rol: Si dice "Administrador" enviamos 1, sino 2
+            const rol = (rolVal === 'Administrador' || rolVal == 1) ? 1 : 2;
             const selectedTurno = document.getElementById('turnoUsuario').value;
             const estadoVal = document.getElementById('estadoUsuario')?.value;
             const esActivo = (estadoVal === 'true');
 
             const btnGuardar = nuevoForm.querySelector('.btn-guardar');
             const txtOriginal = btnGuardar.innerHTML;
-            btnGuardar.innerHTML = 'Guardando...'; btnGuardar.disabled = true;
+            btnGuardar.innerHTML = 'Guardando...'; 
+            btnGuardar.disabled = true;
 
             try {
                 if (idEdicion) {
-                    await fetch(`${BASE_URL}/admin/actualizar`, {
+                    // --- MODO EDICIÓN (PUT) ---
+                    const payload = { 
+                        usuarioID: parseInt(idEdicion),
+                        nombreCompleto: nombre,
+                        username: usernameInput,
+                        rolID: rol,
+                        activo: esActivo,
+                        turnoID: parseInt(selectedTurno)
+                    };
+                    // Solo enviamos password si el usuario escribió algo nuevo
+                    if(pass && pass.trim() !== "") payload.password = pass;
+
+                    await fetch(`${BASE_URL}/admin/usuario`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
-                        body: JSON.stringify({ 
-                            usuarioID: parseInt(idEdicion),
-                            nombreCompleto: nombre,
-                            username: usernameInput,
-                            rolID: rol,
-                            password: pass,
-                            activo: esActivo,
-                            turnoID: parseInt(selectedTurno)
-                        })
+                        body: JSON.stringify(payload)
                     });
                     alert("✅ Usuario actualizado correctamente");
 
                 } else {
+                    // --- MODO CREACIÓN (POST) ---
                     const nuevoUsuario = {
-                        adminID: usuario.UsuarioID || usuario.usuarioid,
                         nombreCompleto: nombre,
                         username: usernameInput, 
-                        password: pass,
+                        password: pass, // Backend se encarga de cifrarla
                         rolID: rol
                     };
 
-                    const res = await fetch(`${BASE_URL}/admin/crear-usuario`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+                    const res = await fetch(`${BASE_URL}/admin/usuario`, {
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                         body: JSON.stringify(nuevoUsuario)
                     });
 
                     if (!res.ok) {
                         const err = await res.json();
-                        throw new Error(err.error || "Error al crear usuario");
+                        throw new Error(err.mensaje || err.error || "Error al crear usuario");
                     }
-                    const dataRes = await res.json();
-                    
-                    // Asignar turno
-                    await fetch(`${BASE_URL}/admin/asignar-turno`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
-                        body: JSON.stringify({ 
-                            adminID: usuario.UsuarioID || usuario.usuarioid, 
-                            usuarioID: dataRes.NuevoUsuarioID || dataRes.nuevoUsuarioID, 
-                            turnoID: parseInt(selectedTurno) 
-                        })
-                    });
+
+                    // Si necesitas asignar turno al nuevo usuario, hazlo aquí o asegúrate
+                    // que tu backend asigne un turno por defecto.
                     alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
                 }
                 

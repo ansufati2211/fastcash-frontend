@@ -1,6 +1,7 @@
 // ==========================================
 // 1. CONFIGURACIÓN
 // ==========================================
+// URL solicitada por el usuario (Producción)
 const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,107 +12,120 @@ document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('formularioLogin');
     const inputUser = document.getElementById('username');
     const btnLogin = document.querySelector('.btn-login');
-    const chkRemember = document.getElementById('chkRemember'); // Nuevo Checkbox
+    const chkRemember = document.getElementById('chkRemember');
 
     // --- 1. LÓGICA RECORDAR SESIÓN (AL CARGAR) ---
     const savedUser = localStorage.getItem('fastcash_saved_user');
     if (savedUser) {
         inputUser.value = savedUser;
-        chkRemember.checked = true;
+        if (chkRemember) chkRemember.checked = true;
         // Opcional: Poner el foco en la contraseña automáticamente
-        inputPass.focus(); 
+        if (inputPass) inputPass.focus(); 
     }
 
     // --- LÓGICA VER/OCULTAR CONTRASEÑA ---
-    btnToggle.addEventListener('click', () => {
-        const tipo = inputPass.getAttribute('type') === 'password' ? 'text' : 'password';
-        inputPass.setAttribute('type', tipo);
-        
-        btnToggle.classList.toggle('fa-eye');
-        btnToggle.classList.toggle('fa-eye-slash');
-    });
+    if (btnToggle && inputPass) {
+        btnToggle.addEventListener('click', () => {
+            const tipo = inputPass.getAttribute('type') === 'password' ? 'text' : 'password';
+            inputPass.setAttribute('type', tipo);
+            
+            btnToggle.classList.toggle('fa-eye');
+            btnToggle.classList.toggle('fa-eye-slash');
+        });
+    }
 
     // --- LÓGICA LOGIN ---
-    formulario.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const username = inputUser.value.trim();
-        const password = inputPass.value.trim();
+    if (formulario) {
+        formulario.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = inputUser.value.trim();
+            const password = inputPass.value.trim();
 
-        if (!username || !password) {
-            mostrarToast('Por favor complete todos los campos', 'error');
-            return;
-        }
-
-        // Estado de carga
-        const textoOriginal = btnLogin.innerHTML;
-        btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-        btnLogin.disabled = true;
-        btnLogin.style.opacity = '0.7';
-
-        try {
-            const response = await fetch(`${BASE_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                
-                // Normalizar datos
-                const sessionData = {
-                    UsuarioID: data.usuarioid || data.UsuarioID || data.usuarioID,
-                    NombreCompleto: data.nombrecompleto || data.NombreCompleto,
-                    Rol: data.rol || data.Rol,
-                    token: data.token
-                };
-
-                if (!sessionData.UsuarioID) throw new Error("ID de usuario no recibido");
-
-                // --- 2. LÓGICA RECORDAR SESIÓN (AL GUARDAR) ---
-                if (chkRemember.checked) {
-                    localStorage.setItem('fastcash_saved_user', username);
-                } else {
-                    localStorage.removeItem('fastcash_saved_user');
-                }
-
-                // Guardar Sesión Actual
-                localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
-                
-                mostrarToast(`¡Bienvenido, ${sessionData.NombreCompleto}!`, 'success');
-                
-                // Animación de salida
-                document.querySelector('.contenedor-login').style.transform = 'scale(0.95)';
-                document.querySelector('.contenedor-login').style.opacity = '0';
-                
-                setTimeout(() => window.location.href = 'index.html', 1000);
-
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Credenciales incorrectas');
+            if (!username || !password) {
+                mostrarToast('Por favor complete todos los campos', 'error');
+                return;
             }
 
-        } catch (error) {
-            console.error(error);
-            mostrarToast(error.message, 'error');
-            
-            inputUser.style.borderColor = 'var(--color-primario)';
-            inputPass.style.borderColor = 'var(--color-primario)';
-            setTimeout(() => {
-                inputUser.style.borderColor = '';
-                inputPass.style.borderColor = '';
-            }, 2000);
+            // Estado de carga
+            const textoOriginal = btnLogin.innerHTML;
+            btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            btnLogin.disabled = true;
+            btnLogin.style.opacity = '0.7';
 
-            btnLogin.innerHTML = textoOriginal;
-            btnLogin.disabled = false;
-            btnLogin.style.opacity = '1';
-        }
-    });
+            try {
+                const response = await fetch(`${BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // ✅ LOGIN EXITOSO
+                    
+                    // Normalizar datos: Backend envía PascalCase (UsuarioID), Frontend usa camelCase (usuarioID)
+                    // Esto es vital para que script.js pueda leer los datos correctamente.
+                    const sessionData = {
+                        usuarioID: data.UsuarioID,
+                        nombreCompleto: data.NombreCompleto,
+                        rol: data.Rol,
+                        username: data.Username
+                    };
+
+                    if (!sessionData.usuarioID) throw new Error("ID de usuario no recibido del servidor");
+
+                    // --- 2. LÓGICA RECORDAR SESIÓN (AL GUARDAR) ---
+                    if (chkRemember && chkRemember.checked) {
+                        localStorage.setItem('fastcash_saved_user', username);
+                    } else {
+                        localStorage.removeItem('fastcash_saved_user');
+                    }
+
+                    // Guardar Sesión Actual
+                    localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
+                    
+                    mostrarToast(`¡Bienvenido, ${sessionData.nombreCompleto}!`, 'success');
+                    
+                    // Animación de salida
+                    const contenedor = document.querySelector('.contenedor-login');
+                    if (contenedor) {
+                        contenedor.style.transform = 'scale(0.95)';
+                        contenedor.style.opacity = '0';
+                    }
+                    
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+
+                } else {
+                    // Manejo de errores del backend
+                    throw new Error(data.message || data.error || 'Credenciales incorrectas');
+                }
+
+            } catch (error) {
+                console.error(error);
+                mostrarToast(error.message, 'error');
+                
+                if (inputUser) inputUser.style.borderColor = 'var(--color-primario)';
+                if (inputPass) inputPass.style.borderColor = 'var(--color-primario)';
+                
+                setTimeout(() => {
+                    if (inputUser) inputUser.style.borderColor = '';
+                    if (inputPass) inputPass.style.borderColor = '';
+                }, 2000);
+            } finally {
+                // Restaurar botón
+                if (btnLogin) {
+                    btnLogin.innerHTML = textoOriginal;
+                    btnLogin.disabled = false;
+                    btnLogin.style.opacity = '1';
+                }
+            }
+        });
+    }
 });
 
 // --- SISTEMA DE NOTIFICACIONES (TOAST) ---
-// (Mantener el código del toast igual que antes)
 function mostrarToast(mensaje, tipo = 'info') {
     const toast = document.createElement('div');
     toast.className = 'toast-notificacion';
@@ -142,6 +156,7 @@ function mostrarToast(mensaje, tipo = 'info') {
     }, 3000);
 }
 
+// Estilos dinámicos para las animaciones
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
