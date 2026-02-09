@@ -10,24 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        /* Estilos rápidos para el panel Admin y Badges */
-        .admin-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn-tab { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: bold; }
-        .btn-tab:hover { background-color: #0056b3; }
-        .tabla-datos { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .tabla-datos th, .tabla-datos td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        .tabla-datos th { background-color: #f8f9fa; }
-        .badge-ok { color: green; font-weight: bold; background: #e6fffa; padding: 2px 8px; border-radius: 4px; }
-        .badge-no { color: red; font-weight: bold; background: #fff5f5; padding: 2px 8px; border-radius: 4px; }
-        .btn-success { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
-        .btn-edit { background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        /* Dot genérico para bancos dinámicos */
-        .dot.generic { background-color: #555; }
-    </style>
 </head>
 <body>
 
@@ -49,7 +35,7 @@
                 <span class="turno-actual fecha-hora-reloj">--:--</span>
             </div>
             
-            <button class="btn-header-accion" id="btnAbrirCaja" style="display: none;">
+            <button class="btn-abrir-caja" id="btnAbrirCaja" style="display: none;">
                 📥 Abrir Caja
             </button>
 
@@ -342,6 +328,7 @@
                                     <th>Turno</th>
                                     <th>Rol</th>
                                     <th>Estado</th>
+                                    <th>Contraseña</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -378,64 +365,100 @@
             </section>
 
             <section id="vista-cierre" class="vista-seccion">
-                <div class="contenedor-cierre">
-                    <div class="cabecera-cierre">
-                        <div class="titulo-cierre">
-                            <h2>🔒 Cierre de Turno</h2>
-                            <p>Resumen Financiero del Cajero</p>
-                        </div>
-                        <div class="fecha-cierre"><span id="fechaCierre">--/--/----</span></div>
-                    </div>
+                <div class="dashboard-cierre">
                     
-                    <div class="grid-resumen-cierre">
-                        <div class="card-dato">
-                            <span class="label">📱 Yape/Plin</span>
-                            <span class="valor" id="totalYape">S/ 0.00</span>
+                    <header class="header-dashboard">
+                        <div class="titulo-area">
+                            <div class="icono-header">🏁</div>
+                            <div>
+                                <h2>Cierre de Turno</h2>
+                                <p>Resumen de operaciones del día</p>
+                            </div>
                         </div>
-                        <div class="card-dato">
-                            <span class="label">💳 Tarjetas</span>
-                            <span class="valor" id="totalTarjeta">S/ 0.00</span>
+                        <div class="chip-fecha">
+                            📅 <span id="fechaCierre">--/--/----</span>
                         </div>
-                        
-                        <div class="card-dato anulado" style="border-left: 4px solid #ef4444; background-color: #fef2f2;">
-                            <span class="label" style="color: #ef4444;">🚫 Anulado</span>
-                            <span class="valor" id="totalAnulado" style="color: #ef4444;">S/ 0.00</span>
+                    </header>
+
+                    <div class="grid-stats">
+                        <div class="stat-card digital">
+                            <div class="stat-icon">
+                                <img src="/img/icon/codigo-qr-icon.png" alt="QR" onerror="this.innerText='📱'">
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Billeteras Digitales</span>
+                                <h3 class="stat-value" id="totalYape">S/ 0.00</h3>
+                            </div>
+                            <div class="stat-trend">Yape / Plin</div>
                         </div>
 
-                        <div class="card-dato total">
-                            <span class="label">TOTAL VENTA</span>
-                            <span class="valor" id="totalGeneral">S/ 0.00</span>
+                        <div class="stat-card card">
+                            <div class="stat-icon">
+                                <img src="/img/icon/tarjeta-icon.png" alt="Card" onerror="this.innerText='💳'">
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Cobros con Tarjeta</span>
+                                <h3 class="stat-value" id="totalTarjeta">S/ 0.00</h3>
+                            </div>
+                            <div class="stat-trend">Visa / Master</div>
+                        </div>
+
+                        <div class="stat-card danger">
+                            <div class="stat-icon">🚫</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Operaciones Anuladas</span>
+                                <h3 class="stat-value" id="totalAnulado">S/ 0.00</h3>
+                            </div>
+                            <div class="stat-trend">No suma al total</div>
+                        </div>
+
+                        <div class="stat-card total-highlight">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Venta Total Real</span>
+                                <h1 class="stat-value-big" id="totalGeneral">S/ 0.00</h1>
+                            </div>
+                            <div class="stat-bg-decoration"></div>
                         </div>
                     </div>
-                    
-                    <div class="accion-cierre">
-                        <button class="btn-imprimir-cierre" onclick="imprimirCierre()">🖨️ CERRAR CAJA E IMPRIMIR</button>
-                    </div>
-                    
-                    <div id="ticketImpresion" class="ticket-oculto">
-                        <div class="ticket-header">
-                            <h3>ROJAS SUPER N.VILLA</h3>
-                            <p>RUC: 20601234567</p>
-                            <hr class="dashed">
-                            <h4>CIERRE DE TURNO</h4>
-                            <p>Fecha: <span id="ticketFecha"></span> Hora: <span id="ticketHora"></span></p>
-                            <p>Cajero: <span id="ticketCajeroNombre"></span></p>
-                            <hr class="dashed">
-                        </div>
-                        <div class="ticket-body">
-                            <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
-                            <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
+
+                    <div class="area-accion-final">
+                        <div class="ticket-preview-wrapper">
+                            <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
                             
-                            <div class="fila-ticket"><span>(-) ANULADO:</span><span id="ticketAnuladoPrint">S/ 0.00</span></div>
-                            
-                            <hr class="solid">
-                            <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
-                            <hr class="dashed">
+                            <div id="ticketImpresion" class="ticket-paper">
+                                <div class="ticket-header">
+                                    <h3>FASTCASH MARKET</h3>
+                                    <p>RUC: 20601234567</p>
+                                    <div class="separator-dashed"></div>
+                                    <h4>CIERRE DE TURNO</h4>
+                                    <div class="ticket-meta">
+                                        <p><span>Fecha:</span> <span id="ticketFecha">--/--/--</span></p>
+                                        <p><span>Hora:</span> <span id="ticketHora">--:--</span></p>
+                                        <p><span>Cajero:</span> <span id="ticketCajeroNombre">---</span></p>
+                                    </div>
+                                    <div class="separator-dashed"></div>
+                                </div>
+                                <div class="ticket-body">
+                                    <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
+                                    <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
+                                    <div class="fila-ticket danger"><span>(-) ANULADO:</span><span id="ticketAnuladoPrint">S/ 0.00</span></div>
+                                    <div class="separator-solid"></div>
+                                    <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
+                                    <div class="separator-dashed"></div>
+                                </div>
+                                <div class="ticket-footer"><p>• Firma Conforme •</p></div>
+                            </div>
                         </div>
-                        <div class="ticket-footer"><p>Firma Cajero</p></div>
+
+                        <button class="btn-cerrar-caja-pro" onclick="imprimirCierre()">
+                            <span class="icon-btn">🖨️</span>
+                            <span>Confirmar Cierre e Imprimir</span>
+                        </button>
                     </div>
                 </div>
             </section>
+
         </main>
     </div>
 
@@ -504,7 +527,8 @@
             </div>
             
             <form id="form-admin">
-                <input type="hidden" id="admin-id"> <div class="form-group">
+                <input type="hidden" id="admin-id"> 
+                <div class="form-group">
                     <label>Nombre:</label>
                     <input type="text" id="admin-nombre" class="input-moderno" required style="width: 100%; padding: 10px;">
                 </div>
