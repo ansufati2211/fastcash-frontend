@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Validación de Seguridad: Si no hay ID, la sesión no sirve.
     if (!USUARIO_ID) {
         console.error("⛔ Error Crítico: ID de usuario no encontrado en la sesión.");
-        alert("Tu sesión ha caducado o es inválida. Por favor ingresa nuevamente.");
+        mostrarNotificacion("Tu sesión ha caducado o es inválida. Por favor ingresa nuevamente.");
         localStorage.removeItem('usuarioSesion');
         window.location.href = '../html/login.html';
         return; // Detenemos la ejecución
@@ -152,6 +152,32 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCategoriasVenta();
     cargarMetodosPago();
 
+    // --- FUNCIÓN PARA NOTIFICACIONES BONITAS ---
+function mostrarNotificacion(mensaje, tipo = 'exito') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 9999;
+        padding: 15px 25px; border-radius: 8px; color: white;
+        font-family: 'Segoe UI', sans-serif; font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: deslizar 0.5s ease forwards;
+        background: ${tipo === 'error' ? '#ef4444' : '#10b981'}; /* Rojo o Verde */
+    `;
+    toast.innerHTML = `${tipo === 'error' ? '❌' : '✅'} ${mensaje}`;
+    document.body.appendChild(toast);
+
+    // Auto-eliminar a los 3 segundos
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
+
+// Estilo de animación (Agrégalo dinámicamente)
+const style = document.createElement('style');
+style.innerHTML = `@keyframes deslizar { from { transform: translateX(100%); } to { transform: translateX(0); } }`;
+document.head.appendChild(style);
+
     // ==========================================
     // GESTIÓN DE PERMISOS
     // ==========================================
@@ -267,14 +293,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if(res.ok) {
-                    alert("✅ Caja Abierta Correctamente. ¡Buen turno!");
+                    mostrarNotificacion(" Caja Abierta Correctamente. ¡Buen turno!");
                     actualizarEstadoVisualCaja(true);
                 } else {
                     const err = await res.json().catch(() => ({}));
                     throw new Error(err.mensaje || err.error || "Error al abrir caja");
                 }
             } catch (error) {
-                alert("❌ Error: " + error.message);
+                mostrarNotificacion(" Error: " + error.message);
             } finally {
                 btnAbrirCaja.innerHTML = originalText;
                 btnAbrirCaja.disabled = false;
@@ -354,14 +380,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setTimeout(() => {
                 window.print(); 
-                alert("✅ CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
+                mostrarNotificacion(" CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
                 localStorage.removeItem('usuarioSesion');
                 window.location.href = '../html/login.html'; 
             }, 800);
 
         } catch (error) {
             console.error(error);
-            alert("❌ ERROR CRÍTICO: " + error.message);
+            mostrarNotificacion(" ERROR CRÍTICO: " + error.message);
             if(btn) { btn.disabled = false; btn.innerHTML = '🖨️ CERRAR CAJA E IMPRIMIR'; }
         }
     };
@@ -373,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
-            alert("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas."); return;
+            mostrarNotificacion("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas."); return;
         }
 
         const btn = form.querySelector('.btn-registrar-grande');
@@ -381,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
         // 1. Validaciones Básicas
-        if (!inputFam || !inputFam.value) { alert("⚠️ Selecciona una Familia (Categoría)"); return; }
-        if (!monto || monto <= 0) { alert("⚠️ Ingresa un monto válido"); return; }
+        if (!inputFam || !inputFam.value) { mostrarNotificacion("⚠️ Selecciona una Familia (Categoría)"); return; }
+        if (!monto || monto <= 0) { mostrarNotificacion("⚠️ Ingresa un monto válido"); return; }
 
         // Inicializamos con valores seguros
         let entidadId = 1; 
@@ -399,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             numOp = document.getElementById('numOperacion').value;
-            if (!numOp) { alert("⚠️ Ingrese el número de operación"); return; }
+            if (!numOp) { mostrarNotificacion("⚠️ Ingrese el número de operación"); return; }
 
             compId = document.getElementById('inputComprobante').value;
             const inputExt = document.getElementById('txtComprobanteYape');
@@ -410,13 +436,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const valBanco = document.getElementById('inputBancoTarjeta').value;
             
             if (!valBanco || valBanco.trim() === "") {
-                alert("⚠️ Selecciona el Banco de la Tarjeta (Interbank, Scotiabank...)");
+                mostrarNotificacion("⚠️ Selecciona el Banco de la Tarjeta (Interbank, Scotiabank...)");
                 return;
             }
             entidadId = valBanco;
 
             numOp = document.getElementById('numOperacionTarjeta').value;
-            if (!numOp) { alert("⚠️ Ingrese el Voucher/Lote"); return; }
+            if (!numOp) { mostrarNotificacion("⚠️ Ingrese el Voucher/Lote"); return; }
 
             const inputCompT = document.getElementById('inputComprobanteTarjeta');
             if(inputCompT) compId = inputCompT.value;
@@ -465,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const ticket = data.Comprobante || data.comprobante;
 
             if (res.ok && status === 'OK') {
-                alert(`✅ VENTA EXITOSA\nTicket: ${ticket}`);
+                mostrarNotificacion(` VENTA EXITOSA\nTicket: ${ticket}`);
                 
                 // Limpieza del formulario
                 form.reset();
@@ -493,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            alert(`❌ ERROR: ${error.message}`);
+            mostrarNotificacion(` ERROR: ${error.message}`);
         } finally {
             btn.innerHTML = originalText; 
             btn.disabled = false;
@@ -583,12 +609,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         } catch (error) { 
-            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">❌ Error de conexión.</td></tr>'; 
+            cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;"> Error de conexión.</td></tr>'; 
         }
     };
 
     window.solicitarAnulacion = async (ventaId) => {
-        if (!CAJA_ABIERTA) { alert("🔒 Caja cerrada. No se puede anular."); return; }
+        if (!CAJA_ABIERTA) { mostrarNotificacion("🔒 Caja cerrada. No se puede anular."); return; }
         if (!confirm("¿Estás seguro de ANULAR esta venta?")) return;
 
         try {
@@ -602,13 +628,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (res.ok) { 
-                alert("✅ Venta Anulada"); 
+                mostrarNotificacion(" Venta Anulada"); 
                 cargarHistorial(); 
             } else { 
                 const err = await res.json(); 
-                alert("❌ Error: " + (err.error || "Fallo anulación")); 
+                mostrarNotificacion(" Error: " + (err.error || "Fallo anulación")); 
             }
-        } catch (e) { alert("❌ Error de red"); }
+        } catch (e) { mostrarNotificacion(" Error de red"); }
     };
 
     // ==========================================
@@ -689,9 +715,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
-            if(res.ok) { alert("✅ Usuario desactivado."); cargarUsuarios(); } 
-            else { const data = await res.json().catch(() => ({})); alert(`❌ Error: ${data.message || "No se pudo desactivar"}`); }
-        } catch(e) { alert("❌ Error de conexión"); }
+            if(res.ok) { mostrarNotificacion(" Usuario desactivado."); cargarUsuarios(); } 
+            else { const data = await res.json().catch(() => ({})); mostrarNotificacion(` Error: ${data.message || "No se pudo desactivar"}`); }
+        } catch(e) { mostrarNotificacion(" Error de conexión"); }
     };
 
     window.editarUsuario = async (idUsuario) => {
@@ -725,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('passUsuario').required = false;
 
             abrirModalUsuario();
-        } catch (e) { alert("Error cargando usuario: " + e.message); }
+        } catch (e) { mostrarNotificacion("Error cargando usuario: " + e.message); }
     };
 
     const btnNuevoUsuario = document.querySelector('.btn-nuevo-usuario');
@@ -783,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                         body: JSON.stringify(payload)
                     });
-                    alert("✅ Usuario actualizado correctamente");
+                    mostrarNotificacion(" Usuario actualizado correctamente");
                 } else {
                     const nuevoUsuario = {
                         nombreCompleto: nombre,
@@ -797,12 +823,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify(nuevoUsuario)
                     });
                     if (!res.ok) { const err = await res.json(); throw new Error(err.mensaje || err.error || "Error"); }
-                    alert(`✅ Usuario creado: ${nuevoUsuario.username}`);
+                    mostrarNotificacion(` Usuario creado: ${nuevoUsuario.username}`);
                 }
                 cerrarModalUsuario();
                 nuevoForm.reset();
                 cargarUsuarios();
-            } catch (error) { alert("❌ Error: " + error.message); } 
+            } catch (error) { mostrarNotificacion(" Error: " + error.message); } 
             finally { btnGuardar.innerHTML = txtOriginal; btnGuardar.disabled = false; }
         });
     }
@@ -922,11 +948,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(body)
             });
             if (response.ok) {
-                alert('Operación guardada correctamente');
+                mostrarNotificacion('Operación guardada correctamente');
                 cerrarModalAdmin();
                 if (entidadActualAdmin === 'CATEGORIA') cargarAdminCategorias(); else cargarAdminEntidades();
                 cargarCategoriasVenta(); cargarMetodosPago();
-            } else { alert('No se pudo guardar.'); }
+            } else { mostrarNotificacion('No se pudo guardar.'); }
         } catch (error) { console.error(error); }
     });
 
@@ -963,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (!data || data.length === 0) {
-                alert("⚠️ Sin datos para exportar.");
+                mostrarNotificacion("⚠️ Sin datos para exportar.");
                 if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
                 return;
             }
@@ -1080,13 +1106,13 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `Reporte_Rojas_${tipo}_${inicio}.xlsx`);
 
             if(btn) {
-                btn.innerHTML = '<span>✅</span> ¡Listo!';
+                btn.innerHTML = '<span></span> ¡Listo!';
                 setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000);
             }
 
         } catch (e) {
             console.error(e);
-            alert("❌ Error: " + e.message);
+            mostrarNotificacion(" Error: " + e.message);
             if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
         }
     };

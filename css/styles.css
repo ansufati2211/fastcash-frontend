@@ -1592,3 +1592,29 @@ body {
         box-shadow: none !important; mask-image: none !important;
     }
 }
+@media print {
+    /* Ocultar TODO por defecto */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Mostrar SOLO el área del ticket o reporte */
+    /* Asegúrate de envolver tu reporte/ticket en un div con id="areaImpresion" */
+    #areaImpresion, #areaImpresion * {
+        visibility: visible;
+    }
+
+    #areaImpresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Quitar fondos de color para ahorrar tinta */
+    .btn, .sidebar, .header {
+        display: none !important;
+    }
+}
