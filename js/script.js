@@ -637,8 +637,8 @@ document.head.appendChild(style);
         } catch (e) { mostrarNotificacion(" Error de red"); }
     };
 
-    // ==========================================
-    // 6. GESTIÓN DE USUARIOS
+// ==========================================
+    // 6. GESTIÓN DE USUARIOS (ACTUALIZADO)
     // ==========================================
     async function cargarFiltroUsuarios() {
         const select = document.getElementById('filtroUsuarioReporte');
@@ -654,7 +654,10 @@ document.head.appendChild(style);
                 const usuarios = await res.json();
                 select.innerHTML = '<option value="">-- Todos los Cajeros --</option>';
                 usuarios.forEach(u => {
-                    select.innerHTML += `<option value="${u.UsuarioID || u.usuarioid}">${u.NombreCompleto || u.nombrecompleto}</option>`;
+                    // Soporte para mayúsculas/minúsculas según la BD
+                    const uid = u.UsuarioID || u.usuarioid || u.usuarioId;
+                    const nombre = u.NombreCompleto || u.nombrecompleto;
+                    select.innerHTML += `<option value="${uid}">${nombre}</option>`;
                 });
             }
         } catch(e) { console.error("Error cargando usuarios filtro", e); }
@@ -679,15 +682,16 @@ document.head.appendChild(style);
             }
 
             usuariosDB.forEach(u => {
-                const uid = u.UsuarioID || u.usuarioid;
+                // Lectura robusta de propiedades (Soporta lo que devuelva el SQL)
+                const uid = u.UsuarioID || u.usuarioid || u.usuarioId;
                 const nombre = u.NombreCompleto || u.nombrecompleto;
                 const username = u.Username || u.username;
                 const turno = u.TurnoActual || u.turnoactual;
                 const activo = u.Activo || u.activo;
-                const rol = u.Rol || u.rol;
+                const rol = u.Rol || u.rol; // Puede venir como texto 'Administrador' o ID
 
-                const rolClase = (rol || '').toUpperCase().includes('ADMIN') ? 'admin' : 'cajero';
-                const esActivo = activo === true || activo === 1 || activo === "true";
+                const rolClase = (String(rol).toUpperCase().includes('ADMIN')) ? 'admin' : 'cajero';
+                const esActivo = activo === true || activo === 1 || String(activo) === "true";
                 const estadoTexto = esActivo ? '🟢 Activo' : '🔴 Inactivo';
                 const estiloFila = !esActivo ? 'opacity: 0.5;' : '';
 
@@ -708,6 +712,7 @@ document.head.appendChild(style);
             });
         } catch (error) { console.error(error); }
     }
+
     window.eliminarUsuario = async (idUsuario) => {
         if(!confirm("¿Estás seguro de DESACTIVAR este usuario?\n(Podrás reactivarlo después editándolo)")) return;
         try {
@@ -715,9 +720,17 @@ document.head.appendChild(style);
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
-            if(res.ok) { mostrarNotificacion(" Usuario desactivado."); cargarUsuarios(); } 
-            else { const data = await res.json().catch(() => ({})); mostrarNotificacion(` Error: ${data.message || "No se pudo desactivar"}`); }
-        } catch(e) { mostrarNotificacion(" Error de conexión"); }
+            if(res.ok) { 
+                if(typeof mostrarNotificacion === 'function') mostrarNotificacion("Usuario desactivado."); 
+                else alert("Usuario desactivado.");
+                cargarUsuarios(); 
+            } 
+            else { 
+                const data = await res.json().catch(() => ({})); 
+                if(typeof mostrarNotificacion === 'function') mostrarNotificacion(`Error: ${data.message || "No se pudo desactivar"}`);
+                else alert(`Error: ${data.message}`);
+            }
+        } catch(e) { console.error(e); alert("Error de conexión"); }
     };
 
     window.editarUsuario = async (idUsuario) => {
@@ -726,32 +739,44 @@ document.head.appendChild(style);
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
             const usuarios = await res.json();
-            const user = usuarios.find(u => (u.UsuarioID || u.usuarioid) === idUsuario);
+            // Buscar usuario
+            const user = usuarios.find(u => (u.UsuarioID || u.usuarioid || u.usuarioId) === idUsuario);
             if (!user) return;
 
-            const uid = user.UsuarioID || user.usuarioid;
-            const rol = user.Rol || user.rol;
+            const uid = user.UsuarioID || user.usuarioid || user.usuarioId;
+            const rolData = user.Rol || user.rol;
             const activo = user.Activo || user.activo;
 
             document.getElementById('idUsuarioEdicion').value = uid;
             document.getElementById('nombreUsuario').value = user.NombreCompleto || user.nombrecompleto;
             document.getElementById('usernameUsuario').value = user.Username || user.username; 
+            
+            // Selección de turno (con fallback a 1)
             document.getElementById('turnoUsuario').value = user.TurnoID || user.turnoid || 1;
 
             document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
             
+            // Lógica para seleccionar el Rol en el combo
             const rolSelect = document.getElementById('rolUsuario');
-            rolSelect.value = (rol && rol.toUpperCase().includes('ADMIN')) ? 'Administrador' : 'Cajero';
+            if (rolData && String(rolData).toUpperCase().includes('ADMIN')) {
+                rolSelect.value = "1"; // Valor para Admin
+            } else {
+                rolSelect.value = "2"; // Valor para Cajero
+            }
+            // Fallback si los values del HTML son texto
+            if (!rolSelect.value) {
+                rolSelect.value = (rolData && String(rolData).toUpperCase().includes('ADMIN')) ? 'Administrador' : 'Cajero';
+            }
 
             const selEstado = document.getElementById('estadoUsuario');
-            if(selEstado) selEstado.value = (activo === true || activo === 1) ? 'true' : 'false';
+            if(selEstado) selEstado.value = (activo === true || activo === 1 || String(activo) === 'true') ? 'true' : 'false';
 
             document.getElementById('passUsuario').placeholder = "(Dejar vacío para no cambiar)";
             document.getElementById('passUsuario').value = ""; 
             document.getElementById('passUsuario').required = false;
 
             abrirModalUsuario();
-        } catch (e) { mostrarNotificacion("Error cargando usuario: " + e.message); }
+        } catch (e) { console.error(e); alert("Error cargando usuario: " + e.message); }
     };
 
     const btnNuevoUsuario = document.querySelector('.btn-nuevo-usuario');
@@ -771,6 +796,7 @@ document.head.appendChild(style);
 
     const formUsuario = document.getElementById('formUsuario');
     if (formUsuario) {
+        // Clonar para limpiar eventos previos
         const nuevoForm = formUsuario.cloneNode(true);
         formUsuario.parentNode.replaceChild(nuevoForm, formUsuario);
 
@@ -781,8 +807,12 @@ document.head.appendChild(style);
             const nombre = document.getElementById('nombreUsuario').value;
             const usernameInput = document.getElementById('usernameUsuario').value; 
             const pass = document.getElementById('passUsuario').value;
+            
+            // Obtener Rol y convertir a Entero
             const rolVal = document.getElementById('rolUsuario').value;
-            const rol = (rolVal === 'Administrador' || rolVal == 1) ? 1 : 2;
+            let rol = 2; // Default Cajero
+            if (rolVal == 1 || rolVal === 'Administrador' || rolVal === '1') rol = 1;
+
             const selectedTurno = document.getElementById('turnoUsuario').value;
             const estadoVal = document.getElementById('estadoUsuario')?.value;
             const esActivo = (estadoVal === 'true');
@@ -794,13 +824,15 @@ document.head.appendChild(style);
 
             try {
                 if (idEdicion) {
+                    // --- ACTUALIZAR (PUT) ---
+                    // IMPORTANTE: Nombres de propiedades en camelCase para el Backend DTO
                     const payload = { 
-                        usuarioID: parseInt(idEdicion),
+                        usuarioId: parseInt(idEdicion), // Antes usuarioID
                         nombreCompleto: nombre,
                         username: usernameInput,
-                        rolID: rol,
+                        rolId: parseInt(rol),           // Antes rolID
                         activo: esActivo,
-                        turnoID: parseInt(selectedTurno)
+                        turnoId: parseInt(selectedTurno) // Antes turnoID
                     };
                     if(pass && pass.trim() !== "") payload.password = pass;
 
@@ -809,30 +841,50 @@ document.head.appendChild(style);
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                         body: JSON.stringify(payload)
                     });
-                    mostrarNotificacion(" Usuario actualizado correctamente");
+                    
+                    if(typeof mostrarNotificacion === 'function') mostrarNotificacion("Usuario actualizado correctamente");
+                    else alert("Usuario actualizado");
+
                 } else {
+                    // --- CREAR (POST) ---
                     const nuevoUsuario = {
                         nombreCompleto: nombre,
                         username: usernameInput, 
                         password: pass, 
-                        rolID: rol
+                        rolId: parseInt(rol),           // Antes rolID
+                        turnoId: parseInt(selectedTurno) // ✅ AHORA ENVIAMOS EL TURNO AL CREAR
                     };
+                    
                     const res = await fetch(`${BASE_URL}/admin/usuario`, {
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
                         body: JSON.stringify(nuevoUsuario)
                     });
-                    if (!res.ok) { const err = await res.json(); throw new Error(err.mensaje || err.error || "Error"); }
-                    mostrarNotificacion(` Usuario creado: ${nuevoUsuario.username}`);
+                    
+                    if (!res.ok) { 
+                        const err = await res.json(); 
+                        throw new Error(err.mensaje || err.error || "Error al crear"); 
+                    }
+                    
+                    if(typeof mostrarNotificacion === 'function') mostrarNotificacion(`Usuario creado: ${nuevoUsuario.username}`);
+                    else alert("Usuario creado");
                 }
+                
                 cerrarModalUsuario();
                 nuevoForm.reset();
                 cargarUsuarios();
-            } catch (error) { mostrarNotificacion(" Error: " + error.message); } 
-            finally { btnGuardar.innerHTML = txtOriginal; btnGuardar.disabled = false; }
+
+            } catch (error) { 
+                console.error(error);
+                if(typeof mostrarNotificacion === 'function') mostrarNotificacion("Error: " + error.message, 'error');
+                else alert("Error: " + error.message);
+            } 
+            finally { 
+                btnGuardar.innerHTML = txtOriginal; 
+                btnGuardar.disabled = false; 
+            }
         });
     }
-
     // ==========================================
     // 7. ADMINISTRACIÓN MAESTROS
     // ==========================================
