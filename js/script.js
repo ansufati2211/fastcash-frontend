@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 0.1 CARGA DINÁMICA DE MAESTROS
     // ==========================================
-    const MAPA_ICONOS = {
-        'Comestibles': '🍞', 'Bebidas': '🥤', 'Licores': '🍷',
+const MAPA_ICONOS = {
+        'Comestibles': '🛒', 'Bebidas': '🥤', 'Licores': '🍷',
         'Limpieza': '🧹', 'Cuidado Personal': '🧴', 'Frescos': '🥦',
-        'Plasticos': '🥣', 'Libreria': '✏️', 'Bazar': '🛍️',
+        'Plasticos': '🍽️', 'Libreria': '✏️', 'Bazar': '🛍️',
         'Yape': '🟣', 'Plin': '🔵', 'BCP': '🟠', 'BBVA': '🔵',
         'Interbank': '🟢', 'Scotiabank': '🔴', 'Efectivo': '💵'
     };
@@ -216,18 +216,22 @@ document.head.appendChild(style);
             });
         }
     }
-
-    function forzarSoloNumeros(idInput) {
-        const input = document.getElementById(idInput);
-        if (input) {
-            input.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-        }
+function forzarSoloNumeros(idInput, longitudMaxima) {
+    const input = document.getElementById(idInput);
+    if (input) {
+        input.setAttribute('maxlength', longitudMaxima);
+        
+        input.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > longitudMaxima) {
+                this.value = this.value.slice(0, longitudMaxima);
+            }
+        });
     }
+}
 
-    forzarSoloNumeros('numOperacion');        
-    forzarSoloNumeros('numOperacionTarjeta'); 
+    forzarSoloNumeros('numOperacion', 8); 
+    forzarSoloNumeros('numOperacionTarjeta', 6);
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
     activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
 
@@ -592,7 +596,7 @@ document.head.appendChild(style);
                     const fecha = new Date(fechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     const esAnulado = estado === 'ANULADO';
                     
-                    const fila = `
+                   const fila = `
                         <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
                             <td style="font-weight:bold; color:#444;">${cajero || 'Cajero'}</td>
                             <td class="col-tipo">${formaPago === 'QR' || formaPago === 'YAPE' ? '📱 YAPE' : (formaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
@@ -602,7 +606,7 @@ document.head.appendChild(style);
                             <td>${fecha}</td>
                             <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
                             <td>
-                                <button class="btn-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                                <button class="btn-tabla-anular" onclick="solicitarAnulacion(${ventaId})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
                             </td>
                         </tr>`;
                     cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -1011,7 +1015,7 @@ document.head.appendChild(style);
    // ==========================================
     // 8. REPORTES EXCEL "CORPORATIVO" 👔 (CORREGIDO)
     // ==========================================
-    window.generarReporte = async (tipo) => {
+ window.generarReporte = async (tipo) => {
         const inicio = document.getElementById('fechaInicio').value || 'Hoy';
         const fin = document.getElementById('fechaFin').value || inicio;
         const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
@@ -1046,15 +1050,10 @@ document.head.appendChild(style);
                 return;
             }
 
-            // 3. CALCULAR TOTALES (CORREGIDO) 💰
+            // 3. CALCULAR TOTALES 💰
             let totalGeneral = 0;
             data.forEach(row => {
-                // Buscamos la columna de dinero EXACTA que devuelve tu Base de Datos
-                // "Monto Total" = Reporte de Ventas
-                // "totalvendido" = Reporte de Cajas
-                // "ImporteTotal" = Otros
                 const monto = row["Monto Total"] || row["totalvendido"] || row["TotalVendido"] || row["ImporteTotal"] || row["Monto"] || 0;
-                
                 totalGeneral += parseFloat(monto);
             });
 
@@ -1064,7 +1063,7 @@ document.head.appendChild(style);
             // --- Definición de Estilos ---
             const sTitulo = { 
                 font: { sz: 16, bold: true, color: { rgb: "FFFFFF" } }, 
-                fill: { fgColor: { rgb: "B91C1C" } }, // Rojo Intenso
+                fill: { fgColor: { rgb: "B91C1C" } }, // Rojo Corporativo
                 alignment: { horizontal: "center", vertical: "center" } 
             };
             const sSubTitulo = { 
@@ -1075,73 +1074,64 @@ document.head.appendChild(style);
                 font: { bold: true, color: { rgb: "FFFFFF" } }, 
                 fill: { fgColor: { rgb: "1E293B" } }, // Gris Oscuro/Azul
                 border: { bottom: { style: "medium", color: { rgb: "000000" } } },
-                alignment: { horizontal: "center" }
+                alignment: { horizontal: "center", vertical: "center" } // Encabezados Centrados
             };
+            
+            // CAMBIO: Alineación CENTRADA para texto normal
             const sCeldaData = { 
                 border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } },
-                alignment: { vertical: "center" }
+                alignment: { horizontal: "center", vertical: "center" } 
             };
+            
+            // Estilo Moneda (A la derecha por estándar financiero)
             const sMoneda = { 
                 border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } },
-                alignment: { horizontal: "right" },
-                numFmt: '"S/" #,##0.00' // Formato Contable
+                alignment: { horizontal: "right", vertical: "center" },
+                numFmt: '"S/" #,##0.00' 
             };
 
-            // --- MAQUETACIÓN MANUAL DE LA HOJA ---
+            // --- MAQUETACIÓN ---
             const wsData = [
-                ["REPORTE OFICIAL - TIENDA ROJAS"], // A1
-                [`📅 Rango: ${inicio} al ${fin}`],  // A2
-                [`👤 Generado por: ${usuario.NombreCompleto || 'Sistema'}`], // A3
-                [`💰 MONTO TOTAL DEL REPORTE: S/ ${totalGeneral.toFixed(2)}`], // A4 (Resumen)
-                [""], // A5 (Espacio)
-                Object.keys(data[0]) // A6 (Encabezados)
+                ["REPORTE OFICIAL - TIENDA ROJAS"], 
+                [`📅 Rango: ${inicio} al ${fin}`],  
+                [`👤 Generado por: ${usuario.NombreCompleto || 'Sistema'}`], 
+                [`💰 MONTO TOTAL DEL REPORTE: S/ ${totalGeneral.toFixed(2)}`], 
+                [""], 
+                Object.keys(data[0]) 
             ];
 
-            // Agregar los datos del JSON
-            data.forEach(row => {
-                wsData.push(Object.values(row));
-            });
+            data.forEach(row => { wsData.push(Object.values(row)); });
 
-            // Crear Hoja
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-            // --- APLICAR ESTILOS ---
             const range = XLSX.utils.decode_range(ws['!ref']);
-            
-            // 1. Fusionar Celdas del Encabezado
             const lastCol = range.e.c;
+
+            // Fusiones
             ws['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }, // Título
-                { s: { r: 3, c: 0 }, e: { r: 3, c: 2 } }        // Resumen Total
+                { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }, 
+                { s: { r: 3, c: 0 }, e: { r: 3, c: 2 } }        
             ];
 
-            // 2. Recorrer celdas para pintar
+            // ACTIVAR FILTROS (Flechas)
+            ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 5, c: 0 }, e: { r: range.e.r, c: lastCol } }) };
+
+            // PINTAR CELDAS
             for (let R = range.s.r; R <= range.e.r; ++R) {
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
                     if (!ws[cellAddress]) continue;
 
-                    // Título Principal
-                    if (R === 0) { 
-                        ws[cellAddress].s = sTitulo; 
-                    }
-                    // Información Meta (Filas 1, 2, 3)
+                    if (R === 0) ws[cellAddress].s = sTitulo; 
                     else if (R >= 1 && R <= 3) {
                         ws[cellAddress].s = sSubTitulo;
-                        // Resalta el Total
                         if(R === 3) ws[cellAddress].s = { ...sSubTitulo, font: { bold: true, color: { rgb: "B91C1C" }, sz: 12 } };
                     }
-                    // Encabezados de Tabla (Fila 5, index 5)
-                    else if (R === 5) {
-                        ws[cellAddress].s = sHeaderTabla;
-                    }
-                    // Datos de Tabla (Fila 6 en adelante)
+                    else if (R === 5) ws[cellAddress].s = sHeaderTabla;
                     else if (R > 5) {
                         const valor = ws[cellAddress].v;
-                        // Si es número o parece dinero, usar formato moneda
                         if (typeof valor === 'number' || (typeof valor === 'string' && valor.includes('.'))) {
                             ws[cellAddress].s = sMoneda;
-                            ws[cellAddress].t = 'n'; // Forzar tipo numérico
+                            ws[cellAddress].t = 'n';
                         } else {
                             ws[cellAddress].s = sCeldaData;
                         }
@@ -1149,11 +1139,36 @@ document.head.appendChild(style);
                 }
             }
 
-            // 3. Ajustar Ancho de Columnas
-            const wscols = Object.keys(data[0]).map(key => ({ wch: 20 })); // Ancho base
-            ws['!cols'] = wscols;
+            // --- AJUSTE DE ANCHO DE COLUMNAS (MEJORADO) ---
+            const colWidths = [];
+            const headers = Object.keys(data[0]);
 
-            // Guardar
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const headerName = (headers[C] || "").toUpperCase();
+                let maxWidth = 15; // Ancho base
+
+                // 1. ANCHO ESPECIAL PARA COLUMNAS SOLICITADAS
+                if (headerName.includes("TICKET") || headerName.includes("SISTEMA")) maxWidth = 25; 
+                else if (headerName.includes("METODO") || headerName.includes("PAGO") || headerName.includes("FORMA")) maxWidth = 25;
+                else if (headerName.includes("MONTO") || headerName.includes("TOTAL")) maxWidth = 20;
+                else if (headerName.includes("FECHA") || headerName.includes("HORA")) maxWidth = 20;
+                else if (headerName.includes("CAJERO") || headerName.includes("CLIENTE")) maxWidth = 30; // Nombres largos
+
+                // 2. Ajuste automático según contenido (si es más largo que el base)
+                for (let R = 5; R <= range.e.r; ++R) { 
+                    const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+                    if (ws[cellAddress]) {
+                        const textLength = (ws[cellAddress].v ? ws[cellAddress].v.toString().length : 0);
+                        if (textLength > maxWidth) maxWidth = textLength;
+                    }
+                }
+                // Tope máximo para que no sea gigante
+                if (maxWidth > 50) maxWidth = 50;
+                
+                colWidths.push({ wch: maxWidth + 2 });
+            }
+            ws['!cols'] = colWidths;
+
             XLSX.utils.book_append_sheet(wb, ws, "Reporte");
             XLSX.writeFile(wb, `Reporte_Rojas_${tipo}_${inicio}.xlsx`);
 

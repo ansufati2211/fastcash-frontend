@@ -133,8 +133,9 @@
                             <input type="hidden" id="inputDestino">
                             
                             <div class="input-operacion-wrapper">
-                                <label>N° Operación (Ultimos 4 o Completo)</label>
-                                <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="20" required>
+                              <label>N° Operación (8 Dígitos)</label>
+                              <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="8" 
+                                pattern="\d{8}" title="Debe ingresar exactamente 8 dígitos" required>
                             </div>
                             
                             <div class="selector-tipo" id="selectorComprobante">
@@ -180,8 +181,8 @@
                             <input type="hidden" id="inputBancoTarjeta">
                             
                             <div class="input-operacion-wrapper" style="margin-top: 1rem;">
-                                <label>N° Lote / Voucher</label>
-                                <input type="text" id="numOperacionTarjeta" placeholder="Ej: 000458" maxlength="20" required>
+                                <label>N° Lote / Voucher (6 Dígitos)</label>
+                            <input type="text" id="numOperacionTarjeta" placeholder="Ej: 123456" maxlength="6" required>
                             </div>
                             
                             <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
@@ -429,9 +430,9 @@
                             <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
                             
                             <div id="ticketImpresion" class="ticket-paper">
-                                <div class="ticket-header">
-                                    <h3>FASTCASH MARKET</h3>
-                                    <p>RUC: 20601234567</p>
+<div class="ticket-header">
+                                    <h3>FASTCASH MARKET ROJAS</h3>
+                                    <p>RUC: 20606916061</p>
                                     <div class="separator-dashed"></div>
                                     <h4>CIERRE DE TURNO</h4>
                                     <div class="ticket-meta">
