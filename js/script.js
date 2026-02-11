@@ -1186,8 +1186,7 @@ function forzarSoloNumeros(idInput, longitudMaxima) {
     // ==========================================
     // 9. GRÁFICOS
     // ==========================================
-let chartPastel = null, chartBarras = null, chartHoras = null; // Agregamos chartHoras
-
+    let chartPastel = null, chartBarras = null;
     window.inicializarGraficos = async () => {
         const contenedor = document.getElementById('vista-financiero');
         if (contenedor.style.display === 'none') return;
@@ -1219,53 +1218,6 @@ let chartPastel = null, chartBarras = null, chartHoras = null; // Agregamos char
                     type: 'bar',
                     data: { labels: data.pagos.map(i => i.label), datasets: [{ label: 'Total Ventas (S/)', data: data.pagos.map(i => i.value), backgroundColor: '#2563eb', borderRadius: 10 }] },
                     options: { responsive: true, maintainAspectRatio: false }
-                });
-            }
-            if(data.horas) {
-                const ctxH = document.getElementById('graficoHoras').getContext('2d');
-                if(chartHoras) chartHoras.destroy();
-
-                // Preparamos los datos (Rellenar horas vacías con 0)
-                const horasMap = new Array(24).fill(0);
-                data.horas.forEach(item => {
-                    horasMap[parseInt(item.label)] = parseFloat(item.value);
-                });
-                const labelsHoras = Array.from({length: 24}, (_, i) => `${i}:00`);
-
-                chartHoras = new Chart(ctxH, {
-                    type: 'line', // Tipo Línea para ver la tendencia
-                    data: {
-                        labels: labelsHoras,
-                        datasets: [{
-                            label: 'Ventas por Hora (S/)',
-                            data: horasMap,
-                            borderColor: '#8b5cf6', // Color Violeta
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4, // Curvado suave
-                            pointRadius: 4,
-                            pointBackgroundColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                            x: { grid: { display: false } }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return `S/ ${context.parsed.y.toFixed(2)}`;
-                                    }
-                                }
-                            }
-                        }
-                    }
                 });
             }
         } catch (e) { console.error("Error gráficos", e); }

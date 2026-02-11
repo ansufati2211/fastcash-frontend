@@ -342,13 +342,12 @@
                 </div>
             </section>
 
-           <section id="vista-financiero" class="vista-seccion">
+            <section id="vista-financiero" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
                     
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
                             <h2>📈 Dashboard Financiero (Hoy)</h2>
-                            <p style="color: #666; font-size: 0.9rem;">Resumen de movimientos en tiempo real</p>
                         </div>
                         <button class="btn-refresh-moderno" onclick="inicializarGraficos()">
                             <span class="icono-refresh">🔄</span> Actualizar Datos
@@ -356,28 +355,14 @@
                     </div>
 
                     <div class="grid-graficos">
-                        
                         <div class="card-grafico">
-                            <h3>🏆 Ventas por Categoría</h3>
-                            <div class="canvas-wrapper">
-                                <canvas id="graficoPastel"></canvas>
-                            </div>
+                            <h3>Ventas por Categoría</h3>
+                            <div class="canvas-wrapper"><canvas id="graficoPastel"></canvas></div>
                         </div>
-
                         <div class="card-grafico">
-                            <h3>💳 Ingresos por Medio de Pago</h3>
-                            <div class="canvas-wrapper">
-                                <canvas id="graficoBarras"></canvas>
-                            </div>
+                            <h3>Ingresos por Medio de Pago</h3>
+                            <div class="canvas-wrapper"><canvas id="graficoBarras"></canvas></div>
                         </div>
-
-                        <div class="card-grafico" style="grid-column: 1 / -1;">
-                            <h3>⏰ Ventas por Hora (Picos de Venta)</h3>
-                            <div class="canvas-wrapper">
-                                <canvas id="graficoHoras"></canvas>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
             </section>
