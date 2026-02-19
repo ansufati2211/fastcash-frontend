@@ -230,7 +230,7 @@ function configurarInputAlfanumerico(idInput, longitudMaxima) {
         }
     }
 
-    configurarInputAlfanumerico('numOperacion', 8); 
+    configurarInputAlfanumerico('numOperacion', 15); 
     configurarInputAlfanumerico('numOperacionTarjeta', 6);
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
     activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
