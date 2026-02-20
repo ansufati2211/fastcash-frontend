@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +9,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    
+
     <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
 
     <header class="header-sistema">
@@ -36,7 +38,7 @@
                 <span class="nombre-cajero">Cargando...</span>
                 <span class="turno-actual fecha-hora-reloj">--:--</span>
             </div>
-            
+
             <button class="btn-abrir-caja" id="btnAbrirCaja" style="display: none;">
                 📥 Abrir Caja
             </button>
@@ -48,7 +50,7 @@
     </header>
 
     <div class="contenedor-principal">
-        
+
         <nav class="sidebar" id="sidebar">
             <ul class="lista-menu">
                 <li class="titulo-seccion-menu">OPERACIONES</li>
@@ -72,8 +74,9 @@
                 </li>
 
                 <li class="titulo-seccion-menu admin">ADMINISTRACIÓN</li>
-                
-                <li class="item-menu admin" id="btn-nav-admin" style="display: none;" data-target="vista-admin-maestros">
+
+                <li class="item-menu admin" id="btn-nav-admin" style="display: none;"
+                    data-target="vista-admin-maestros">
                     <a href="#" onclick="mostrarSeccionAdmin()">
                         <div class="icono-wrapper">⚙️</div>
                         <span class="texto-menu">Configuración</span>
@@ -98,7 +101,7 @@
                         <span class="texto-menu">Gráficos Dashboard</span>
                     </a>
                 </li>
-                
+
                 <li class="item-menu cierre" data-target="vista-cierre">
                     <a href="#">
                         <div class="icono-wrapper"><img src="/img/icon/cierreTurno-icon.png" class="icon-foto"></div>
@@ -109,12 +112,14 @@
         </nav>
 
         <main class="area-trabajo">
-            
+
             <section id="vista-yape" class="vista-seccion activa">
                 <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
-                        <div class="cabecera-simple"><h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--:--</span></div>
-                        
+                        <div class="cabecera-simple">
+                            <h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--:--</span>
+                        </div>
+
                         <div class="grid-familias-moderna" id="selectorFamilia">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
@@ -124,19 +129,20 @@
                     <div class="panel-transaccion">
                         <form id="formYape">
                             <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
-                            
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto" placeholder="0.00" step="0.01" required></div>
-                            
+
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto"
+                                    placeholder="0.00" step="0.01" required></div>
+
                             <div class="selector-bancos" id="selectorDestino">
                                 <p style="font-size:0.8rem;">Cargando entidades...</p>
                             </div>
                             <input type="hidden" id="inputDestino">
-                            
+
                             <div class="input-operacion-wrapper">
-                              <label>N° Operación (8 Dígitos)</label>
-                              <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="15" required>
+                                <label>N° Operación (8 Dígitos)</label>
+                                <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="15" required>
                             </div>
-                            
+
                             <div class="selector-tipo" id="selectorComprobante">
                                 <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
                                 <button type="button" class="segmento" data-value="1">Factura</button>
@@ -149,17 +155,20 @@
                                 <input type="text" id="txtComprobanteYape" placeholder="Ej: B001-00000000">
                             </div>
 
-                            <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span class="flecha">→</span></button>
+                            <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span
+                                    class="flecha">→</span></button>
                         </form>
                     </div>
                 </div>
             </section>
 
             <section id="vista-tarjeta" class="vista-seccion">
-                 <div class="contenedor-formulario-yape layout-split">
+                <div class="contenedor-formulario-yape layout-split">
                     <div class="panel-seleccion">
-                        <div class="cabecera-simple"><h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--:--</span></div>
-                        
+                        <div class="cabecera-simple">
+                            <h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--:--</span>
+                        </div>
+
                         <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
@@ -169,21 +178,23 @@
                     <div class="panel-transaccion">
                         <form id="formTarjeta">
                             <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
-                            
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required></div>
-                            
+
+                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta"
+                                    placeholder="0.00" step="0.01" required></div>
+
                             <label class="label-separador">Banco del POS:</label>
-                            
+
                             <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
                                 <p style="font-size:0.8rem;">Cargando bancos...</p>
                             </div>
                             <input type="hidden" id="inputBancoTarjeta">
-                            
+
                             <div class="input-operacion-wrapper" style="margin-top: 1rem;">
                                 <label>N° Lote / Voucher (6 Dígitos)</label>
-                            <input type="text" id="numOperacionTarjeta" placeholder="Ej: 123456" maxlength="6" required>
+                                <input type="text" id="numOperacionTarjeta" placeholder="Ej: 123456" maxlength="6"
+                                    required>
                             </div>
-                            
+
                             <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
                                 <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
                                 <button type="button" class="segmento" data-value="1">Factura</button>
@@ -195,10 +206,11 @@
                                 <label>Número de Boleta/Factura/Nota (Opcional)</label>
                                 <input type="text" id="txtComprobanteTarjeta" placeholder="Ej: B001-00000000">
                             </div>
-                            
+
                             <div style="flex-grow: 1;"></div>
-                            
-                            <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA <span class="flecha">💳</span></button>
+
+                            <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR
+                                TARJETA <span class="flecha">💳</span></button>
                         </form>
                     </div>
                 </div>
@@ -206,16 +218,17 @@
 
             <section id="vista-anulacion" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
-                    
+
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
                             <h2>🚫 Historial de Ventas (Hoy)</h2>
                             <p>Supervisión y Anulaciones en tiempo real.</p>
                         </div>
                         <div class="controles-derecha" style="display: flex; align-items: center; gap: 10px;">
-        
+
                             <div id="wrapperFiltroHistorial" style="display: none;">
-                                <select id="filtroUsuarioHistorial" class="input-moderno" onchange="cargarHistorial()" style="padding: 0.6rem; min-width: 150px;">
+                                <select id="filtroUsuarioHistorial" class="input-moderno" onchange="cargarHistorial()"
+                                    style="padding: 0.6rem; min-width: 150px;">
                                     <option value="">-- Ver Todos --</option>
                                 </select>
                             </div>
@@ -224,19 +237,27 @@
                                 <span class="icono-refresh">🔄</span> Refrescar
                             </button>
                         </div>
-                    </div> 
+                    </div>
                     <div class="tabla-responsive">
                         <table class="tabla-transacciones">
                             <thead>
                                 <tr>
-                                    <th>Cajero</th>   <th>Medio</th>    <th>Familia</th>  <th>Ref / Op</th> <th>Monto</th>    <th>Hora</th>     <th>Estado</th>   <th>Acción</th>   </tr>
+                                    <th>Cajero</th>
+                                    <th>Medio</th>
+                                    <th>Familia</th>
+                                    <th>Ref / Op</th>
+                                    <th>Monto</th>
+                                    <th>Hora</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
                             </thead>
                             <tbody id="cuerpoTablaTransacciones"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
-            
+
             <section id="vista-admin-maestros" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
                     <div class="cabecera-tabla">
@@ -245,7 +266,7 @@
                             <p>Gestiona Categorías y Entidades Financieras</p>
                         </div>
                     </div>
-                    
+
                     <div class="admin-container">
                         <div class="admin-tabs" style="margin-bottom: 20px;">
                             <button onclick="cargarAdminCategorias()" class="btn-tab">📦 Categorías</button>
@@ -254,15 +275,17 @@
                         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
 
                         <div id="admin-workspace">
-                            <p style="color: #666; text-align: center; padding: 20px;">Seleccione una opción arriba para comenzar.</p>
+                            <p style="color: #666; text-align: center; padding: 20px;">Seleccione una opción arriba para
+                                comenzar.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             <section id="vista-reportes" class="vista-seccion">
-                <div class="contenedor-tabla-registro" style="background: transparent; box-shadow: none; border: none; padding: 0;">
-                    
+                <div class="contenedor-tabla-registro"
+                    style="background: transparent; box-shadow: none; border: none; padding: 0;">
+
                     <div class="titulo-seccion" style="margin-bottom: 1.5rem;">
                         <h2>📊 Centro de Reportes</h2>
                         <p>Genera y descarga información histórica en Excel Profesional.</p>
@@ -277,7 +300,7 @@
                             <label>📅 Fecha Fin</label>
                             <input type="date" id="fechaFin" class="input-moderno">
                         </div>
-                        
+
                         <div class="grupo-filtro" id="contenedorFiltroUsuario" style="display: none; flex-grow: 1;">
                             <label>👤 Filtrar por Cajero</label>
                             <select id="filtroUsuarioReporte" class="input-moderno">
@@ -286,13 +309,15 @@
                         </div>
                     </div>
 
-                    <div class="grid-reportes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-                        
+                    <div class="grid-reportes"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+
                         <div class="card-reporte-accion">
                             <div class="icono-grande">🧾</div>
                             <h3>Reporte de Ventas Detallado</h3>
                             <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
-                                Exporta cada transacción individual incluyendo método de pago (Yape/Tarjeta), número de operación y productos.
+                                Exporta cada transacción individual incluyendo método de pago (Yape/Tarjeta), número de
+                                operación y productos.
                             </p>
                             <button class="btn-descarga-premium" onclick="generarReporte('GENERAL')">
                                 <span>📥</span> Descargar Excel
@@ -303,7 +328,8 @@
                             <div class="icono-grande">📦</div>
                             <h3>Historial de Cierres de Caja</h3>
                             <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
-                                Visualiza aperturas y cierres de turno, montos iniciales, finales y cuadres de caja por usuario.
+                                Visualiza aperturas y cierres de turno, montos iniciales, finales y cuadres de caja por
+                                usuario.
                             </p>
                             <button class="btn-descarga-premium" onclick="generarReporte('CAJAS')">
                                 <span>📥</span> Descargar Excel
@@ -317,8 +343,12 @@
             <section id="vista-roles" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
                     <div class="cabecera-tabla">
-                        <div class="titulo-seccion"><h2>👥 Gestión de Usuarios</h2><p>Crea y administra accesos.</p></div>
-                        <button class="btn-nuevo-usuario" onclick="document.querySelector('.btn-nuevo-usuario').onclick()">+ Nuevo Usuario</button>
+                        <div class="titulo-seccion">
+                            <h2>👥 Gestión de Usuarios</h2>
+                            <p>Crea y administra accesos.</p>
+                        </div>
+                        <button class="btn-nuevo-usuario"
+                            onclick="document.querySelector('.btn-nuevo-usuario').onclick()">+ Nuevo Usuario</button>
                     </div>
                     <div class="tabla-responsive">
                         <table class="tabla-transacciones">
@@ -335,7 +365,7 @@
                                 </tr>
                             </thead>
                             <tbody id="cuerpoTablaUsuarios">
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -343,7 +373,7 @@
 
             <section id="vista-financiero" class="vista-seccion">
                 <div class="contenedor-tabla-registro">
-                    
+
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
                             <h2>📈 Dashboard Financiero (Hoy)</h2>
@@ -368,7 +398,7 @@
 
             <section id="vista-cierre" class="vista-seccion">
                 <div class="dashboard-cierre">
-                    
+
                     <header class="header-dashboard">
                         <div class="titulo-area">
                             <div class="icono-header">🏁</div>
@@ -427,9 +457,9 @@
                     <div class="area-accion-final">
                         <div class="ticket-preview-wrapper">
                             <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
-                            
+
                             <div id="ticketImpresion" class="ticket-paper">
-<div class="ticket-header">
+                                <div class="ticket-header">
                                     <h3>FASTCASH MARKET ROJAS</h3>
                                     <p>RUC: 20606916061</p>
                                     <div class="separator-dashed"></div>
@@ -442,14 +472,20 @@
                                     <div class="separator-dashed"></div>
                                 </div>
                                 <div class="ticket-body">
-                                    <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
-                                    <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
-                                    <div class="fila-ticket danger"><span>(-) ANULADO:</span><span id="ticketAnuladoPrint">S/ 0.00</span></div>
+                                    <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/
+                                            0.00</span></div>
+                                    <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/
+                                            0.00</span></div>
+                                    <div class="fila-ticket danger"><span>(-) ANULADO:</span><span
+                                            id="ticketAnuladoPrint">S/ 0.00</span></div>
                                     <div class="separator-solid"></div>
-                                    <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
+                                    <div class="fila-ticket total"><span>TOTAL VENTA:</span><span
+                                            id="ticketTotalPrint">S/ 0.00</span></div>
                                     <div class="separator-dashed"></div>
                                 </div>
-                                <div class="ticket-footer"><p>• Firma Conforme •</p></div>
+                                <div class="ticket-footer">
+                                    <p>• Firma Conforme •</p>
+                                </div>
                             </div>
                         </div>
 
@@ -472,7 +508,7 @@
             </div>
             <form id="formUsuario">
                 <input type="hidden" id="idUsuarioEdicion">
-                
+
                 <div class="form-group">
                     <label>Nombre Completo</label>
                     <input type="text" id="nombreUsuario" placeholder="Ej: Juan Perez" required>
@@ -512,7 +548,7 @@
                     <label>Contraseña</label>
                     <input type="text" id="passUsuario" placeholder="(Dejar vacío para mantener actual)">
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">Cancelar</button>
                     <button type="submit" class="btn-guardar">Guardar Cambios</button>
@@ -527,12 +563,13 @@
                 <h2 id="modal-admin-titulo">Nuevo Registro</h2>
                 <span class="cerrar-modal" onclick="cerrarModalAdmin()">&times;</span>
             </div>
-            
+
             <form id="form-admin">
-                <input type="hidden" id="admin-id"> 
+                <input type="hidden" id="admin-id">
                 <div class="form-group">
                     <label>Nombre:</label>
-                    <input type="text" id="admin-nombre" class="input-moderno" required style="width: 100%; padding: 10px;">
+                    <input type="text" id="admin-nombre" class="input-moderno" required
+                        style="width: 100%; padding: 10px;">
                 </div>
 
                 <div class="form-group" id="group-admin-tipo" style="display:none;">
@@ -563,13 +600,14 @@
     <script src="/js/script.js"></script>
   -->
 
-      <script src="/js/config.js"></script>
+    <script src="/js/config.js"></script>
 
-<script src="/js/ui.js"></script>
-<script src="/js/caja.js"></script>
-<script src="/js/ventas.js"></script>
-<script src="/js/reportes.js"></script>
-<script src="/js/admin.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/caja.js"></script>
+    <script src="/js/ventas.js"></script>
+    <script src="/js/reportes.js"></script>
+    <script src="/js/admin.js"></script>
 
 </body>
+
 </html>
