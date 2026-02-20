@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 0. CONFIGURACIÓN INICIAL Y SESIÓN (CORREGIDO)
     // ==========================================
-    const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
+    //const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
+
+    const BASE_URL = 'http://localhost:8080/api';
     let CAJA_ABIERTA = false; 
 
     // 1. Recuperar sesión
@@ -216,26 +218,24 @@ document.head.appendChild(style);
             });
         }
     }
-function forzarSoloNumeros(idInput, longitudMaxima) {
-    const input = document.getElementById(idInput);
-    if (input) {
-        input.setAttribute('maxlength', longitudMaxima);
-        
-        input.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > longitudMaxima) {
-                this.value = this.value.slice(0, longitudMaxima);
-            }
-        });
+function configurarInputAlfanumerico(idInput, longitudMaxima) {
+        const input = document.getElementById(idInput);
+        if (input) {
+            // Establecer el límite máximo de caracteres
+            input.setAttribute('maxlength', longitudMaxima);
+            
+            input.addEventListener('input', function() {
+                let valor = this.value.toUpperCase();
+                
+                this.value = valor.replace(/[^A-Z0-9]/g, '');
+            });
+        }
     }
-}
 
-    forzarSoloNumeros('numOperacion', 8); 
-    forzarSoloNumeros('numOperacionTarjeta', 6);
+    configurarInputAlfanumerico('numOperacion', 15); 
+    configurarInputAlfanumerico('numOperacionTarjeta', 6);
     activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
     activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
-
-
     // =========================================================
     // 2. CONTROL DE CAJA (ABRIR / ESTADO)
     // =========================================================

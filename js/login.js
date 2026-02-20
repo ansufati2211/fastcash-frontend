@@ -2,7 +2,7 @@
 // 1. CONFIGURACIÓN
 // ==========================================
 // URL solicitada por el usuario (Producción)
-const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api'; 
+const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     
