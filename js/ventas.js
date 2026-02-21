@@ -8,11 +8,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
 });
 
+let ID_CATEGORIA_POR_DEFECTO = 1;
+
 async function cargarCategoriasVenta() {
     try {
-        const response = await fetch(`${BASE_URL}/maestros/categorias`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+        const response = await fetch(`${BASE_URL}/maestros/categorias`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
         if (!response.ok) return;
         const categorias = await response.json();
+
+        // --- NUEVO: Buscar el ID de "Comestibles" ---
+        const catComestibles = categorias.find(c => c.nombre.toUpperCase().includes('COMESTIBLE'));
+        
+        if (catComestibles) {
+            ID_CATEGORIA_POR_DEFECTO = catComestibles.categoriaID;
+            console.log("✅ Categoría por defecto encontrada:", catComestibles.nombre, "(ID:", ID_CATEGORIA_POR_DEFECTO, ")");
+        } else {
+            // Si por alguna razón la borran de la base de datos, forzamos un ID seguro
+            ID_CATEGORIA_POR_DEFECTO = 1; 
+            console.log("⚠️ No se encontró 'Comestibles', usando ID 1");
+        }
 
         ['selectorFamilia', 'selectorFamiliaTarjeta'].forEach(idContenedor => {
             const contenedor = document.getElementById(idContenedor);
@@ -26,8 +42,10 @@ async function cargarCategoriasVenta() {
                         btn.type = 'button';
                         btn.className = 'card-familia'; 
                         btn.dataset.value = cat.categoriaID;
+                        
                         const icono = MAPA_ICONOS[cat.nombre] || '📦';
                         btn.innerHTML = `<span class="emoji">${icono}</span><span class="label">${cat.nombre}</span>`;
+                        
                         btn.addEventListener('click', function() {
                             contenedor.querySelectorAll('.card-familia').forEach(b => b.classList.remove('seleccionado'));
                             this.classList.add('seleccionado');
@@ -104,8 +122,16 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
     const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
     // Validaciones
-    if (!inputFam || !inputFam.value) { mostrarNotificacion("⚠️ Selecciona una Familia (Categoría)", 'error'); return; }
+    // SE ELIMINÓ LA VALIDACIÓN OBLIGATORIA DE CATEGORÍA
+    // if (!inputFam || !inputFam.value) { mostrarNotificacion("⚠️ Selecciona una Familia (Categoría)", 'error'); return; }
+    
     if (!monto || monto <= 0) { mostrarNotificacion("⚠️ Ingresa un monto válido", 'error'); return; }
+
+    // --- LÓGICA DE CATEGORÍA POR DEFECTO ---
+    let categoriaFinal = typeof ID_CATEGORIA_POR_DEFECTO !== 'undefined' ? ID_CATEGORIA_POR_DEFECTO : 1; 
+    if (inputFam && inputFam.value && inputFam.value.trim() !== "") {
+        categoriaFinal = parseInt(inputFam.value);
+    }
 
     let entidadId = 1, numOp = null, compId = 2, comprobanteExt = null; 
 
@@ -138,7 +164,10 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
         tipoComprobanteID: parseInt(compId),
         clienteDoc: "00000000", clienteNombre: "Publico General",
         comprobanteExterno: comprobanteExt,
-        detalles: [{ "CategoriaID": parseInt(inputFam.value), "Monto": monto }], 
+        
+        // AQUÍ SE USA LA VARIABLE CALCULADA
+        detalles: [{ "CategoriaID": categoriaFinal, "Monto": monto }], 
+        
         pagos: [{ "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', "Monto": monto, "EntidadID": parseInt(entidadId), "NumOperacion": numOp }]
     };
 
@@ -156,7 +185,7 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
             form.reset();
             const cont = document.getElementById(idContenedorFam);
             if(cont) cont.querySelectorAll('.seleccionado').forEach(el => el.classList.remove('seleccionado'));
-            inputFam.value = "";
+            if(inputFam) inputFam.value = "";
             
             // Reset visuals
             if (tipo === 'YAPE') {
