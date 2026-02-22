@@ -1,3 +1,16 @@
+const BANCOS_POR_DEFECTO_USUARIO = {
+    3: "BCP",
+    5: "BCP", 
+    9: "BCP", 
+    10: "BCP",
+    6: "BBVA",
+    11: "BBVA",  
+    12: "BBVA",
+    13: "BBVA",
+    14: "BBVA"
+};
+
+
 document.addEventListener('DOMContentLoaded', () => {
     cargarCategoriasVenta();
     cargarMetodosPago();
@@ -61,30 +74,96 @@ async function cargarCategoriasVenta() {
 
 async function cargarMetodosPago() {
     try {
-        const response = await fetch(`${BASE_URL}/maestros/entidades`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+        const response = await fetch(`${BASE_URL}/maestros/entidades`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
         if (!response.ok) return;
         const entidades = await response.json();
 
-        // Yape/Plin
         const contenedorYape = document.getElementById('selectorDestino');
         if(contenedorYape) {
             contenedorYape.innerHTML = '';
+            
+            // 1. DIBUJAR LOS BOTONES
             entidades.forEach(ent => {
                 if(ent.activo && (ent.tipo === 'BILLETERA' || ent.nombre.includes('BCP') || ent.nombre.includes('BBVA'))) {
-                    crearBotonBanco(ent, contenedorYape, 'inputDestino', 'YAPE');
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'chip-banco';
+                    btn.dataset.value = ent.entidadID;
+                    btn.dataset.nombre = ent.nombre.toUpperCase(); // Guardamos el nombre para buscarlo luego
+                    
+                    let claseDot = 'generic';
+                    if(ent.nombre.includes('BCP')) claseDot = 'bcp';
+                    if(ent.nombre.includes('BBVA')) claseDot = 'bbva';
+                    if(ent.nombre.includes('Yape')) claseDot = 'personal';
+                    if(ent.nombre.includes('Plin')) claseDot = 'interbank';
+
+                    btn.innerHTML = `<span class="dot ${claseDot}"></span> ${ent.nombre}`;
+                    
+                    btn.addEventListener('click', function() {
+                        contenedorYape.querySelectorAll('.chip-banco').forEach(b => b.classList.remove('seleccionado'));
+                        this.classList.add('seleccionado');
+                        document.getElementById('inputDestino').value = ent.entidadID;
+                    });
+                    contenedorYape.appendChild(btn);
                 }
             });
+
+            // 2. LÓGICA DE PRESELECCIÓN AUTOMÁTICA
+            // Verificamos si el UsuarioID actual tiene un banco preferido en la configuración
+            const nombreBancoPreferido = BANCOS_POR_DEFECTO_USUARIO[USUARIO_ID];
+            
+            if (nombreBancoPreferido) {
+                // Buscamos el botón que coincida con ese nombre y le hacemos clic por código
+                const btnPreferido = Array.from(contenedorYape.querySelectorAll('.chip-banco')).find(b => 
+                    b.dataset.nombre.includes(nombreBancoPreferido.toUpperCase())
+                );
+                
+                if (btnPreferido) {
+                    btnPreferido.click(); // Esto selecciona el botón y actualiza el input oculto
+                } else {
+                    // Fallback: Si no encuentra el preferido, selecciona el primero
+                    const primerBtn = contenedorYape.querySelector('.chip-banco');
+                    if (primerBtn) primerBtn.click();
+                }
+            } else {
+                // Si la cajera no tiene configuración especial, seleccionamos el primero por defecto (usualmente Yape)
+                const primerBtn = contenedorYape.querySelector('.chip-banco');
+                if (primerBtn) primerBtn.click();
+            }
         }
-        // Tarjetas
+
+        // ... (El bloque para contenedorTarjeta sigue igual) ...
         const contenedorTarjeta = document.getElementById('selectorBancoTarjeta');
         if(contenedorTarjeta) {
             contenedorTarjeta.innerHTML = '';
             entidades.forEach(ent => {
                 if(ent.activo && ent.tipo === 'BANCO') {
-                    crearBotonBanco(ent, contenedorTarjeta, 'inputBancoTarjeta', 'TARJETA');
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'chip-banco';
+                    btn.dataset.value = ent.entidadID;
+
+                    let claseDot = 'generic';
+                    if(ent.nombre.includes('Interbank')) claseDot = 'interbank';
+                    if(ent.nombre.includes('Scotiabank')) claseDot = 'scotia';
+                    
+                    btn.innerHTML = `<span class="dot ${claseDot}"></span> ${ent.nombre}`;
+                    btn.addEventListener('click', function() {
+                        contenedorTarjeta.querySelectorAll('.chip-banco').forEach(b => b.classList.remove('seleccionado'));
+                        this.classList.add('seleccionado');
+                        document.getElementById('inputBancoTarjeta').value = ent.entidadID;
+                    });
+                    contenedorTarjeta.appendChild(btn);
                 }
             });
+            
+            // También preseleccionar el primer banco para tarjetas
+            const primerBtnTarjeta = contenedorTarjeta.querySelector('.chip-banco');
+            if(primerBtnTarjeta) primerBtnTarjeta.click();
         }
+        
     } catch (e) { console.error("Error cargando bancos:", e); }
 }
 

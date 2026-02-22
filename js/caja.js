@@ -110,19 +110,40 @@ window.imprimirCierre = async () => {
     if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Cerrando...'; }
 
     try {
-        const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+        const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
         if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
         
         const data = await resReporte.json(); 
         const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
 
-        // Llenar Ticket Visual
-        const setText = (id, valor) => { const el = document.getElementById(id); if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`; };
+        const setText = (id, valor) => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
+        };
+
+        // ==========================================
+        // Llenar Datos del Ticket Visual (CORREGIDO)
+        // ==========================================
         document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
         document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
-        const elNombre = document.getElementById('ticketCajeroNombre');
-        if(elNombre) elNombre.textContent = (USUARIO_DATA.NombreCompleto || "Cajero").toUpperCase();
+        
+        // 1. Recuperamos el nombre directamente del localStorage de forma segura
+        let nombreImpresion = "CAJERO";
+        try {
+            const sessionData = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
+            // Intentamos todas las posibles capitalizaciones
+            nombreImpresion = sessionData.NombreCompleto || sessionData.nombreCompleto || sessionData.nombrecompleto || sessionData.username || "CAJERO";
+        } catch(e) { 
+            console.error("Error leyendo nombre de sesión"); 
+        }
 
+        // 2. Asignamos el nombre al ticket
+        const elNombre = document.getElementById('ticketCajeroNombre');
+        if(elNombre) elNombre.textContent = nombreImpresion.toUpperCase();
+
+        // 3. Asignamos los datos financieros
         setText('ticketYapePrint', data.VentasDigital || data.ventasdigital);
         setText('ticketTarjetaPrint', data.VentasTarjeta || data.ventastarjeta);
         setText('ticketAnuladoPrint', data.TotalAnulado || data.totalanulado); 
@@ -140,6 +161,7 @@ window.imprimirCierre = async () => {
             throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
         }
 
+        // Imprimir y salir
         setTimeout(() => {
             window.print(); 
             mostrarNotificacion(" CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");

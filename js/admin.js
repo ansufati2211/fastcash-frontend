@@ -64,10 +64,15 @@ window.cargarUsuarios = async function() {
                 <td><span class="badge-rol ${rolClase}">${u.Rol||u.rol}</span></td>
                 <td>${esActivo ? '🟢 Activo' : '🔴 Inactivo'}</td>
                 <td>******</td>
-                <td style="display:flex; gap:10px; align-items:center;">
-                    <button class="btn-editar" onclick="editarUsuario(${uid})" title="Editar">✏️</button>
-                    ${esActivo ? `<button class="btn-eliminar" onclick="eliminarUsuario(${uid})" title="Desactivar">🗑️</button>` : ''}
-                </td>
+<td style="display:flex; gap:8px; justify-content:center; margin-left:-26px;">
+    <button class="btn-accion-tabla editar" onclick="editarUsuario(${uid})" title="Editar Usuario">
+        ✏️
+    </button>
+    ${esActivo ? `
+    <button class="btn-accion-tabla eliminar" onclick="eliminarUsuario(${uid})" title="Desactivar Usuario">
+        🗑️
+    </button>` : ''}
+</td>
             </tr>`;
             cuerpoTabla.insertAdjacentHTML('beforeend', fila);
         });
@@ -180,7 +185,7 @@ window.cargarAdminCategorias = async function() {
         lista.forEach(item => {
             html += `<tr><td>${item.categoriaID}</td><td>${item.nombre}</td>
             <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-            <td><button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-edit">✏️</button></td></tr>`;
+            <td><button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td></tr>`;
         });
         workspace.innerHTML = html + '</tbody></table>';
     } catch (e) { if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>'; }
@@ -203,7 +208,7 @@ window.cargarAdminEntidades = async function() {
         lista.forEach(item => {
             html += `<tr><td>${item.entidadID}</td><td>${item.nombre}</td><td>${item.tipo}</td>
                     <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-                    <td><button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-edit">✏️</button></td></tr>`;
+                    <td><button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td></tr>`;
         });
         html += '</tbody></table>';
         workspace.innerHTML = html;
@@ -268,32 +273,3 @@ async function guardarMaestro(e) {
         else { mostrarNotificacion('No se pudo guardar.', 'error'); }
     } catch (error) { console.error(error); }
 }
-// ==========================================
-// MOSTRAR SECCIÓN DE ADMINISTRACIÓN MAESTROS
-// ==========================================
-window.mostrarSeccionAdmin = function() {
-    // 1. Quitar la clase 'activo' de todos los botones del menú
-    document.querySelectorAll('.item-menu').forEach(i => i.classList.remove('activo'));
-    
-    // 2. Marcar el botón de Admin como activo
-    const btnAdmin = document.getElementById('btn-nav-admin');
-    if(btnAdmin) btnAdmin.classList.add('activo');
-    
-    // 3. Ocultar todas las vistas
-    document.querySelectorAll('.vista-seccion').forEach(v => {
-        v.style.display = 'none';
-        v.classList.remove('activa');
-    });
-    
-    // 4. Mostrar la vista de Maestros y cargar los datos
-    const vistaAdmin = document.getElementById('vista-admin-maestros');
-    if(vistaAdmin) {
-        vistaAdmin.style.display = 'block';
-        setTimeout(() => vistaAdmin.classList.add('activa'), 10); // Animación suave
-        
-        // Cargar las categorías por defecto al entrar
-        if(typeof window.cargarAdminCategorias === 'function') {
-            window.cargarAdminCategorias();
-        }
-    }
-};
