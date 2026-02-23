@@ -1,0 +1,45 @@
+.layout-split { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; padding: 0; overflow: visible; height: auto; min-height: 550px; background: white; border-radius: var(--radio-md); box-shadow: var(--sombra-lg); border: 1px solid rgba(0,0,0,0.05); }
+
+.panel-seleccion { padding: 2rem; background: #fafafa; display: flex; flex-direction: column; gap: 1.5rem; border-right: 1px solid rgba(0,0,0,0.05); border-radius: 1rem; }
+.cabecera-simple { display: flex; justify-content: space-between; align-items: center; }
+.cabecera-simple h3 { color: var(--color-primario); font-size: 1.5rem; margin-bottom: 0.2rem; }
+.fecha-badge { font-family: "Inconsolata", monospace; background: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; color: var(--texto-terciario); border: 1px solid rgba(0,0,0,0.05); }
+
+.grid-familias-moderna { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; overflow-y: auto; padding-right: 5px; scrollbar-width: none; }
+.card-familia { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; background: white; border: 3px solid transparent; position: relative; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-top: 1rem; }
+.card-familia .emoji { font-size: 2rem; filter: grayscale(0.5); transition: all 0.3s; }
+.card-familia .label { font-size: 0.8rem; font-weight: 600; color: var(--texto-secundario); }
+.card-familia:hover { transform: translateY(-3px); box-shadow: var(--sombra-md); }
+
+.panel-transaccion { padding: 2.5rem; background: white; display: flex; flex-direction: column; justify-content: center; }
+#formYape { display: flex; flex-direction: column; gap: 1.5rem; height: 100%; }
+
+.input-hero { display: flex; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.1); transition: border-color 0.3s; margin-bottom: 1rem; }
+.input-hero:focus-within { border-color: var(--color-primario); }
+.input-hero .moneda { font-size: 2rem; font-weight: 700; color: var(--texto-terciario); margin-right: 10px; }
+.input-hero input { border: none; background: transparent; font-size: 3.5rem; font-weight: 700; width: 100%; color: var(--color-primario); font-family: "Inconsolata", monospace; padding: 10px 0; outline: none; box-shadow: none; }
+
+.selector-bancos { display: flex; gap: 8px; background: #f5f5f7; padding: 8px; border-radius: 12px; flex-wrap: wrap; justify-content: flex-start; }
+.chip-banco { flex: 1; min-width: 80px; border: none; background: white; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--texto-secundario); font-size: 0.85rem; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 3px solid transparent; position: relative; }
+.chip-banco:hover { background-color: #f3f4f6; border-color: #d1d5db; }
+.chip-banco .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot.bcp { background: #002a8d; } .dot.bbva { background: #004481; } .dot.personal { background: #333; } .dot.scotia { background: #ec111a; } .dot.otras { background: #666666; } .dot.interbank { background: #009c3b; } .dot.regalo { background: #9b5de5; } .dot.generic { background-color: #555; }
+
+.selector-bancos.wrap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.label-separador { font-size: 0.8rem; color: var(--texto-terciario); margin-bottom: 0.5rem; margin-top: 1rem; display: block; }
+
+.selector-tipo { display: flex; gap: 8px; background: transparent; padding: 0; }
+.selector-tipo .segmento { flex: 1; padding: 10px 0; text-align: center; cursor: pointer; font-weight: 600; color: #4b5563; transition: all 0.2s ease; border: 3px solid transparent; position: relative; border-radius: 8px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+/* ESTILOS DE SELECCIONADO (UNIFICADOS) */
+.chip-banco.seleccionado, .card-familia.seleccionado, .segmento.seleccionado { background-color: #eff6ff !important; border: 3px solid var(--color-primario) !important; color: #000000 !important; box-shadow: 0 4px 10px rgba(255, 0, 60, 0.15) !important; transform: scale(1.05); z-index: 10; transition: all 0.2s ease; }
+.card-familia.seleccionado:hover { background-color: #f3f4f6; border-color: #d1d5db; }
+.chip-banco.seleccionado::after, .card-familia.seleccionado::after, .segmento.seleccionado::after { content: ""; position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; background-color: white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); background-image: url("/img/icon/check.png"); background-size: 14px 14px; background-position: center center; background-repeat: no-repeat; z-index: 11; }
+
+.btn-registrar-grande { width: 100%; padding: 1.2rem; background: linear-gradient(135deg, var(--color-primario), var(--color-acento)); color: white; border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: var(--sombra-primaria-hover); transition: all 0.3s; display: flex; justify-content: space-between; padding-left: 2rem; padding-right: 2rem; margin-top: 1rem; }
+.btn-registrar-grande:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(255, 0, 60, 0.5); }
+
+.input-operacion-wrapper, .display-comprobante-wrapper { background: #f5f5f7; border-radius: 12px; padding: 10px 15px; display: flex; flex-direction: column; margin-top: 1rem; border: none; }
+.input-operacion-wrapper label, .display-comprobante-wrapper label { font-size: 0.75rem; color: var(--texto-terciario); margin-bottom: 2px; font-weight: 700; text-transform: none; }
+.input-operacion-wrapper input, .display-comprobante-wrapper input { border: none; background: transparent; padding: 0; font-family: "Inconsolata", monospace; font-size: 1.1rem; font-weight: 600; color: var(--texto-principal); box-shadow: none; width: 100%; outline: none; }
+.display-comprobante-wrapper input { cursor: text; color: var(--texto-secundario); }

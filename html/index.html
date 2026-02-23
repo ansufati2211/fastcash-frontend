@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +8,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    
 
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/styles/base.css">
+    <link rel="stylesheet" href="/css/styles/layout.css">
+    <link rel="stylesheet" href="/css/styles/ventas.css">
+    <link rel="stylesheet" href="/css/styles/tablas-modales.css">
+    <link rel="stylesheet" href="/css/styles/admin-reportes.css">
+    <link rel="stylesheet" href="/css/styles/media-queries.css">
+
+    <!-- <link rel="stylesheet" href="/css/styles.css"> -->
 </head>
-
 <body>
 
     <header class="header-sistema">
@@ -396,106 +402,130 @@
                 </div>
             </section>
 
-            <section id="vista-cierre" class="vista-seccion">
-                <div class="dashboard-cierre">
+           <section id="vista-cierre" class="vista-seccion">
+    <div class="dashboard-cierre">
 
-                    <header class="header-dashboard">
-                        <div class="titulo-area">
-                            <div class="icono-header">🏁</div>
-                            <div>
-                                <h2>Cierre de Turno</h2>
-                                <p>Resumen de operaciones del día</p>
-                            </div>
-                        </div>
-                        <div class="chip-fecha">
-                            📅 <span id="fechaCierre">--/--/----</span>
-                        </div>
-                    </header>
+        <header class="header-dashboard">
+            <div class="titulo-area">
+                <div class="icono-header">🏁</div>
+                <div>
+                    <h2>Cierre de Turno</h2>
+                    <p>Resumen de operaciones del día</p>
+                </div>
+            </div>
+            <div class="chip-fecha">
+                📅 <span id="fechaCierre">--/--/----</span>
+            </div>
+        </header>
 
-                    <div class="grid-stats">
-                        <div class="stat-card digital">
-                            <div class="stat-icon">
-                                <img src="/img/icon/codigo-qr-icon.png" alt="QR" onerror="this.innerText='📱'">
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Billeteras Digitales</span>
-                                <h3 class="stat-value" id="totalYape">S/ 0.00</h3>
-                            </div>
-                            <div class="stat-trend">Yape / Plin</div>
-                        </div>
+        <div class="grid-stats">
+            <div class="stat-card digital">
+                <div class="stat-icon">
+                    <img src="/img/icon/codigo-qr-icon.png" alt="QR" onerror="this.innerText='📱'">
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Billeteras Digitales</span>
+                    <h3 class="stat-value" id="totalYape">S/ 0.00</h3>
+                </div>
+                <div class="stat-trend">Yape / Plin</div>
+            </div>
 
-                        <div class="stat-card card">
-                            <div class="stat-icon">
-                                <img src="/img/icon/tarjeta-icon.png" alt="Card" onerror="this.innerText='💳'">
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Cobros con Tarjeta</span>
-                                <h3 class="stat-value" id="totalTarjeta">S/ 0.00</h3>
-                            </div>
-                            <div class="stat-trend">Visa / Master</div>
-                        </div>
+            <div class="stat-card card">
+                <div class="stat-icon">
+                    <img src="/img/icon/tarjeta-icon.png" alt="Card" onerror="this.innerText='💳'">
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Cobros con Tarjeta</span>
+                    <h3 class="stat-value" id="totalTarjeta">S/ 0.00</h3>
+                </div>
+                <div class="stat-trend">Visa / Master</div>
+            </div>
 
-                        <div class="stat-card danger">
-                            <div class="stat-icon">🚫</div>
-                            <div class="stat-info">
-                                <span class="stat-label">Operaciones Anuladas</span>
-                                <h3 class="stat-value" id="totalAnulado">S/ 0.00</h3>
-                            </div>
-                            <div class="stat-trend">No suma al total</div>
-                        </div>
+            <div class="stat-card danger">
+                <div class="stat-icon">🚫</div>
+                <div class="stat-info">
+                    <span class="stat-label">Operaciones Anuladas</span>
+                    <h3 class="stat-value" id="totalAnulado">S/ 0.00</h3>
+                </div>
+                <div class="stat-trend">No suma al total</div>
+            </div>
 
-                        <div class="stat-card total-highlight">
-                            <div class="stat-icon">💰</div>
-                            <div class="stat-info">
-                                <span class="stat-label">Venta Total Real</span>
-                                <h1 class="stat-value-big" id="totalGeneral">S/ 0.00</h1>
-                            </div>
-                            <div class="stat-bg-decoration"></div>
+            <div class="stat-card total-highlight">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                    <span class="stat-label">Venta Total Real</span>
+                    <h1 class="stat-value-big" id="totalGeneral">S/ 0.00</h1>
+                </div>
+                <div class="stat-bg-decoration"></div>
+            </div>
+        </div>
+
+        <div class="area-accion-final">
+            <div class="ticket-preview-wrapper">
+                <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
+
+                <div id="ticketImpresion" class="ticket-paper">
+                    <div class="ticket-header">
+                        <h3>FASTCASH MARKET ROJAS</h3>
+                        <p>RUC: 20606916061</p>
+                        <div class="separator-dashed"></div>
+                        <h4>CIERRE DE TURNO</h4>
+                        <div class="ticket-meta">
+                            <p><span>Fecha:</span> <span id="ticketFecha">--/--/--</span></p>
+                            <p><span>Hora:</span> <span id="ticketHora">--:--</span></p>
+                            <p><span>Cajero:</span> <span id="ticketCajeroNombre">---</span></p>
                         </div>
+                        <div class="separator-dashed"></div>
                     </div>
+                    
+                    <div class="ticket-body">
+                        <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/ 0.00</span></div>
+                        <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/ 0.00</span></div>
+                        <div class="fila-ticket danger"><span>(-) ANULADO:</span><span id="ticketAnuladoPrint">S/ 0.00</span></div>
+                        <div class="separator-solid"></div>
+                        <div class="fila-ticket total"><span>TOTAL VENTA:</span><span id="ticketTotalPrint">S/ 0.00</span></div>
+                        <div class="separator-dashed"></div>
 
-                    <div class="area-accion-final">
-                        <div class="ticket-preview-wrapper">
-                            <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
-
-                            <div id="ticketImpresion" class="ticket-paper">
-                                <div class="ticket-header">
-                                    <h3>FASTCASH MARKET ROJAS</h3>
-                                    <p>RUC: 20606916061</p>
-                                    <div class="separator-dashed"></div>
-                                    <h4>CIERRE DE TURNO</h4>
-                                    <div class="ticket-meta">
-                                        <p><span>Fecha:</span> <span id="ticketFecha">--/--/--</span></p>
-                                        <p><span>Hora:</span> <span id="ticketHora">--:--</span></p>
-                                        <p><span>Cajero:</span> <span id="ticketCajeroNombre">---</span></p>
-                                    </div>
-                                    <div class="separator-dashed"></div>
-                                </div>
-                                <div class="ticket-body">
-                                    <div class="fila-ticket"><span>YAPE/PLIN:</span><span id="ticketYapePrint">S/
-                                            0.00</span></div>
-                                    <div class="fila-ticket"><span>TARJETAS:</span><span id="ticketTarjetaPrint">S/
-                                            0.00</span></div>
-                                    <div class="fila-ticket danger"><span>(-) ANULADO:</span><span
-                                            id="ticketAnuladoPrint">S/ 0.00</span></div>
-                                    <div class="separator-solid"></div>
-                                    <div class="fila-ticket total"><span>TOTAL VENTA:</span><span
-                                            id="ticketTotalPrint">S/ 0.00</span></div>
-                                    <div class="separator-dashed"></div>
-                                </div>
-                                <div class="ticket-footer">
-                                    <p>• Firma Conforme •</p>
-                                </div>
-                            </div>
+<div id="ticketZonaDetalles" style="display: none; margin-top: 5px; padding-bottom: 5px;">
+    <div class="separator-dashed" style="margin-top: 5px; margin-bottom: 5px;"></div>
+    <h4 style="text-align: center; margin: 0 0 5px 0; font-size: 11px;">DETALLE DE TRANSACCIONES</h4>
+    <table style="width: 100%; font-size: 10px; text-align: left; border-collapse: collapse; font-family: monospace; line-height: 1.2;">
+        <thead>
+            <tr style="border-bottom: 1px dashed black;">
+                <th style="padding: 2px 0; width: 22%;">HORA</th>
+                <th style="padding: 2px 2px; width: 50%;">OP/REF</th>
+                <th style="text-align: right; padding: 2px 0; width: 28%;">MONTO</th>
+            </tr>
+        </thead>
+        <tbody id="ticketTablaDetalles">
+            </tbody>
+    </table>
+    <div class="separator-dashed" style="margin-top: 5px;"></div>
+</div>
                         </div>
-
-                        <button class="btn-cerrar-caja-pro" onclick="imprimirCierre()">
-                            <span class="icon-btn">🖨️</span>
-                            <span>Confirmar Cierre e Imprimir</span>
-                        </button>
+                    
+                    <div class="ticket-footer">
+                        <p>• Firma Conforme •</p>
                     </div>
                 </div>
-            </section>
+            </div>
+
+            <div class="botones-cierre" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; justify-content: center; width: 100%;">
+                
+                <button class="btn-imprimir-cierre btn-cerrar-caja-pro" onclick="imprimirCierre()" style="flex: 1; min-width: 250px;">
+                    <span class="icon-btn">🖨️</span>
+                    <span>CERRAR CAJA (RESUMEN)</span>
+                </button>
+
+                <button class="btn-imprimir-cierre-detallado btn-cerrar-caja-pro" onclick="imprimirCierreDetallado()" style="flex: 1; min-width: 250px; background-color: #374151; border-color: #1f2937;">
+                    <span class="icon-btn">🧾</span>
+                    <span>CERRAR CAJA (DETALLADO)</span>
+                </button>
+
+            </div>
+            </div>
+    </div>
+</section>
 
         </main>
     </div>

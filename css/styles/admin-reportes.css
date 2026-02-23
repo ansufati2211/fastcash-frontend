@@ -1,0 +1,86 @@
+/* Dashboard Financiero */
+.grid-graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; height: 100%; }
+.card-grafico { background: #fdfdfd; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+.card-grafico h3 { margin-bottom: 1rem; font-size: 1rem; color: var(--texto-secundario); text-align: center; }
+.canvas-wrapper { flex: 1; position: relative; min-height: 250px; }
+
+.btn-refresh-moderno { background-color: white; color: #333; border: 1px solid #e5e7eb; padding: 0.6rem 1.2rem; border-radius: 50px; font-family: 'Inconsolata', monospace; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+.btn-refresh-moderno:hover { background-color: #fff0f2; border-color: #E60023; color: #E60023; transform: translateY(-2px); }
+.btn-refresh-moderno:hover .icono-refresh { transform: rotate(180deg); }
+.icono-refresh { font-size: 1.1rem; transition: transform 0.5s ease; }
+
+/* Admin Configuración */
+.admin-container { background: #fff; padding: 25px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); margin-top: 20px; border: 1px solid rgba(0,0,0,0.05); min-width: 0; }
+.admin-tabs { display: flex; gap: 12px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
+.btn-tab { padding: 10px 24px; background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; }
+.btn-tab:hover { background-color: #e2e8f0; color: #334155; }
+.btn-tab:focus { background-color: var(--color-primario); color: white; border-color: var(--color-primario); outline: none; }
+
+.btn-nuevo-usuario { background: linear-gradient(135deg, #111827 0%, #374151 100%); color: white; border: none; padding: 0.7rem 1.4rem; border-radius: 50px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.3px; text-transform: none; }
+.btn-nuevo-usuario:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); background: linear-gradient(135deg, #000000 0%, #1f1f1f 100%); }
+.btn-nuevo-usuario:active { transform: scale(0.98); }
+
+.tabla-datos { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.tabla-datos th { background-color: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 1rem; border-bottom: 2px solid #e2e8f0; }
+.tabla-datos td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.tabla-datos tr:hover { background-color: #f8fafc; }
+.badge-ok { background-color: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.badge-no { background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+
+/* Reportes Excel */
+.filtros-reporte-unificados { background: #ffffff; padding: 1.5rem 2rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 2rem; border: 1px solid rgba(0,0,0,0.02); }
+.grupo-filtro label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--texto-secundario); margin-bottom: 0.5rem; margin-left: 4px; }
+.input-moderno { background-color: white; color: #333; border: 1px solid #e5e7eb; padding: 0.6rem 1.2rem; border-radius: 50px; font-family: 'Inconsolata', monospace; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+
+.card-reporte-accion { background: white; padding: 2.5rem 2rem; border-radius: 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.3s ease; position: relative; overflow: hidden; }
+.card-reporte-accion:hover { transform: translateY(-5px); }
+.icono-grande { font-size: 3.5rem; margin-bottom: 1rem; display: inline-block; }
+.card-reporte-accion h3 { font-size: 1.2rem; color: #1d1d1f; margin-bottom: 0.5rem; }
+.btn-descarga-premium { width: 100%; padding: 1rem 1.5rem; margin-top: 1.5rem; background: linear-gradient(135deg, #ff003c 0%, #c8002f 100%); color: white; border: none; border-radius: 50px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 0, 60, 0.3); transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; }
+.btn-descarga-premium:hover { box-shadow: 0 12px 25px rgba(255, 0, 60, 0.5); transform: scale(1.02); }
+
+/* Cierre de Caja y Ticket */
+.dashboard-cierre { max-width: 1000px; margin: 0 auto; padding-bottom: 3rem; font-family: 'Inter', system-ui, sans-serif; }
+.header-dashboard { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.04); }
+.titulo-area { display: flex; align-items: center; gap: 1rem; }
+.icono-header { font-size: 2rem; background: #f3f4f6; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.header-dashboard h2 { font-size: 1.5rem; color: #111827; margin: 0; font-weight: 800; }
+.header-dashboard p { color: #6b7280; font-size: 0.9rem; margin: 0; }
+.chip-fecha { background: #eef2ff; color: #4f46e5; padding: 0.5rem 1rem; border-radius: 50px; font-weight: 700; font-size: 0.9rem; border: 1px solid #c7d2fe; }
+
+.grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
+.stat-card { background: white; border-radius: 20px; padding: 1.5rem; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
+.stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.08); }
+.stat-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem; }
+.stat-icon img { width: 24px; height: 24px; object-fit: contain; }
+.stat-label { font-size: 0.85rem; color: #6b7280; font-weight: 600; display: block; margin-bottom: 0.3rem; }
+.stat-value { font-size: 1.8rem; font-weight: 800; color: #1f2937; margin: 0; font-family: 'Inconsolata', monospace; }
+.stat-trend { font-size: 0.75rem; margin-top: auto; padding-top: 1rem; color: #9ca3af; font-weight: 500; }
+
+.stat-card.digital .stat-icon { background: #eff6ff; color: #3b82f6; } .stat-card.digital { border-bottom: 4px solid #3b82f6; }
+.stat-card.card .stat-icon { background: #fdf4ff; color: #d946ef; } .stat-card.card { border-bottom: 4px solid #d946ef; }
+.stat-card.danger .stat-icon { background: #fef2f2; color: #ef4444; } .stat-card.danger .stat-value { color: #ef4444; text-decoration: line-through; } .stat-card.danger { border-bottom: 4px solid #ef4444; background: #fffcfc; }
+.stat-card.total-highlight { background: linear-gradient(135deg, #111827 0%, #374151 100%); color: white; grid-column: span 1; border: none; }
+.stat-card.total-highlight .stat-icon { background: rgba(255,255,255,0.2); color: white; }
+.stat-card.total-highlight .stat-label { color: rgba(255,255,255,0.7); }
+.stat-card.total-highlight .stat-value-big { font-size: 2.2rem; font-weight: 900; color: #10b981; margin: 0; text-shadow: 0 2px 10px rgba(16, 185, 129, 0.3); }
+
+.area-accion-final { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+.ticket-preview-wrapper { background: #e5e7eb; padding: 1rem; border-radius: 16px; display: flex; flex-direction: column; align-items: center; }
+.ticket-visual-header { font-size: 0.8rem; text-transform: uppercase; color: #6b7280; margin-bottom: 1rem; font-weight: 700; letter-spacing: 1px; }
+
+.ticket-paper { background: #fff; width: 300px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #000; position: relative; mask-image: radial-gradient(circle at bottom, transparent 6px, black 6.5px); mask-size: 20px 100%; mask-position: bottom; mask-repeat: repeat-x; padding-bottom: 30px; }
+.ticket-header { text-align: center; }
+.ticket-header h3 { margin: 5px 0; font-size: 16px; }
+.ticket-header h4 { border: 2px solid #000; display: inline-block; padding: 4px 8px; margin: 10px 0; font-weight: 800; }
+.ticket-meta p { margin: 2px 0; display: flex; justify-content: space-between; }
+.separator-dashed { border-top: 1px dashed #000; margin: 8px 0; }
+.separator-solid { border-top: 2px solid #000; margin: 8px 0; }
+.fila-ticket { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.fila-ticket.total { font-weight: 900; font-size: 16px; margin-top: 5px; }
+.fila-ticket.danger span { color: #dc2626; } 
+.ticket-footer { text-align: center; margin-top: 15px; font-size: 10px; font-style: italic; }
+
+.btn-cerrar-caja-pro { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 1.5rem; border-radius: 16px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; min-height: 200px; }
+.btn-cerrar-caja-pro:hover { transform: translateY(-5px); box-shadow: 0 20px 35px rgba(16, 185, 129, 0.5); filter: brightness(1.1); }
+.btn-cerrar-caja-pro .icon-btn { font-size: 3rem; }

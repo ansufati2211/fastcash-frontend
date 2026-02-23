@@ -103,8 +103,11 @@ window.cargarDatosCierre = function() {
         }).catch(err => console.error("Error al cargar la previsualización del cierre:", err));
 }
 
+// ==========================================
+// 1. FUNCIÓN ORIGINAL: CIERRE RESUMIDO
+// ==========================================
 window.imprimirCierre = async () => {
-    if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) return;
+    if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA (RESUMEN)?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) return;
 
     const btn = document.querySelector('.btn-imprimir-cierre');
     if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Cerrando...'; }
@@ -123,31 +126,27 @@ window.imprimirCierre = async () => {
             if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
         };
 
-        // ==========================================
-        // Llenar Datos del Ticket Visual (CORREGIDO)
-        // ==========================================
+        // Llenar Datos del Ticket Visual
         document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
         document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
         
-        // 1. Recuperamos el nombre directamente del localStorage de forma segura
         let nombreImpresion = "CAJERO";
         try {
             const sessionData = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
-            // Intentamos todas las posibles capitalizaciones
             nombreImpresion = sessionData.NombreCompleto || sessionData.nombreCompleto || sessionData.nombrecompleto || sessionData.username || "CAJERO";
-        } catch(e) { 
-            console.error("Error leyendo nombre de sesión"); 
-        }
+        } catch(e) { console.error("Error leyendo nombre de sesión"); }
 
-        // 2. Asignamos el nombre al ticket
         const elNombre = document.getElementById('ticketCajeroNombre');
         if(elNombre) elNombre.textContent = nombreImpresion.toUpperCase();
 
-        // 3. Asignamos los datos financieros
         setText('ticketYapePrint', data.VentasDigital || data.ventasdigital);
         setText('ticketTarjetaPrint', data.VentasTarjeta || data.ventastarjeta);
         setText('ticketAnuladoPrint', data.TotalAnulado || data.totalanulado); 
         setText('ticketTotalPrint', data.TotalVendido || data.totalvendido); 
+
+        // OCULTAR LA ZONA DE DETALLES PARA EL REPORTE RESUMIDO
+        const zonaDetalles = document.getElementById('ticketZonaDetalles');
+        if (zonaDetalles) zonaDetalles.style.display = 'none';
 
         // Cerrar en Backend
         const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
@@ -158,10 +157,9 @@ window.imprimirCierre = async () => {
 
         if(!resCierre.ok) {
             const err = await resCierre.json();
-            throw new Error(err.Mensaje || "Error al cerrar la caja en el sistema.");
+            throw new Error(err.Mensaje || err.error || "Error al cerrar la caja en el sistema.");
         }
 
-        // Imprimir y salir
         setTimeout(() => {
             window.print(); 
             mostrarNotificacion(" CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
@@ -172,6 +170,123 @@ window.imprimirCierre = async () => {
     } catch (error) {
         console.error(error);
         mostrarNotificacion(" ERROR CRÍTICO: " + error.message, 'error');
-        if(btn) { btn.disabled = false; btn.innerHTML = '🖨️ CERRAR CAJA E IMPRIMIR'; }
+        if(btn) { btn.disabled = false; btn.innerHTML = '🖨️ CERRAR CAJA (RESUMEN)'; }
+    }
+};
+
+// ==========================================
+// FUNCIÓN: CIERRE DETALLADO (3 COLUMNAS TICKET)
+// ==========================================
+window.imprimirCierreDetallado = async () => {
+    if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA (DETALLADO)?\n\nEsta acción finalizará tu turno, imprimirá el ticket con el detalle de las ventas y cerrará tu sesión.")) return;
+
+    const btn = document.querySelector('.btn-imprimir-cierre-detallado');
+    if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Procesando...'; }
+
+    try {
+        // 1. Obtener Totales y Detalles
+        const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        
+        const resDetalle = await fetch(`${BASE_URL}/reportes/cierre-detalle/${USUARIO_ID}`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+
+        if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
+        
+        const data = await resReporte.json(); 
+        const detalles = resDetalle.ok ? await resDetalle.json() : []; 
+        const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
+
+        const setText = (id, valor) => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
+        };
+
+        // 2. Llenar Datos Generales del Ticket
+        document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
+        document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
+        
+        let nombreImpresion = "CAJERO";
+        try {
+            const sessionData = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
+            nombreImpresion = sessionData.NombreCompleto || sessionData.nombreCompleto || sessionData.nombrecompleto || sessionData.username || "CAJERO";
+        } catch(e) { console.error("Error leyendo nombre de sesión"); }
+
+        const elNombre = document.getElementById('ticketCajeroNombre');
+        if(elNombre) elNombre.textContent = nombreImpresion.toUpperCase();
+
+        setText('ticketYapePrint', data.VentasDigital || data.ventasdigital);
+        setText('ticketTarjetaPrint', data.VentasTarjeta || data.ventastarjeta);
+        setText('ticketAnuladoPrint', data.TotalAnulado || data.totalanulado); 
+        setText('ticketTotalPrint', data.TotalVendido || data.totalvendido); 
+
+        // 3. Llenar la Tabla de 3 Columnas
+        const zonaDetalles = document.getElementById('ticketZonaDetalles');
+        const tbodyDetalles = document.getElementById('ticketTablaDetalles');
+        
+        if (zonaDetalles && tbodyDetalles) {
+            zonaDetalles.style.display = 'block'; 
+            tbodyDetalles.innerHTML = '';
+            
+            if (detalles.length === 0) {
+                tbodyDetalles.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 5px 0;">Sin transacciones</td></tr>';
+            } else {
+                detalles.forEach(d => {
+                    const fechaStr = d.fechaemision || d.FechaEmision;
+                    const formaPago = (d.formapago || d.FormaPago || '').toUpperCase();
+                    const entidad = (d.entidadbancaria || d.EntidadBancaria || '-').toUpperCase();
+                    const numOp = d.numerooperacion || d.NumeroOperacion || '-';
+                    const monto = parseFloat(d.montopagado || d.MontoPagado || 0).toFixed(2);
+                    
+                    const horaFormateada = new Date(fechaStr).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+                    // LOGICA PARA COMPRIMIR LA COLUMNA CENTRAL (OP/REF)
+                    let infoOperacion = '';
+                    if (formaPago === 'EFECTIVO') {
+                        infoOperacion = 'EFECTIVO';
+                    } else {
+                        // Si es Tarjeta usamos el banco (ej. VISA), si es digital usamos la forma de pago (ej. YAPE)
+                        let prefijo = (formaPago === 'TARJETA' && entidad !== '-') ? entidad : formaPago;
+                        infoOperacion = `${prefijo}: ${numOp}`;
+                    }
+
+                    // vertical-align: top asegura alineación perfecta en ticketera térmica
+                    tbodyDetalles.innerHTML += `
+                        <tr>
+                            <td style="padding: 2px 0; vertical-align: top;">${horaFormateada}</td>
+                            <td style="padding: 2px 2px; word-break: break-all; vertical-align: top;">${infoOperacion}</td>
+                            <td style="padding: 2px 0; text-align: right; vertical-align: top;">S/ ${monto}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // 4. Cerrar en Backend
+        const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+            body: JSON.stringify({ usuarioID: parseInt(USUARIO_ID), saldoFinalReal: saldoFinalEsperado })
+        });
+
+        if(!resCierre.ok) {
+            const err = await resCierre.json();
+            throw new Error(err.Mensaje || err.error || "Error al cerrar la caja en el sistema.");
+        }
+
+        // 5. Imprimir y salir
+        setTimeout(() => {
+            window.print(); 
+            mostrarNotificacion(" CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");
+            localStorage.removeItem('usuarioSesion');
+            window.location.href = '../html/login.html'; 
+        }, 800);
+
+    } catch (error) {
+        console.error(error);
+        mostrarNotificacion(" ERROR CRÍTICO: " + error.message, 'error');
+        if(btn) { btn.disabled = false; btn.innerHTML = '<span class="icon-btn">🧾</span> <span>CERRAR CAJA (DETALLADO)</span>'; }
     }
 };

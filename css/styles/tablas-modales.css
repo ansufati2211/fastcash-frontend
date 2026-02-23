@@ -1,0 +1,50 @@
+/* Contenedores de tabla */
+.contenedor-tabla-registro { background: white; padding: 2rem; border-radius: var(--radio-xl); box-shadow: var(--sombra-lg); border: 1px solid rgba(0,0,0,0.05); height: 100%; display: flex; flex-direction: column; }
+.cabecera-tabla { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem; }
+.titulo-seccion h2 { color: var(--color-primario); font-size: 1.5rem; margin-bottom: 0.2rem; }
+.titulo-seccion p { color: var(--texto-secundario); font-size: 0.9rem; }
+.tabla-responsive { overflow-x: auto; flex: 1; }
+
+/* Tabla Transacciones */
+.tabla-transacciones { width: 100%; border-collapse: collapse; min-width: 800px; }
+.tabla-transacciones th { text-align: left; padding: 1rem; color: var(--texto-secundario); font-weight: 600; font-size: 0.85rem; border-bottom: 2px solid var(--color-fondo-app); text-transform: uppercase; letter-spacing: 0.5px; }
+.tabla-transacciones td { padding: 1rem; border-bottom: 1px solid var(--color-fondo-app); color: var(--texto-principal); font-size: 0.9rem; vertical-align: middle; }
+.tabla-transacciones tbody tr:hover { background-color: #fffbfc; }
+.col-tipo { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dato-monto { font-family: "Inconsolata", monospace; font-weight: 700; font-size: 1rem; }
+
+/* Badges y Botones Tabla */
+.badge-estado { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.badge-estado.completado { background-color: #d1fae5; color: #065f46; }
+.badge-estado.anulado { background-color: #fee2e2; color: #991b1b; }
+
+.btn-tabla-anular { background-color: white; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1); }
+.btn-tabla-anular:hover { background-color: #ef4444; color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+.btn-tabla-anular:active { transform: scale(0.98); }
+.btn-tabla-anular:disabled { border-color: #e5e7eb; color: #9ca3af; background-color: #f9fafb; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-accion-tabla { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease; background-color: #f3f4f6; color: #4b5563; }
+.btn-accion-tabla.editar { background-color: #ffffff; color: #2563eb; border: 1px solid #bfdbfe; }
+.btn-accion-tabla.editar:hover { background-color: #3b82f6; color: white; transform: translateY(-2px); box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3); }
+.btn-accion-tabla.eliminar { background-color: #fdfdfd; color: #dc2626; border: 1px solid #fecaca; }
+.btn-accion-tabla.eliminar:hover { background-color: #ef4444; color: white; transform: translateY(-2px); box-shadow: 0 2px 5px rgba(220, 38, 38, 0.3); }
+
+/* Modales */
+.modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); overflow: auto; }
+.modal.mostrar { display: flex !important; justify-content: center; align-items: center; }
+.modal-contenido-bonito { background-color: white; margin: 5% auto; width: 90%; max-width: 450px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: aparecerEscala 0.3s ease; border: 1px solid rgba(0,0,0,0.1); }
+.modal-header { padding: 1.5rem; background: #f9fafb; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { font-size: 1.25rem; color: var(--texto-principal); margin: 0; }
+.cerrar-modal { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+.cerrar-modal:hover { color: black; }
+
+#formUsuario, #form-admin { padding: 1.5rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--texto-secundario); font-weight: 600; }
+.form-group input, .input-select-modal { width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.2s; }
+.form-group input:focus, .input-select-modal:focus { outline: none; border-color: var(--color-primario); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+.btn-cancelar { padding: 0.75rem 1.5rem; background: white; border: 1px solid #ddd; color: var(--texto-principal); border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn-guardar { padding: 0.75rem 1.5rem; background: var(--color-primario); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn-guardar:hover { background: var(--color-secundario); }

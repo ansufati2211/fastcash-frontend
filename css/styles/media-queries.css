@@ -1,0 +1,78 @@
+/* RESPONSIVE MÓVIL (Celulares y Tablets Verticales) */
+@media (max-width: 768px) {
+    .header-sistema { height: 60px; padding: 0 1.25rem; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255, 255, 255, 0.98); }
+    .header-izquierda { gap: 0.75rem; }
+    .logo-sistema { height: 32px; }
+    .info-usuario { display: none; }
+    .btn-cerrar-sesion, .btn-abrir-caja { min-width: auto !important; padding: 0.4rem 0.8rem !important; height: 34px !important; font-size: 0.8rem !important; }
+    .btn-cerrar-sesion span:not(.icono-btn) { display: none; } 
+
+    .contenedor-principal { margin-top: 60px; height: calc(100vh - 60px); }
+    .sidebar { position: fixed; left: -100%; top: 60px; height: calc(100dvh - 60px); width: 260px; z-index: 999; transition: left 0.3s ease; padding: 1rem; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
+    .sidebar.mobile-open { left: 0; }
+
+    .area-trabajo { padding: 1rem; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; overflow-x: hidden; }
+    .vista-seccion { width: 100%; max-width: 100%; }
+
+    .layout-split { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
+    .panel-seleccion { padding: 1.5rem; width: 100%; border-right: none; border-bottom: 1px solid #f0f0f0; }
+    .panel-transaccion { padding: 1.5rem; width: 100%; }
+    .grid-familias-moderna { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+
+    .selector-bancos { flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
+    .chip-banco { flex: 1 1 auto; min-width: 80px; padding: 8px 10px; font-size: 0.75rem; }
+    .selector-bancos.wrap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+
+    .cabecera-tabla { flex-direction: column; align-items: stretch; gap: 1rem; }
+    .controles-derecha { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    #wrapperFiltroHistorial { flex-grow: 1; margin: 0; }
+    #filtroUsuarioHistorial { width: 100%; }
+    .btn-refresh-moderno { flex-shrink: 0; }
+
+    .contenedor-tabla-registro { padding: 1rem; }
+    .tabla-responsive { width: 100%; overflow-x: auto; display: block; }
+    .tabla-transacciones { min-width: 600px; }
+
+    .grid-graficos { display: flex !important; flex-direction: column !important; gap: 20px !important; height: auto !important; }
+    .card-grafico { width: 100% !important; min-height: 300px !important; margin: 0 !important; flex: none !important; }
+    .canvas-wrapper { height: 250px !important; width: 100% !important; }
+
+    .area-accion-final { grid-template-columns: 1fr; }
+    .btn-cerrar-caja-pro { min-height: auto; padding: 1.2rem; flex-direction: row; }
+    .ticket-paper { width: 100%; }
+
+    .modal { padding: 0; align-items: flex-end; }
+    .modal-contenido-bonito { width: 100%; margin: 0; border-radius: 20px 20px 0 0; max-height: 85vh; }
+    .modal-footer { flex-direction: column-reverse; }
+    .btn-guardar, .btn-cancelar { width: 100%; padding: 1rem; margin: 0; }
+
+    #vista-admin-maestros .admin-container { padding: 10px !important; width: 100% !important; max-width: 100% !important; overflow: hidden; box-sizing: border-box; }
+    #admin-workspace > div:first-child { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; margin-bottom: 15px !important; }
+    #admin-workspace button.btn-nuevo-usuario { width: 100% !important; justify-content: center !important; }
+    #vista-admin-maestros .tabla-responsive { display: block !important; width: 100% !important; max-width: 88vw !important; margin: 0 auto; overflow-x: auto !important; -webkit-overflow-scrolling: touch; border: 1px solid #f0f0f0; border-radius: 8px; }
+    #vista-admin-maestros .tabla-datos { width: 100% !important; min-width: 700px !important; table-layout: auto !important; }
+}
+
+/* ESTILOS DE IMPRESIÓN */
+.ticket-oculto { display: none; }
+
+@media print {
+    @page { margin: 0; size: auto; }
+    html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; overflow: hidden !important; background: #fff !important; }
+    body * { visibility: hidden; height: 0; }
+    
+    #ticketImpresion, #ticketImpresion * { visibility: visible !important; height: auto !important; }
+    
+    #ticketImpresion {
+        display: block !important; position: fixed !important; left: 0 !important; top: 0 !important;
+        width: 100% !important; margin: 0 !important; padding: 5px !important;
+        background-color: white !important; color: black !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 12px !important; text-align: center;
+        box-shadow: none !important; mask-image: none !important;
+    }
+    
+    #areaImpresion, #areaImpresion * { visibility: visible; }
+    #areaImpresion { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+    .btn, .sidebar, .header { display: none !important; }
+}

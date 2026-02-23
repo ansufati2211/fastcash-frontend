@@ -1,193 +1,197 @@
 :root {
-    --color-primario: #ff003c;
-    --color-primario-dark: #cc0030;
+    --color-primario: #E60023; /* Rojo característico */
+    --color-primario-dark: #cc001f;
     --color-fondo-dark: #0f0f12;
-    --color-glass: rgba(20, 20, 23, 0.7);
+    --color-glass: rgba(20, 20, 23, 0.85); /* Fondo oscuro semitransparente para el form */
     --color-border: rgba(255, 255, 255, 0.1);
+    
     --text-main: #ffffff;
     --text-muted: #a1a1aa;
-    --font-main: 'Inter', sans-serif;
-    --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    
+    --font-main: "Merriweather Sans", sans-serif !important;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: var(--font-main);
     background-color: var(--color-fondo-dark);
     height: 100vh;
+    width: 100vw;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    position: relative;
+    overflow: hidden; /* Evita cualquier barra de desplazamiento */
+    /* Quitamos el padding para que ocupe el 100% */
 }
 
-/* --- FONDO ANIMADO --- */
-.fondo-animado {
-    position: absolute;
+/* --- CONTENEDOR PRINCIPAL (100% Pantalla) --- */
+.contenedor-login {
     width: 100%;
     height: 100%;
-    z-index: 0;
-    overflow: hidden;
-}
-
-.circulo {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.4;
-    animation: flotar 10s infinite alternate;
-}
-
-.c1 {
-    width: 400px;
-    height: 400px;
-    background: var(--color-primario);
-    top: -100px;
-    left: -100px;
-}
-
-.c2 {
-    width: 300px;
-    height: 300px;
-    background: #700020;
-    bottom: -50px;
-    right: -50px;
-    animation-delay: -5s;
-}
-
-@keyframes flotar {
-    from { transform: translate(0, 0); }
-    to { transform: translate(30px, 50px); }
-}
-
-/* --- CONTENEDOR PRINCIPAL --- */
-.contenedor-login {
-    position: relative;
-    z-index: 10;
-    width: 1000px;
-    height: 650px;
-    background: rgba(30, 30, 35, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--color-border);
-    border-radius: 24px;
     display: flex;
-    box-shadow: var(--shadow-soft);
-    overflow: hidden;
+    /* Sin border-radius, sin box-shadow, ocupa todo */
 }
 
-/* --- PANEL IZQUIERDO --- */
+/* =========================================
+   PANEL IZQUIERDO (Imagen Full Cover)
+   ========================================= */
 .panel-izquierdo {
-    flex: 1.2;
-    background: linear-gradient(135deg, rgba(255,0,60,0.1) 0%, rgba(0,0,0,0) 100%);
-    padding: 3rem;
+    flex: 1.5; /* Ocupa un poco más de espacio que el formulario */
+    position: relative;
+    /* REEMPLAZA ESTA URL con tu foto */
+    background-image: url('https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1000&auto=format&fit=crop'); 
+    background-size: cover;
+    background-position: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    border-right: 1px solid var(--color-border);
-    position: relative;
+    padding: 5rem;
+    color: white;
 }
 
-.contenido-glass {
-    position: relative;
-    z-index: 2;
+/* Capa oscura translúcida encima de la foto (Filtro Rojo/Negro) */
+.overlay-gradiente {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(15, 15, 18, 0.9) 0%, rgba(230, 0, 35, 0.6) 100%);
+    z-index: 1;
 }
 
+.contenido-panel-izquierdo {
+    position: relative;
+    z-index: 2; 
+}
+
+/* Textos Branding */
 .branding h1 {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1rem;
-    color: var(--text-main);
+    letter-spacing: -1px;
 }
 
 .branding h1 span {
-    color: var(--color-primario);
+    color: var(--color-primario); 
 }
 
 .branding p {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    margin-bottom: 3rem;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 4rem;
+    max-width: 90%;
+    line-height: 1.5;
 }
 
+/* Lista de Características */
 .features-list {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .feature {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .icon-box {
-    width: 45px;
-    height: 45px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    width: 55px;
+    height: 55px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-primario);
-    font-size: 1.2rem;
-    border: 1px solid var(--color-border);
+    font-size: 1.5rem;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .feature h4 {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-main);
+    margin-bottom: 0.3rem;
 }
 
 .feature small {
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
 }
 
-/* --- PANEL DERECHO --- */
+/* =========================================
+   PANEL DERECHO (Formulario Dark Mode)
+   ========================================= */
 .panel-derecho {
-    flex: 1;
+    flex: 1.2; /* Aumentamos el flex para que tome más porción de la pantalla */
+    min-width: 500px; 
+    max-width: 600px; 
     padding: 3rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(20, 20, 23, 0.4);
+    background-color: var(--color-fondo-dark); 
+    position: relative;
+    border-left: 1px solid var(--color-border);
+}
+
+.panel-derecho::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+    background: var(--color-primario);
+    border-radius: 50%;
+    filter: blur(150px);
+    opacity: 0.15;
+    pointer-events: none;
 }
 
 .form-wrapper {
     width: 100%;
-    max-width: 360px;
+    max-width: 440px; /* Ensanchamos el cuadro negro de cristal (antes 380) */
+    position: relative;
+    z-index: 2;
+    background: var(--color-glass);
+    padding: 3rem 2.5rem; /* Más espacio interno (arriba/abajo y a los lados) */
+    border-radius: 20px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
+/* Cabecera Form */
 .header-form {
     text-align: center;
     margin-bottom: 2.5rem;
 }
 
 .logo-login {
-    height: 80px;
+    height: 70px;
     width: auto;
-    margin-bottom: 1rem;
-    filter: drop-shadow(0 0 10px rgba(255, 0, 60, 0.3));
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 0 10px rgba(230, 0, 35, 0.4));
 }
 
 .header-form h2 {
     font-size: 1.8rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-main);
+    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
 }
 
 .header-form p {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
-/* INPUTS */
+/* Inputs Estilo Dark */
 .input-group {
     margin-bottom: 1.5rem;
 }
@@ -196,7 +200,7 @@ body {
     display: block;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-main); 
     margin-bottom: 0.5rem;
 }
 
@@ -208,7 +212,7 @@ body {
 
 .input-icon {
     position: absolute;
-    left: 15px;
+    left: 16px;
     color: var(--text-muted);
     font-size: 1rem;
     transition: color 0.3s;
@@ -216,115 +220,56 @@ body {
 
 .input-field input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.05); 
     border: 1px solid var(--color-border);
-    padding: 12px 40px 12px 45px; /* Espacio para iconos */
+    padding: 14px 40px 14px 45px;
     border-radius: 12px;
-    color: var(--text-main);
+    color: var(--text-main); 
     font-size: 1rem;
+    font-family: var(--font-main);
     outline: none;
     transition: all 0.3s ease;
 }
 
+/* Focus de los inputs */
 .input-field input:focus {
+    background-color: rgba(255, 255, 255, 0.08);
     border-color: var(--color-primario);
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 4px rgba(255, 0, 60, 0.1);
+    box-shadow: 0 0 0 4px rgba(230, 0, 35, 0.15);
 }
 
 .input-field input:focus + .input-icon {
     color: var(--color-primario);
 }
 
+/* Icono Ojo */
 .toggle-pass {
     position: absolute;
-    right: 15px;
+    right: 16px;
     color: var(--text-muted);
     cursor: pointer;
+    font-size: 1rem;
     transition: color 0.3s;
 }
 
-.toggle-pass:hover {
-    color: var(--text-main);
-}
+.toggle-pass:hover { color: var(--text-main); }
 
-/* BOTÓN */
-.btn-login {
-    width: 100%;
-    padding: 14px;
-    background: var(--color-primario);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-top: 1rem;
-}
 
-.btn-login:hover {
-    background: var(--color-primario-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(255, 0, 60, 0.2);
-}
-
-.btn-login:active {
-    transform: translateY(0);
-}
-
-.footer-form {
-    margin-top: 2rem;
-    text-align: center;
-}
-
-.footer-form p {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.2);
-}
-
-/* RESPONSIVE MÓVIL */
-@media (max-width: 900px) {
-    .contenedor-login {
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
-        border: none;
-    }
-    
-    .panel-izquierdo {
-        display: none; /* Ocultamos info en móvil */
-    }
-
-    .panel-derecho {
-        background: transparent;
-        padding: 2rem;
-    }
-
-    .logo-login {
-        height: 100px; /* Logo más grande en móvil */
-    }
-}
-/* --- OPCIONES DE LOGIN (RECORDAR SESIÓN) --- */
+/* Checkbox Recordar (Dark Mode) */
 .options-login {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    margin-bottom: 1.5rem;
-    margin-top: -0.5rem;
+    margin-bottom: 2rem;
 }
 
-/* Estilo del Label */
 .remember-me {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 0.85rem;
     color: var(--text-muted);
+    font-weight: 500;
     cursor: pointer;
     user-select: none;
     transition: color 0.3s;
@@ -334,52 +279,105 @@ body {
     color: var(--text-main);
 }
 
-/* Ocultar el checkbox nativo feo */
 .remember-me input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
-    height: 0;
-    width: 0;
+    height: 0; width: 0;
 }
 
-/* Crear checkbox personalizado */
 .checkmark {
-    position: relative;
-    height: 18px;
-    width: 18px;
+    height: 18px; width: 18px;
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--color-border);
     border-radius: 4px;
+    position: relative;
     transition: all 0.2s ease;
 }
 
-/* Hover del checkbox */
-.remember-me:hover input ~ .checkmark {
-    border-color: var(--color-primario);
-}
-
-/* Estado Checkeado */
 .remember-me input:checked ~ .checkmark {
     background-color: var(--color-primario);
     border-color: var(--color-primario);
-    box-shadow: 0 0 10px rgba(255, 0, 60, 0.4);
 }
 
-/* El check (tick) iconografía */
 .checkmark:after {
     content: "";
     position: absolute;
     display: none;
-    left: 5px;
-    top: 2px;
-    width: 4px;
-    height: 8px;
+    left: 5px; top: 2px;
+    width: 4px; height: 8px;
     border: solid white;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
-.remember-me input:checked ~ .checkmark:after {
-    display: block;
+.remember-me input:checked ~ .checkmark:after { display: block; }
+
+
+/* Botón Ingresar */
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--color-primario);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-main);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(230, 0, 35, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-login:hover {
+    background-color: var(--color-primario-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(230, 0, 35, 0.4);
+}
+
+.btn-login:active { transform: translateY(0); }
+
+/* Footer */
+.footer-form {
+    margin-top: 2rem;
+    text-align: center;
+    width: 100%;
+}
+
+.footer-form p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* =========================================
+   RESPONSIVE MÓVIL
+   ========================================= */
+@media (max-width: 900px) {
+    .contenedor-login {
+        flex-direction: column;
+    }
+    
+    .panel-izquierdo {
+        display: none; /* Ocultamos la foto en celulares */
+    }
+
+    .panel-derecho {
+        flex: 1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        border-left: none;
+    }
+    
+    .form-wrapper {
+        box-shadow: none;
+        border: none;
+        background: transparent;
+        padding: 1rem;
+    }
 }
