@@ -16,15 +16,12 @@
 </head>
 <body>
     
-    <div class="fondo-animado">
-        <div class="circulo c1"></div>
-        <div class="circulo c2"></div>
-    </div>
-
     <div class="contenedor-login">
         
         <div class="panel-izquierdo">
-            <div class="contenido-glass">
+            <div class="overlay-gradiente"></div>
+            
+            <div class="contenido-panel-izquierdo">
                 <div class="branding">
                     <h1>Sistema de Gestión<br><span>Comercial</span></h1>
                     <p>Control integral de ventas, inventarios y finanzas.</p>
@@ -58,10 +55,11 @@
 
         <div class="panel-derecho">
             <div class="form-wrapper">
+                
                 <div class="header-form">
                     <img src="/img/img/LogoYapeRojas.png" class="logo-login" alt="Logo Rojas">
                     <h2>Bienvenido</h2>
-                    <p>Ingrese sus credenciales autorizadas</p>
+                    <p>Ingresa tus credenciales para acceder</p>
                 </div>
 
                 <form id="formularioLogin" autocomplete="off">
@@ -81,13 +79,14 @@
                             <i class="far fa-eye toggle-pass" id="btnTogglePass" title="Ver contraseña"></i>
                         </div>
                     </div>
+                    
                     <div class="options-login">
-    <label class="remember-me">
-        <input type="checkbox" id="chkRemember">
-        <span class="checkmark"></span>
-        Recordar mi usuario
-    </label>
-    </div>
+                        <label class="remember-me">
+                            <input type="checkbox" id="chkRemember">
+                            <span class="checkmark"></span>
+                            Recordar mi usuario
+                        </label>
+                    </div>
 
                     <button type="submit" class="btn-login">
                         <span>Ingresar al Sistema</span>
@@ -96,10 +95,12 @@
                 </form>
 
                 <div class="footer-form">
-                    <p>© 2026 Rojas Market S.A.C. Todos los derechos reservados.</p>
+                    <p>© 2026 Rojas Super S.A.C. Todos los derechos reservados.</p>
                 </div>
+                
             </div>
         </div>
+        
     </div>
 
     <script src="/js/login.js"></script>
