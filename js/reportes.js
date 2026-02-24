@@ -261,8 +261,30 @@ window.generarReporte = async (tipo) => {
         }
         ws['!cols'] = colWidths;
 
-        XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-        XLSX.writeFile(wb, `Reporte_Rojas_${tipo}_${inicio}.xlsx`);
+XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+            
+            // --- LÓGICA DE NOMBRE DEL ARCHIVO CON FECHAS (FORMATO YYYY-MM-DD) ---
+            // 1. Obtener la fecha de hoy asegurando el formato Año-Mes-Día
+            const hoy = new Date();
+            const year = hoy.getFullYear();
+            const month = String(hoy.getMonth() + 1).padStart(2, '0'); // +1 porque los meses van de 0 a 11
+            const day = String(hoy.getDate()).padStart(2, '0');
+            let fechaHoyFormato = `${year}-${month}-${day}`; 
+            
+            let nombreExportacion = `Reporte_${tipo}_${fechaHoyFormato}.xlsx`;
+
+            if (inicio !== 'Hoy' && fin !== 'Hoy') {
+                if (inicio === fin) {
+                    // Si es un solo día específico
+                    nombreExportacion = `Reporte_${tipo}_${inicio}.xlsx`;
+                } else {
+                    // Si es un rango de fechas
+                    nombreExportacion = `Reporte_${tipo}_${inicio}_al_${fin}.xlsx`;
+                }
+            }
+
+            // Descargar con el nuevo nombre
+            XLSX.writeFile(wb, nombreExportacion);
 
         if(btn) { btn.innerHTML = '<span></span> ¡Listo!'; setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000); }
 

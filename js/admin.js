@@ -314,3 +314,33 @@ async function guardarMaestro(e) {
         else { mostrarNotificacion('No se pudo guardar.', 'error'); }
     } catch (error) { console.error(error); }
 }
+// ==========================================
+// FUNCIÓN GLOBAL PARA MOSTRAR SECCIÓN ADMIN
+// (Colocada fuera del DOMContentLoaded para evitar ReferenceError)
+// ==========================================
+window.mostrarSeccionAdmin = function() {
+    // Quitar clase activo de todos los menús
+    document.querySelectorAll('.item-menu').forEach(i => i.classList.remove('activo'));
+    
+    // Poner clase activo al botón admin
+    const btnAdmin = document.getElementById('btn-nav-admin');
+    if(btnAdmin) btnAdmin.classList.add('activo');
+    
+    // Ocultar todas las vistas
+    document.querySelectorAll('.vista-seccion').forEach(v => {
+        v.style.display = 'none';
+        v.classList.remove('activa');
+    });
+    
+    // Mostrar solo la vista de administración
+    const vistaAdmin = document.getElementById('vista-admin-maestros');
+    if (vistaAdmin) {
+        vistaAdmin.style.display = 'block';
+        setTimeout(() => vistaAdmin.classList.add('activa'), 10);
+    }
+    
+    // Cargar datos por defecto al entrar
+    if (typeof window.cargarAdminCategorias === 'function') {
+        window.cargarAdminCategorias();
+    }
+};
