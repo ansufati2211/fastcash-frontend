@@ -65,7 +65,7 @@ window.cargarHistorial = async function() {
 
                 let badgeTipo = '💵 EFECTIVO';
                 if (formaPagoStr === 'QR' || formaPagoStr === 'YAPE' || formaPagoStr === 'PLIN') {
-                    badgeTipo = '📱 BILLETERA DIGITAL';
+                    badgeTipo = '📱 YAPE';
                 } else if (formaPagoStr === 'TARJETA') {
                     badgeTipo = '💳 TARJETA';
                 } else if (formaPagoStr !== '') {
