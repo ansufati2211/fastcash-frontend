@@ -1,37 +1,38 @@
 :root {
-    --color-primario: #ff003c;
-    --color-secundario: #d90429;
+    --color-primario: #E60023; 
+    --color-secundario: #111827;
     --color-acento: #ff4d6d;
-    --color-fondo-app: #f5f5f7;
-    --color-glass: rgba(255, 255, 255, 0.7);
-    --color-sidebar-inicio: #ff003c;
-    --color-sidebar-fin: #b00020;
-    --color-header: rgba(255, 255, 255, 0.85);
     
-    --texto-principal: #1d1d1f;
-    --texto-secundario: #6e6e73;
-    --texto-terciario: #86868b;
+    /* Fondos */
+    --color-fondo-app: #f9fafb; 
+    --color-sidebar-bg: #111827; 
+    --color-header: #ffffff;
+    
+    /* Textos */
+    --texto-principal: #1f2937;
+    --texto-secundario: #6b7280;
+    --texto-terciario: #9ca3af;
     --texto-blanco: #ffffff;
     
-    --sombra-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-    --sombra-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-    --sombra-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-    --sombra-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
-    --sombra-primaria-hover: 0 12px 40px rgba(255, 0, 60, 0.4);
+    /* Sombras y bordes */
+    --sombra-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --sombra-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --sombra-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --border-color: #e5e7eb;
     
     --alto-header: 70px;
-    --ancho-sidebar: 280px;
+    --ancho-sidebar: 270px;
     --ancho-sidebar-colapsado: 80px;
     --radio-md: 16px;
     --radio-full: 9999px;
     --radio-xl: 24px;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: "Merriweather Sans", sans-serif, 'Segoe UI', Roboto, sans-serif; }
 
 body {
     background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
-    color: var(--texto-principal); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    color: var(--texto-principal); height: 100vh; display: flex; flex-direction: row; overflow: hidden;
 }
 
 /* Animaciones */

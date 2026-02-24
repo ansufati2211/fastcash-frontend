@@ -7,7 +7,7 @@
     <title>Sistema de Caja - Rojas Super</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
@@ -27,198 +27,206 @@
 </head>
 <body>
 
-    <header class="header-sistema">
-        <div class="header-izquierda">
-            <button class="btn-hamburguesa" id="btnToggleMenu" aria-label="Menú">
-                <span class="linea linea-1"></span>
-                <span class="linea linea-2"></span>
-                <span class="linea linea-3"></span>
-            </button>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
             <div class="logo-contenedor">
                 <img src="/img/img/LogoYapeRojas.png" class="logo-sistema" alt="Rojas Super">
             </div>
+            
+            <div class="perfil-caja">
+                <div class="avatar-placeholder">
+                    <img src="/img/icon/mujer.png" alt="Foto" id="fotoPerfilUsuario" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                </div>
+                
+                <div class="info-usuario-sidebar">
+                    <span class="nombre-cajero" id="nombreUsuarioSidebar">Cargando...</span>
+                    <span class="rol-cajero" id="rolUsuarioSidebar">...</span> 
+                </div>
+            </div>
         </div>
 
-        <div class="header-derecha">
-            <div class="info-usuario">
-                <span class="nombre-cajero">Cargando...</span>
-                <span class="turno-actual fecha-hora-reloj">--:--</span>
+        <ul class="lista-menu">
+            <li class="titulo-seccion-menu">OPERACIONES</li>
+            <li class="item-menu activo" data-target="vista-yape">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/codigo-qr-icon.png" class="icon-foto"></div>
+                    <span class="texto-menu">Venta Yape/Plin</span>
+                </a>
+            </li>
+            <li class="item-menu" data-target="vista-tarjeta">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/tarjeta-icon.png" class="icon-foto"></div>
+                    <span class="texto-menu">Venta Tarjeta</span>
+                </a>
+            </li>
+            <li class="item-menu" data-target="vista-anulacion">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/anular-icon.png" class="icon-foto"></div>
+                    <span class="texto-menu">Historial / Anular</span>
+                </a>
+            </li>
+
+            <li class="titulo-seccion-menu admin">ADMINISTRACIÓN</li>
+            
+            <li class="item-menu admin" id="btn-nav-admin" style="display: none;" data-target="vista-admin-maestros">
+                <a href="#" onclick="mostrarSeccionAdmin()"> 
+                    <div class="icono-wrapper"><img src="/img/icon/configuracion-web.png" class="icon-foto"></div>
+                    <span class="texto-menu">Configuración</span>
+                </a>
+            </li>
+            <li class="item-menu admin" data-target="vista-reportes">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/reporte-icon.png" class="icon-foto"></div>
+                    <span class="texto-menu">Reportes Excel</span>
+                </a>
+            </li>
+            <li class="item-menu admin" data-target="vista-roles">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/agregar-usuario.png" class="icon-foto"></div>
+                    <span class="texto-menu">Usuarios & Turnos</span>
+                </a>
+            </li>
+            <li class="item-menu admin" data-target="vista-financiero">
+                <a href="#">
+                    <div class="icono-wrapper"><img src="/img/icon/grafico.png" class="icon-foto"></div>
+                    <span class="texto-menu">Gráficos Dashboard</span>
+                </a>
+            </li>
+            
+            <li class="item-menu cierre" data-target="vista-cierre">
+                <a href="#" class="btn-cierre-sidebar">
+                    <div class="icono-wrapper"><img src="/img/icon/cierreTurno-icon.png" class="icon-foto"></div>
+                    <span class="texto-menu">Cierre de Caja</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="contenedor-derecho">
+        
+        <header class="header-sistema">
+            <div class="header-izquierda">
+                <button class="btn-hamburguesa" id="btnToggleMenu" aria-label="Menú">
+                    <span class="linea linea-1"></span>
+                    <span class="linea linea-2"></span>
+                    <span class="linea linea-3"></span>
+                </button>
             </div>
 
-            <button class="btn-abrir-caja" id="btnAbrirCaja" style="display: none;">
-                📥 Abrir Caja
-            </button>
-
-            <button class="btn-cerrar-sesion" id="btnCerrarSesion">
-                <span class="icono-btn">🚪</span> Salir
-            </button>
-        </div>
-    </header>
-
-    <div class="contenedor-principal">
-
-        <nav class="sidebar" id="sidebar">
-            <ul class="lista-menu">
-                <li class="titulo-seccion-menu">OPERACIONES</li>
-                <li class="item-menu activo" data-target="vista-yape">
-                    <a href="#">
-                        <div class="icono-wrapper"><img src="/img/icon/codigo-qr-icon.png" class="icon-foto"></div>
-                        <span class="texto-menu">Venta Yape/Plin</span>
-                    </a>
-                </li>
-                <li class="item-menu" data-target="vista-tarjeta">
-                    <a href="#">
-                        <div class="icono-wrapper"><img src="/img/icon/tarjeta-icon.png" class="icon-foto"></div>
-                        <span class="texto-menu">Venta Tarjeta</span>
-                    </a>
-                </li>
-                <li class="item-menu" data-target="vista-anulacion">
-                    <a href="#">
-                        <div class="icono-wrapper"><img src="/img/icon/anular-icon.png" class="icon-foto"></div>
-                        <span class="texto-menu">Historial / Anular</span>
-                    </a>
-                </li>
-
-                <li class="titulo-seccion-menu admin">ADMINISTRACIÓN</li>
-
-                <li class="item-menu admin" id="btn-nav-admin" style="display: none;"
-                    data-target="vista-admin-maestros">
-                    <a href="#" onclick="mostrarSeccionAdmin()">
-                        <div class="icono-wrapper">⚙️</div>
-                        <span class="texto-menu">Configuración</span>
-                    </a>
-                </li>
-
-                <li class="item-menu admin" data-target="vista-reportes">
-                    <a href="#">
-                        <div class="icono-wrapper"><img src="/img/icon/reporte-icon.png" class="icon-foto"></div>
-                        <span class="texto-menu">Reportes Excel</span>
-                    </a>
-                </li>
-                <li class="item-menu admin" data-target="vista-roles">
-                    <a href="#">
-                        <div class="icono-wrapper">👥</div>
-                        <span class="texto-menu">Usuarios & Turnos</span>
-                    </a>
-                </li>
-                <li class="item-menu admin" data-target="vista-financiero">
-                    <a href="#">
-                        <div class="icono-wrapper">📈</div>
-                        <span class="texto-menu">Gráficos Dashboard</span>
-                    </a>
-                </li>
-
-                <li class="item-menu cierre" data-target="vista-cierre">
-                    <a href="#">
-                        <div class="icono-wrapper"><img src="/img/icon/cierreTurno-icon.png" class="icon-foto"></div>
-                        <span class="texto-menu">Cierre de Caja</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+            <div class="header-derecha">
+                <div class="turno-info">
+                    <span class="turno-actual fecha-hora-reloj">--:--</span>
+                </div>
+                
+                <button class="btn-abrir-caja" id="btnAbrirCaja" style="display: none;">
+                    📥 Abrir Caja
+                </button>
+                <button class="btn-cerrar-sesion" id="btnCerrarSesion">
+                    <span class="icono-btn">🚪</span> Salir
+                </button>
+            </div>
+        </header>
 
         <main class="area-trabajo">
 
             <section id="vista-yape" class="vista-seccion activa">
-                <div class="contenedor-formulario-yape layout-split">
-                    <div class="panel-seleccion">
+                <div class="contenedor-ventas-pro">
+                    
+                    <div class="panel-categorias-pro">
                         <div class="cabecera-simple">
-                            <h3>🛍️ ¿Qué vendiste?</h3><span class="fecha-badge fecha-hora-reloj">--:--</span>
+                            <h3>🛍️ ¿Qué vendiste?</h3>
                         </div>
-
                         <div class="grid-familias-moderna" id="selectorFamilia">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
                         <input type="hidden" id="inputFamilia">
                     </div>
 
-                    <div class="panel-transaccion">
-                        <form id="formYape">
-                            <h2 style="color:var(--color-primario); margin-bottom: 1rem;">📱 Pago Digital</h2>
-
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="monto"
-                                    placeholder="0.00" step="0.01" required></div>
-
-                            <div class="selector-bancos" id="selectorDestino">
-                                <p style="font-size:0.8rem;">Cargando entidades...</p>
-                            </div>
-                            <input type="hidden" id="inputDestino">
-
-                            <div class="input-operacion-wrapper">
-                                <label>N° Operación</label>
-                                <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="15" required>
-                            </div>
-
-                            <div class="selector-tipo" id="selectorComprobante">
-                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-                                <button type="button" class="segmento" data-value="1">Factura</button>
-                                <button type="button" class="segmento" data-value="4">Nota</button>
-                                <input type="hidden" id="inputComprobante" value="2">
+                    <div class="panel-transaccion-pro">
+                        <form id="formYape" class="form-grid-pro">
+                            
+                            <div class="col-monto">
+                                <h2 class="titulo-pago">📱 Pago Digital</h2>
+                                <div class="input-hero">
+                                    <span class="moneda">S/</span>
+                                    <input type="number" id="monto" placeholder="0.00" step="0.01" required>
+                                </div>
+                                
+                                <div class="selector-tipo" id="selectorComprobante">
+                                    <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+                                    <button type="button" class="segmento" data-value="1">Factura</button>
+                                    <button type="button" class="segmento" data-value="4">Nota</button>
+                                    <input type="hidden" id="inputComprobante" value="2">
+                                </div>
                             </div>
 
-                            <!-- <div class="display-comprobante-wrapper">
-                                <label>Número de Boleta/Factura/Nota (Opcional)</label>
-                                <input type="text" id="txtComprobanteYape" placeholder="Ej: B001-00000000">
-                            </div> -->
-
-                            <button type="submit" class="btn-registrar-grande">CONFIRMAR VENTA <span
-                                    class="flecha">→</span></button>
+                            <div class="col-detalles">
+                                <div class="selector-bancos" id="selectorDestino">
+                                    <p style="font-size:0.8rem;">Cargando entidades...</p>
+                                </div>
+                                <input type="hidden" id="inputDestino">
+                                
+                                <div class="input-operacion-wrapper">
+                                    <label>N° Operación</label>
+                                    <input type="text" id="numOperacion" placeholder="Ej: 12345678" maxlength="15" required>
+                                </div>
+                                
+                                <button type="submit" class="btn-registrar-grande" style="background: #E60023;">CONFIRMAR VENTA</button>
+                            </div>
                         </form>
                     </div>
+
                 </div>
             </section>
 
             <section id="vista-tarjeta" class="vista-seccion">
-                <div class="contenedor-formulario-yape layout-split">
-                    <div class="panel-seleccion">
+                 <div class="contenedor-ventas-pro">
+                    
+                    <div class="panel-categorias-pro">
                         <div class="cabecera-simple">
-                            <h3>💳 Venta con Tarjeta</h3><span class="fecha-badge fecha-hora-reloj">--:--</span>
+                            <h3>💳 Venta con Tarjeta</h3>
                         </div>
-
                         <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
                         </div>
                         <input type="hidden" id="inputFamiliaTarjeta">
                     </div>
 
-                    <div class="panel-transaccion">
-                        <form id="formTarjeta">
-                            <h2 style="color:#2563eb; margin-bottom: 1rem;">💳 Pago Tarjeta</h2>
+                    <div class="panel-transaccion-pro">
+                        <form id="formTarjeta" class="form-grid-pro">
+                            
+                            <div class="col-monto">
+                                <h2 class="titulo-pago" style="color:#2563eb;">💳 Pago Tarjeta</h2>
+                                <div class="input-hero">
+                                    <span class="moneda">S/</span>
+                                    <input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required>
+                                </div>
 
-                            <div class="input-hero"><span class="moneda">S/</span><input type="number" id="montoTarjeta"
-                                    placeholder="0.00" step="0.01" required></div>
-
-                            <label class="label-separador">Banco del POS:</label>
-
-                            <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
-                                <p style="font-size:0.8rem;">Cargando bancos...</p>
-                            </div>
-                            <input type="hidden" id="inputBancoTarjeta">
-
-                            <div class="input-operacion-wrapper" style="margin-top: 1rem;">
-                                <label>N° Lote / Voucher (6 Dígitos)</label>
-                                <input type="text" id="numOperacionTarjeta" placeholder="Ej: 123456" maxlength="6"
-                                    required>
+                                <div class="selector-tipo" id="selectorComprobanteTarjeta">
+                                    <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
+                                    <button type="button" class="segmento" data-value="1">Factura</button>
+                                    <button type="button" class="segmento" data-value="4">Nota</button>
+                                    <input type="hidden" id="inputComprobanteTarjeta" value="2">
+                                </div>
                             </div>
 
-                            <div class="selector-tipo" id="selectorComprobanteTarjeta" style="margin-top: 1rem;">
-                                <button type="button" class="segmento seleccionado" data-value="2">Boleta</button>
-                                <button type="button" class="segmento" data-value="1">Factura</button>
-                                <button type="button" class="segmento" data-value="4">Nota</button>
-                                <input type="hidden" id="inputComprobanteTarjeta" value="2">
+                            <div class="col-detalles">
+                                <label class="label-separador">Banco del POS:</label>
+                                <div class="selector-bancos wrap-grid" id="selectorBancoTarjeta">
+                                    <p style="font-size:0.8rem;">Cargando bancos...</p>
+                                </div>
+                                <input type="hidden" id="inputBancoTarjeta">
+                                
+                                <div class="input-operacion-wrapper">
+                                    <label>N° Lote / Voucher (6 Dígitos)</label>
+                                    <input type="text" id="numOperacionTarjeta" placeholder="Ej: 123456" maxlength="6" required>
+                                </div>
+                                
+                                <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR TARJETA</button>
                             </div>
-
-                            <!-- <div class="display-comprobante-wrapper">
-                                <label>Número de Boleta/Factura/Nota (Opcional)</label>
-                                <input type="text" id="txtComprobanteTarjeta" placeholder="Ej: B001-00000000">
-                            </div> -->
-
-                            <div style="flex-grow: 1;"></div>
-
-                            <button type="submit" class="btn-registrar-grande" style="background: #2563eb;">PROCESAR
-                                TARJETA <span class="flecha">💳</span></button>
                         </form>
                     </div>
+
                 </div>
             </section>
 
@@ -447,7 +455,7 @@
                     <span class="stat-label">Operaciones Anuladas</span>
                     <h3 class="stat-value" id="totalAnulado">S/ 0.00</h3>
                 </div>
-                <div class="stat-trend">No suma al total</div>
+                <div class="stat-trend">Anulaciones</div>
             </div>
 
             <div class="stat-card total-highlight">

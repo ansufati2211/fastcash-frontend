@@ -170,85 +170,126 @@ let entidadActualAdmin = null, modoEdicionAdmin = false;
 
 
 window.cargarAdminCategorias = async function() {
-    entidadActualAdmin = 'CATEGORIA';
-    const workspace = document.getElementById('admin-workspace');
-    if(workspace) workspace.innerHTML = 'Cargando categorías...';
-    try {
-        const res = await fetch(`${BASE_URL}/maestros/categorias`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
-        const lista = await res.json();
-        let html = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>📦 Listado de Categorías</h3>
-                <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Categoría</button>
-            </div>
-            <table class="tabla-datos"><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>`;
-        lista.forEach(item => {
-            html += `<tr><td>${item.categoriaID}</td><td>${item.nombre}</td>
-            <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-            <td><button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td></tr>`;
-        });
-        workspace.innerHTML = html + '</tbody></table>';
-    } catch (e) { if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>'; }
-}
+        entidadActualAdmin = 'CATEGORIA';
+        const workspace = document.getElementById('admin-workspace');
+        if(workspace) workspace.innerHTML = 'Cargando categorías...';
+
+        try {
+            const res = await fetch(`${BASE_URL}/maestros/categorias`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+            const lista = await res.json();
+            
+            // CAMBIO: Se usa .btn-nuevo-registro y .tabla-transacciones
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--texto-principal);">📦 Listado de Categorías</h3>
+                    <button onclick="abrirModalCrear()" class="btn-nuevo-registro">+ Nueva Categoría</button>
+                </div>
+                <div class="tabla-responsive">
+                    <table class="tabla-transacciones">
+                        <thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+                        <tbody>`;
+            lista.forEach(item => {
+                html += `<tr>
+                        <td>${item.categoriaID}</td>
+                        <td style="font-weight:600;">${item.nombre}</td>
+                        <td>${item.activo ? '<span class="badge-estado completado">Activo</span>' : '<span class="badge-estado anulado">Inactivo</span>'}</td>
+                        <td><button onclick="abrirModalEditarCategoria(${item.categoriaID}, '${item.nombre}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td>
+                    </tr>`;
+            });
+            html += '</tbody></table></div>';
+            workspace.innerHTML = html;
+        } catch (e) { if(workspace) workspace.innerHTML = '<p class="error" style="color:red;">Error cargando datos.</p>'; }
+    }
 
 window.cargarAdminEntidades = async function() {
-    entidadActualAdmin = 'ENTIDAD';
-    const workspace = document.getElementById('admin-workspace');
-    if(workspace) workspace.innerHTML = 'Cargando entidades...';
+        entidadActualAdmin = 'ENTIDAD';
+        const workspace = document.getElementById('admin-workspace');
+        if(workspace) workspace.innerHTML = 'Cargando entidades...';
 
-    try {
-        const res = await fetch(`${BASE_URL}/maestros/entidades`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
-        const lista = await res.json();
-        let html = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>🏦 Bancos y Billeteras</h3>
-                <button onclick="abrirModalCrear()" class="btn-nuevo-usuario">+ Nueva Entidad</button>
-            </div>
-            <table class="tabla-datos"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>`;
-        lista.forEach(item => {
-            html += `<tr><td>${item.entidadID}</td><td>${item.nombre}</td><td>${item.tipo}</td>
-                    <td>${item.activo ? '<span class="badge-ok">Activo</span>' : '<span class="badge-no">Inactivo</span>'}</td>
-                    <td><button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td></tr>`;
-        });
-        html += '</tbody></table>';
-        workspace.innerHTML = html;
-    } catch (e) { if(workspace) workspace.innerHTML = '<p class="error">Error cargando datos.</p>'; }
-}
+        try {
+            const res = await fetch(`${BASE_URL}/maestros/entidades`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+            const lista = await res.json();
+            
+            // CAMBIO: Se usa .btn-nuevo-registro y .tabla-transacciones
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.2rem; color: var(--texto-principal);">🏦 Bancos y Billeteras</h3>
+                    <button onclick="abrirModalCrear()" class="btn-nuevo-registro">+ Nueva Entidad</button>
+                </div>
+                <div class="tabla-responsive">
+                    <table class="tabla-transacciones">
+                        <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+                        <tbody>`;
+            lista.forEach(item => {
+                html += `<tr>
+                        <td>${item.entidadID}</td>
+                        <td style="font-weight:600;">${item.nombre}</td>
+                        <td style="color: var(--texto-secundario);">${item.tipo}</td>
+                        <td>${item.activo ? '<span class="badge-estado completado">Activo</span>' : '<span class="badge-estado anulado">Inactivo</span>'}</td>
+                        <td><button onclick="abrirModalEditarEntidad(${item.entidadID}, '${item.nombre}', '${item.tipo}', ${item.activo})" class="btn-accion-tabla editar">✏️</button></td>
+                    </tr>`;
+            });
+            html += '</tbody></table></div>';
+            workspace.innerHTML = html;
+        } catch (e) { if(workspace) workspace.innerHTML = '<p class="error" style="color:red;">Error cargando datos.</p>'; }
+    }
 
 window.abrirModalCrear = function() {
-    modoEdicionAdmin = false;
-    document.getElementById('modal-admin-titulo').innerText = `Crear ${entidadActualAdmin === 'CATEGORIA' ? 'Categoría' : 'Entidad'}`;
-    document.getElementById('form-admin').reset();
-    document.getElementById('admin-id').value = '';
-    document.getElementById('group-admin-tipo').style.display = (entidadActualAdmin === 'ENTIDAD') ? 'block' : 'none';
-    document.getElementById('modal-admin').style.display = 'block';
-}
+        modoEdicionAdmin = false;
+        document.getElementById('modal-admin-titulo').innerText = `Crear ${entidadActualAdmin === 'CATEGORIA' ? 'Categoría' : 'Entidad'}`;
+        document.getElementById('form-admin').reset();
+        document.getElementById('admin-id').value = '';
+        document.getElementById('group-admin-tipo').style.display = (entidadActualAdmin === 'ENTIDAD') ? 'block' : 'none';
+        
+        // Magia de Animación: Entrada
+        const modal = document.getElementById('modal-admin');
+        modal.classList.remove('saliendo');
+        modal.classList.add('mostrar');
+    }
 
 window.abrirModalEditarCategoria = function(id, nombre, activo) {
-    modoEdicionAdmin = true;
-    entidadActualAdmin = 'CATEGORIA';
-    document.getElementById('modal-admin-titulo').innerText = 'Editar Categoría';
-    document.getElementById('admin-id').value = id;
-    document.getElementById('admin-nombre').value = nombre;
-    document.getElementById('admin-activo').value = activo;
-    document.getElementById('group-admin-tipo').style.display = 'none';
-    document.getElementById('modal-admin').style.display = 'block';
-}
+        modoEdicionAdmin = true;
+        entidadActualAdmin = 'CATEGORIA';
+        document.getElementById('modal-admin-titulo').innerText = 'Editar Categoría';
+        document.getElementById('admin-id').value = id;
+        document.getElementById('admin-nombre').value = nombre;
+        document.getElementById('admin-activo').value = activo;
+        document.getElementById('group-admin-tipo').style.display = 'none';
+        
+        // Magia de Animación: Entrada
+        const modal = document.getElementById('modal-admin');
+        modal.classList.remove('saliendo');
+        modal.classList.add('mostrar');
+    }
 
 window.abrirModalEditarEntidad = function(id, nombre, tipo, activo) {
-    modoEdicionAdmin = true;
-    entidadActualAdmin = 'ENTIDAD';
-    document.getElementById('modal-admin-titulo').innerText = 'Editar Entidad';
-    document.getElementById('admin-id').value = id;
-    document.getElementById('admin-nombre').value = nombre;
-    document.getElementById('admin-tipo').value = tipo;
-    document.getElementById('admin-activo').value = activo;
-    document.getElementById('group-admin-tipo').style.display = 'block';
-    document.getElementById('modal-admin').style.display = 'block';
-}
+        modoEdicionAdmin = true;
+        entidadActualAdmin = 'ENTIDAD';
+        document.getElementById('modal-admin-titulo').innerText = 'Editar Entidad';
+        document.getElementById('admin-id').value = id;
+        document.getElementById('admin-nombre').value = nombre;
+        document.getElementById('admin-tipo').value = tipo;
+        document.getElementById('admin-activo').value = activo;
+        document.getElementById('group-admin-tipo').style.display = 'block';
+        
+        // Magia de Animación: Entrada
+        const modal = document.getElementById('modal-admin');
+        modal.classList.remove('saliendo');
+        modal.classList.add('mostrar');
+    }
 
-window.cerrarModalAdmin = function() { document.getElementById('modal-admin').style.display = 'none'; }
-
+    window.cerrarModalAdmin = function() { 
+        const modal = document.getElementById('modal-admin');
+        // Magia de Animación: Salida (Efecto hundimiento)
+        modal.classList.remove('mostrar');
+        modal.classList.add('saliendo');
+        
+        // Esperamos 300ms a que termine el rebote para ocultarlo del todo
+        setTimeout(() => {
+            modal.classList.remove('saliendo');
+        }, 300); 
+    }
+    
 async function guardarMaestro(e) {
     e.preventDefault();
     const id = document.getElementById('admin-id').value;

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // CORRECCIÓN 1: Agregar 'window.' para que encuentre las funciones correctamente
-    if(typeof window.cargarFiltroUsuarios === 'function') window.cargarFiltroUsuarios();
-    if(typeof window.cargarFiltroHistorial === 'function') window.cargarFiltroHistorial();
+    // Intentar cargar filtros solo si las funciones existen
+    if(typeof cargarFiltroUsuarios === 'function') cargarFiltroUsuarios();
+    if(typeof cargarFiltroHistorial === 'function') cargarFiltroHistorial();
 });
 
 // ==========================================
@@ -21,16 +21,16 @@ window.cargarFiltroHistorial = async function() {
             if(select) {
                 select.innerHTML = '<option value="">-- Ver Todos --</option>';
                 usuarios.forEach(u => {
-                    // 🛡️ Búsqueda robusta de ID y Nombre (Soporta PostgreSQL minúsculas)
-                    const uid = u.UsuarioID || u.usuarioid || u.usuarioId || u.id;
-                    const nombre = u.NombreCompleto || u.nombrecompleto || u.nombreCompleto || u.Username || u.username || 'Usuario Desconocido';
-                    
+                    // VALIDACIÓN ROBUSTA DE ID
+                    const uid = u.UsuarioID || u.usuarioID || u.usuarioid || u.id;
+                    const nombre = u.NombreCompleto || u.nombreCompleto || u.nombre;
                     if(uid) select.innerHTML += `<option value="${uid}">${nombre}</option>`;
                 });
             }
         }
     } catch(e) { console.error("Error filtro historial", e); }
 }
+
 window.cargarHistorial = async function() {
     const cuerpoTabla = document.getElementById('cuerpoTablaTransacciones');
     if(!cuerpoTabla) return;
@@ -59,13 +59,10 @@ window.cargarHistorial = async function() {
                 const esAnulado = estado === 'ANULADO';
                 const refOp = v.RefOperacion || v.refoperacion || v.Comprobante || v.comprobante;
                 
-                // CORRECCIÓN 2: Capturar FormaPago de manera blindada (Mayúscula o minúscula)
-                const formaPago = (v.FormaPago || v.formapago || '').toUpperCase();
-                
                 const fila = `
                     <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
                         <td style="font-weight:bold; color:#444;">${v.Cajero || v.cajero}</td>
-                        <td class="col-tipo">${(formaPago === 'QR' || formaPago === 'YAPE') ? '📱 YAPE' : (formaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
+                        <td class="col-tipo">${(v.FormaPago === 'QR' || v.FormaPago === 'YAPE') ? '📱 YAPE' : (v.FormaPago === 'TARJETA' ? '💳 TARJETA' : '💵 EFECTIVO')}</td>
                         <td>${v.Familia || v.familia || 'Varios'}</td>
                         <td><div style="font-size:0.85rem; font-weight:bold;">${refOp}</div></td>
                         <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal || v.importetotal).toFixed(2)}</td>
@@ -119,12 +116,15 @@ window.cargarFiltroUsuarios = async function() {
             select.innerHTML = '<option value="">-- Todos los Cajeros --</option>';
             
             usuarios.forEach(u => {
-                // 🛡️ Búsqueda robusta de ID y Nombre (Soporta PostgreSQL minúsculas)
-                const uid = u.UsuarioID || u.usuarioid || u.usuarioId || u.id;
-                const nombre = u.NombreCompleto || u.nombrecompleto || u.nombreCompleto || u.Username || u.username || 'Usuario Desconocido';
+                // AQUÍ ESTABA EL ERROR: Validamos todas las formas posibles de ID
+                const uid = u.UsuarioID || u.usuarioID || u.usuarioid || u.id;
+                const nombre = u.NombreCompleto || u.nombreCompleto || u.nombre || u.username;
                 
+                // Solo agregamos si tenemos un ID válido
                 if (uid !== undefined && uid !== null) {
                     select.innerHTML += `<option value="${uid}">${nombre}</option>`;
+                } else {
+                    console.warn("Usuario sin ID detectado:", u);
                 }
             });
         }
@@ -269,75 +269,133 @@ window.generarReporte = async (tipo) => {
 // ==========================================
 // 3. GRÁFICOS
 // ==========================================
-let chartPastel = null, chartBarras = null, chartHoras = null;
+let chartPastel = null, chartBarras = null;
+    window.inicializarGraficos = async () => {
+        const contenedor = document.getElementById('vista-financiero');
+        if (!contenedor || contenedor.style.display === 'none') return;
+        
+        const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
+        const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
+        
+        const params = new URLSearchParams();
+        if(fechaDash) params.append('fecha', fechaDash);
 
-window.inicializarGraficos = async () => {
-    const contenedor = document.getElementById('vista-financiero');
-    if (!contenedor || contenedor.style.display === 'none') return;
-    
-    const fechaDash = document.getElementById('fechaInicio')?.value || ''; 
-    const userDash = document.getElementById('filtroUsuarioReporte')?.value || '';
-    
-    const params = new URLSearchParams();
-    if(fechaDash) params.append('fecha', fechaDash);
+        const rol = window.ROL_USUARIO || '';
+        const myId = window.USUARIO_ID;
 
-    // LÓGICA DE USUARIOS BLINDADA EN GRÁFICOS TAMBIÉN 🛡️
-    const rol = window.ROL_USUARIO || '';
-    const myId = window.USUARIO_ID;
-
-    if (rol.includes('ADMIN')) {
-        // Solo enviar si es un valor real (no vacío y no "undefined")
-        if(userDash && userDash !== "" && userDash !== "undefined") {
-            params.append('usuarioID', userDash);
+        if (rol.includes('ADMIN')) {
+            if(userDash && userDash !== "" && userDash !== "undefined") {
+                params.append('usuarioID', userDash);
+            }
+        } else {
+            if(myId) params.append('usuarioID', myId);
         }
-    } else {
-        if(myId) params.append('usuarioID', myId);
-    }
 
-    try {
-        const res = await fetch(`${window.BASE_URL}/reportes/graficos-hoy?${params.toString()}`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
-        if(!res.ok) return;
-        const data = await res.json(); 
+        try {
+            const res = await fetch(`${window.BASE_URL}/reportes/graficos-hoy?${params.toString()}`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
+            if(!res.ok) return;
+            const data = await res.json(); 
 
-        if(data.categorias) {
-            const ctxP = document.getElementById('graficoPastel').getContext('2d');
-            if(chartPastel) chartPastel.destroy();
-            chartPastel = new Chart(ctxP, {
-                type: 'doughnut',
-                data: { labels: data.categorias.map(i => i.label), datasets: [{ data: data.categorias.map(i => i.value), backgroundColor: [ '#ff003c', '#2563eb', '#ffb703', '#06d6a0', '#7209b7' ] }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
-            });
-        }
-        if(data.pagos) {
-            const ctxB = document.getElementById('graficoBarras').getContext('2d');
-            if(chartBarras) chartBarras.destroy();
-            chartBarras = new Chart(ctxB, {
-                type: 'bar',
-                data: { labels: data.pagos.map(i => i.label), datasets: [{ label: 'Total Ventas (S/)', data: data.pagos.map(i => i.value), backgroundColor: '#2563eb', borderRadius: 10 }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-        if(data.horas) {
-            const ctxH = document.getElementById('graficoHoras').getContext('2d');
-            if(chartHoras) chartHoras.destroy();
-            const horasMap = new Array(24).fill(0);
-            data.horas.forEach(item => { horasMap[parseInt(item.label)] = parseFloat(item.value); });
-            const labelsHoras = Array.from({length: 24}, (_, i) => `${i}:00`);
-            chartHoras = new Chart(ctxH, {
-                type: 'line',
-                data: {
-                    labels: labelsHoras,
-                    datasets: [{
-                        label: 'Ventas por Hora (S/)', data: horasMap, borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } },
-                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(context) { return `S/ ${context.parsed.y.toFixed(2)}`; } } } }
-                }
-            });
-        }
-    } catch (e) { console.error("Error gráficos", e); }
-};
+            // Paleta de colores Premium
+            const palette = ['#E60023', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#64748b'];
+
+            if(data.categorias) {
+                const ctxP = document.getElementById('graficoPastel').getContext('2d');
+                if(chartPastel) chartPastel.destroy();
+                chartPastel = new Chart(ctxP, {
+                    type: 'doughnut',
+                    data: { 
+                        labels: data.categorias.map(i => i.label), 
+                        datasets: [{ 
+                            data: data.categorias.map(i => i.value), 
+                            backgroundColor: palette,
+                            borderWidth: 0, /* Quitamos el borde blanco que trae por defecto */
+                            hoverOffset: 15 /* Efecto de que la porción salta al pasar el mouse */
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        cutout: '80%', /* Hacemos el anillo más delgado y elegante */
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: { family: "'Inter', sans-serif", size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                titleFont: { size: 13, family: "'Inter', sans-serif" },
+                                bodyFont: { size: 14, weight: 'bold', family: "'Inconsolata', monospace" },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` S/ ${context.parsed.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if(data.pagos) {
+                const ctxB = document.getElementById('graficoBarras').getContext('2d');
+                if(chartBarras) chartBarras.destroy();
+                
+                // Crear un gradiente azul para las barras
+                const gradientBlue = ctxB.createLinearGradient(0, 0, 0, 400);
+                gradientBlue.addColorStop(0, 'rgba(37, 99, 235, 1)');   /* Azul fuerte arriba */
+                gradientBlue.addColorStop(1, 'rgba(59, 130, 246, 0.4)'); /* Azul claro semitransparente abajo */
+
+                chartBarras = new Chart(ctxB, {
+                    type: 'bar',
+                    data: { 
+                        labels: data.pagos.map(i => i.label), 
+                        datasets: [{ 
+                            label: 'Ingresos (S/)', 
+                            data: data.pagos.map(i => i.value), 
+                            backgroundColor: gradientBlue, 
+                            borderRadius: 8, /* Bordes redondeados en la parte superior */
+                            borderSkipped: false,
+                            barPercentage: 0.6 /* Barras un poco más delgadas */
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#f3f4f6', drawBorder: false }, // Líneas guía sutiles
+                                ticks: { font: { family: "'Inconsolata', monospace" }, color: '#6b7280' }
+                            },
+                            x: {
+                                grid: { display: false }, // Sin líneas verticales
+                                ticks: { font: { family: "'Inter', sans-serif", weight: 'bold' }, color: '#4b5563' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }, /* Ocultamos la leyenda porque es obvio que son ingresos */
+                            tooltip: {
+                                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                titleFont: { size: 13, family: "'Inter', sans-serif" },
+                                bodyFont: { size: 14, weight: 'bold', family: "'Inconsolata', monospace" },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` S/ ${context.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (e) { console.error("Error gráficos", e); }
+    };

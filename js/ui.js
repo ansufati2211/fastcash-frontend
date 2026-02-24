@@ -1,8 +1,64 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar nombre en header
-    const nombreCajeroEl = document.querySelector('.nombre-cajero');
-    if (nombreCajeroEl && USUARIO_DATA) {
-        nombreCajeroEl.textContent = USUARIO_DATA.NombreCompleto || USUARIO_DATA.nombreCompleto || USUARIO_DATA.username || 'Usuario';
+    
+    // ==========================================
+    // 1. GESTIÓN DE PERFIL LATERAL Y PERMISOS
+    // ==========================================
+    if (typeof USUARIO_DATA !== 'undefined' && USUARIO_DATA) {
+        
+        // Elementos del DOM
+        const elNombreSidebar = document.getElementById('nombreUsuarioSidebar');
+        const elRolSidebar = document.getElementById('rolUsuarioSidebar');
+        const elFotoPerfil = document.getElementById('fotoPerfilUsuario');
+        const elIconoDefault = document.getElementById('iconoAvatarDefault');
+        
+        // Elementos de Administración a ocultar/mostrar
+        const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"], #btn-nav-admin');
+
+        // A. Asignar el Nombre
+        if (elNombreSidebar) {
+            elNombreSidebar.textContent = USUARIO_DATA.NombreCompleto || USUARIO_DATA.nombreCompleto || USUARIO_DATA.username || 'Usuario';
+        }
+
+        // B. Asignar el Rol, pintar el globo y ocultar/mostrar menús
+        if (elRolSidebar) {
+            // Usamos la variable global ROL_USUARIO que viene de config.js
+            const rolActual = (typeof ROL_USUARIO !== 'undefined' ? ROL_USUARIO : 'CAJERO');
+            elRolSidebar.textContent = rolActual;
+            elRolSidebar.className = 'rol-cajero'; // Reset de la clase base
+            
+            if (rolActual === 'ADMINISTRADOR' || rolActual.includes('ADMIN')) {
+                // Es Admin: Globo amarillo y mostramos menú
+                elRolSidebar.classList.add('rol-admin');
+                
+                itemsAdmin.forEach(item => {
+                    if (item.id === 'btn-nav-admin') {
+                        item.style.display = 'flex'; // Mantener el estilo flex
+                    } else {
+                        item.style.display = ''; // Restaurar display original
+                    }
+                });
+            } else {
+                // Es Cajero: Globo azul y ocultamos menú
+                elRolSidebar.classList.add('rol-cajero');
+                itemsAdmin.forEach(item => item.style.display = 'none');
+            }
+        }
+
+        // C. Espacio listo para la Foto de Perfil
+        if (elFotoPerfil && elIconoDefault) {
+            // Aquí puedes poner la ruta de la foto si la traes de la base de datos
+            // Ejemplo: const rutaFoto = USUARIO_DATA.fotoRuta;
+            const rutaFoto = null; // Por ahora null para que muestre el icono
+            
+            if (rutaFoto) {
+                elFotoPerfil.src = rutaFoto;
+                elFotoPerfil.style.display = 'block';
+                elIconoDefault.style.display = 'none';
+            } else {
+                elFotoPerfil.style.display = 'none';
+                elIconoDefault.style.display = 'block';
+            }
+        }
     }
 
     // Reloj
