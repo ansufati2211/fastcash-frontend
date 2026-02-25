@@ -164,7 +164,7 @@
 }
 .item-menu.activo .icon-foto { filter: grayscale(0) invert(0); opacity: 1; transform: scale(1.1); }
 
-.titulo-seccion-menu { font-size: 0.7rem; color: #4b5563; padding: 0.1rem 0.5rem 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.titulo-seccion-menu { font-size: 0.7rem; color: #ffffff; padding: 0.1rem 0.5rem 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 .titulo-seccion-menu.admin { border-top: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem; padding-top: 0.8rem; }
 .sidebar.colapsado .titulo-seccion-menu { font-size: 0 !important; padding: 0; height: 1px; background: rgba(255, 255, 255, 0.1); margin: 15px 0; border: none; }
 

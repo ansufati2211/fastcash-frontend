@@ -135,6 +135,50 @@ document.addEventListener('DOMContentLoaded', () => {
     window.activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
     window.configurarInputAlfanumerico('numOperacion', 15); 
     window.configurarInputAlfanumerico('numOperacionTarjeta', 6);
+
+    // ==========================================
+    // 6. MOTOR DE TEMAS (THEMING) - NUEVO
+    // ==========================================
+    const btnTema = document.getElementById('btnSelectorTema');
+    const menuTemas = document.getElementById('menuTemasOpciones');
+    const iconoTema = document.getElementById('iconoTemaActual');
+    const btnOpcionesTema = document.querySelectorAll('.opcion-tema');
+
+    const iconosTema = {
+        'light': '☀️',
+        'dark': '🌙',
+        'pink': '🌸',
+        'red': '🔥'
+    };
+
+    const temaGuardado = localStorage.getItem('temaFastCash') || 'light';
+    aplicarTema(temaGuardado);
+
+    if (btnTema) {
+        btnTema.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(menuTemas) menuTemas.classList.toggle('mostrar');
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (menuTemas && menuTemas.classList.contains('mostrar')) {
+            menuTemas.classList.remove('mostrar');
+        }
+    });
+
+    btnOpcionesTema.forEach(boton => {
+        boton.addEventListener('click', () => {
+            const nuevoTema = boton.getAttribute('data-theme');
+            aplicarTema(nuevoTema);
+        });
+    });
+
+    function aplicarTema(tema) {
+        document.body.setAttribute('data-theme', tema);
+        if (iconoTema) iconoTema.textContent = iconosTema[tema] || '🎨';
+        localStorage.setItem('temaFastCash', tema);
+    }
 });
 
 // ==========================================
@@ -191,5 +235,24 @@ window.configurarInputAlfanumerico = function(idInput, longitudMaxima) {
     }
 }
 
-window.abrirModalUsuario = () => document.getElementById('modalUsuario')?.classList.add('mostrar');
-window.cerrarModalUsuario = () => document.getElementById('modalUsuario')?.classList.remove('mostrar');
+// ==========================================
+// MODAL DE USUARIOS (Con Animación) - NUEVO
+// ==========================================
+window.abrirModalUsuario = () => {
+    const modal = document.getElementById('modalUsuario');
+    if(modal) {
+        modal.classList.remove('saliendo');
+        modal.classList.add('mostrar');
+    }
+};
+
+window.cerrarModalUsuario = () => {
+    const modal = document.getElementById('modalUsuario');
+    if(modal) {
+        modal.classList.remove('mostrar');
+        modal.classList.add('saliendo');
+        setTimeout(() => {
+            modal.classList.remove('saliendo');
+        }, 300);
+    }
+};
