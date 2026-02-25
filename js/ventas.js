@@ -1,15 +1,15 @@
+// Mantendremos esto temporalmente hasta que decidas agregarlo a la Base de Datos
 const BANCOS_POR_DEFECTO_USUARIO = {
-    3: "BCP",
+    3: "BCP", 
     5: "BCP", 
     9: "BCP", 
     10: "BCP",
-    6: "BBVA",
+    6: "BBVA", 
     11: "BBVA",  
-    12: "BBVA",
-    13: "BBVA",
+    12: "BBVA", 
+    13: "BBVA", 
     14: "BBVA"
 };
-
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarCategoriasVenta();
@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fY = document.getElementById('formYape');
     if (fY) fY.addEventListener('submit', (e) => procesarPago(e, fY, 'YAPE', 'inputFamilia', 'selectorFamilia'));
+    
     const fT = document.getElementById('formTarjeta');
     if (fT) fT.addEventListener('submit', (e) => procesarPago(e, fT, 'TARJETA', 'inputFamiliaTarjeta', 'selectorFamiliaTarjeta'));
 });
@@ -25,20 +26,20 @@ let ID_CATEGORIA_POR_DEFECTO = 1;
 
 async function cargarCategoriasVenta() {
     try {
-        const response = await fetch(`${BASE_URL}/maestros/categorias`, {
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        // 🚀 SEGURIDAD: Uso de window.getAuthHeaders() en lugar de variable expuesta
+        const response = await fetch(`${window.BASE_URL}/maestros/categorias`, {
+            headers: window.getAuthHeaders()
         });
         if (!response.ok) return;
         const categorias = await response.json();
 
-        // --- NUEVO: Buscar el ID de "Comestibles" ---
+        // Buscar el ID de "Comestibles"
         const catComestibles = categorias.find(c => c.nombre.toUpperCase().includes('COMESTIBLE'));
         
         if (catComestibles) {
-            ID_CATEGORIA_POR_DEFECTO = catComestibles.categoriaID;
-            console.log("✅ Categoría por defecto encontrada:", catComestibles.nombre, "(ID:", ID_CATEGORIA_POR_DEFECTO, ")");
+            ID_CATEGORIA_POR_DEFECTO = catComestibles.categoriaID || catComestibles.categoriaId || catComestibles.CategoriaID;
+            console.log("✅ Categoría por defecto:", catComestibles.nombre, "(ID:", ID_CATEGORIA_POR_DEFECTO, ")");
         } else {
-            // Si por alguna razón la borran de la base de datos, forzamos un ID seguro
             ID_CATEGORIA_POR_DEFECTO = 1; 
             console.log("⚠️ No se encontró 'Comestibles', usando ID 1");
         }
@@ -54,15 +55,18 @@ async function cargarCategoriasVenta() {
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         btn.className = 'card-familia'; 
-                        btn.dataset.value = cat.categoriaID;
                         
-                        const icono = MAPA_ICONOS[cat.nombre] || '📦';
+                        // Compatibilidad robusta de ID
+                        const catId = cat.categoriaID || cat.categoriaId || cat.CategoriaID;
+                        btn.dataset.value = catId;
+                        
+                        const icono = window.MAPA_ICONOS[cat.nombre] || '📦';
                         btn.innerHTML = `<span class="emoji">${icono}</span><span class="label">${cat.nombre}</span>`;
                         
                         btn.addEventListener('click', function() {
                             contenedor.querySelectorAll('.card-familia').forEach(b => b.classList.remove('seleccionado'));
                             this.classList.add('seleccionado');
-                            document.getElementById(idInput).value = cat.categoriaID;
+                            document.getElementById(idInput).value = catId;
                         });
                         contenedor.appendChild(btn);
                     }
@@ -74,8 +78,9 @@ async function cargarCategoriasVenta() {
 
 async function cargarMetodosPago() {
     try {
-        const response = await fetch(`${BASE_URL}/maestros/entidades`, {
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        // 🚀 SEGURIDAD: Añadiendo el Token JWT
+        const response = await fetch(`${window.BASE_URL}/maestros/entidades`, {
+            headers: window.getAuthHeaders()
         });
         if (!response.ok) return;
         const entidades = await response.json();
@@ -90,8 +95,10 @@ async function cargarMetodosPago() {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'chip-banco';
-                    btn.dataset.value = ent.entidadID;
-                    btn.dataset.nombre = ent.nombre.toUpperCase(); // Guardamos el nombre para buscarlo luego
+                    
+                    const entId = ent.entidadID || ent.entidadId || ent.EntidadID;
+                    btn.dataset.value = entId;
+                    btn.dataset.nombre = ent.nombre.toUpperCase(); 
                     
                     let claseDot = 'generic';
                     if(ent.nombre.includes('BCP')) claseDot = 'bcp';
@@ -104,37 +111,32 @@ async function cargarMetodosPago() {
                     btn.addEventListener('click', function() {
                         contenedorYape.querySelectorAll('.chip-banco').forEach(b => b.classList.remove('seleccionado'));
                         this.classList.add('seleccionado');
-                        document.getElementById('inputDestino').value = ent.entidadID;
+                        document.getElementById('inputDestino').value = entId;
                     });
                     contenedorYape.appendChild(btn);
                 }
             });
 
             // 2. LÓGICA DE PRESELECCIÓN AUTOMÁTICA
-            // Verificamos si el UsuarioID actual tiene un banco preferido en la configuración
-            const nombreBancoPreferido = BANCOS_POR_DEFECTO_USUARIO[USUARIO_ID];
+            const nombreBancoPreferido = BANCOS_POR_DEFECTO_USUARIO[window.USUARIO_ID];
             
             if (nombreBancoPreferido) {
-                // Buscamos el botón que coincida con ese nombre y le hacemos clic por código
                 const btnPreferido = Array.from(contenedorYape.querySelectorAll('.chip-banco')).find(b => 
                     b.dataset.nombre.includes(nombreBancoPreferido.toUpperCase())
                 );
                 
                 if (btnPreferido) {
-                    btnPreferido.click(); // Esto selecciona el botón y actualiza el input oculto
+                    btnPreferido.click(); 
                 } else {
-                    // Fallback: Si no encuentra el preferido, selecciona el primero
                     const primerBtn = contenedorYape.querySelector('.chip-banco');
                     if (primerBtn) primerBtn.click();
                 }
             } else {
-                // Si la cajera no tiene configuración especial, seleccionamos el primero por defecto (usualmente Yape)
                 const primerBtn = contenedorYape.querySelector('.chip-banco');
                 if (primerBtn) primerBtn.click();
             }
         }
 
-        // ... (El bloque para contenedorTarjeta sigue igual) ...
         const contenedorTarjeta = document.getElementById('selectorBancoTarjeta');
         if(contenedorTarjeta) {
             contenedorTarjeta.innerHTML = '';
@@ -143,7 +145,9 @@ async function cargarMetodosPago() {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'chip-banco';
-                    btn.dataset.value = ent.entidadID;
+                    
+                    const entId = ent.entidadID || ent.entidadId || ent.EntidadID;
+                    btn.dataset.value = entId;
 
                     let claseDot = 'generic';
                     if(ent.nombre.includes('Interbank')) claseDot = 'interbank';
@@ -153,13 +157,12 @@ async function cargarMetodosPago() {
                     btn.addEventListener('click', function() {
                         contenedorTarjeta.querySelectorAll('.chip-banco').forEach(b => b.classList.remove('seleccionado'));
                         this.classList.add('seleccionado');
-                        document.getElementById('inputBancoTarjeta').value = ent.entidadID;
+                        document.getElementById('inputBancoTarjeta').value = entId;
                     });
                     contenedorTarjeta.appendChild(btn);
                 }
             });
             
-            // También preseleccionar el primer banco para tarjetas
             const primerBtnTarjeta = contenedorTarjeta.querySelector('.chip-banco');
             if(primerBtnTarjeta) primerBtnTarjeta.click();
         }
@@ -167,32 +170,10 @@ async function cargarMetodosPago() {
     } catch (e) { console.error("Error cargando bancos:", e); }
 }
 
-function crearBotonBanco(ent, contenedor, inputId, tipo) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'chip-banco';
-    btn.dataset.value = ent.entidadID;
-    
-    let claseDot = 'generic';
-    if(ent.nombre.includes('BCP')) claseDot = 'bcp';
-    if(ent.nombre.includes('BBVA')) claseDot = 'bbva';
-    if(ent.nombre.includes('Yape')) claseDot = 'personal';
-    if(ent.nombre.includes('Plin') || ent.nombre.includes('Interbank')) claseDot = 'interbank';
-    if(ent.nombre.includes('Scotiabank')) claseDot = 'scotia';
-
-    btn.innerHTML = `<span class="dot ${claseDot}"></span> ${ent.nombre}`;
-    btn.addEventListener('click', function() {
-        contenedor.querySelectorAll('.chip-banco').forEach(b => b.classList.remove('seleccionado'));
-        this.classList.add('seleccionado');
-        document.getElementById(inputId).value = ent.entidadID;
-    });
-    contenedor.appendChild(btn);
-}
-
 async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
     e.preventDefault();
 
-    if (typeof CAJA_ABIERTA !== 'undefined' && CAJA_ABIERTA === false) {
+    if (typeof window.CAJA_ABIERTA !== 'undefined' && window.CAJA_ABIERTA === false) {
         mostrarNotificacion("🔒 CAJA CERRADA\nAbre turno primero para realizar ventas.", 'error'); return;
     }
 
@@ -200,13 +181,8 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
     const inputFam = document.getElementById(idInputFam);
     const monto = parseFloat(form.querySelector('input[type="number"]').value);
 
-    // Validaciones
-    // SE ELIMINÓ LA VALIDACIÓN OBLIGATORIA DE CATEGORÍA
-    // if (!inputFam || !inputFam.value) { mostrarNotificacion("⚠️ Selecciona una Familia (Categoría)", 'error'); return; }
-    
     if (!monto || monto <= 0) { mostrarNotificacion("⚠️ Ingresa un monto válido", 'error'); return; }
 
-    // --- LÓGICA DE CATEGORÍA POR DEFECTO ---
     let categoriaFinal = typeof ID_CATEGORIA_POR_DEFECTO !== 'undefined' ? ID_CATEGORIA_POR_DEFECTO : 1; 
     if (inputFam && inputFam.value && inputFam.value.trim() !== "") {
         categoriaFinal = parseInt(inputFam.value);
@@ -238,27 +214,34 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
     btn.innerHTML = 'Procesando...';
     btn.disabled = true;
 
+    // 🚀 Lógica inteligente para documentos. Si algún día agregas inputs en el HTML, los leerá.
+    const inputDoc = document.getElementById('clienteDoc');
+    const inputNom = document.getElementById('clienteNombre');
+    const clienteDocFinal = inputDoc && inputDoc.value ? inputDoc.value.trim() : "00000000";
+    const clienteNombreFinal = inputNom && inputNom.value ? inputNom.value.trim() : "Publico General";
+
     const payload = {
-        usuarioID: parseInt(USUARIO_ID),
+        usuarioID: parseInt(window.USUARIO_ID),
         tipoComprobanteID: parseInt(compId),
-        clienteDoc: "00000000", clienteNombre: "Publico General",
+        clienteDoc: clienteDocFinal, 
+        clienteNombre: clienteNombreFinal,
         comprobanteExterno: comprobanteExt,
-        
-        // AQUÍ SE USA LA VARIABLE CALCULADA
+        // Los arreglos mantienen PascalCase para encajar perfecto con las anotaciones de Jackson
         detalles: [{ "CategoriaID": categoriaFinal, "Monto": monto }], 
-        
         pagos: [{ "FormaPago": tipo === 'YAPE' ? 'QR' : 'TARJETA', "Monto": monto, "EntidadID": parseInt(entidadId), "NumOperacion": numOp }]
     };
 
     try {
-        const res = await fetch(`${BASE_URL}/ventas/registrar`, {
+        // 🚀 SEGURIDAD: Inyectando las cabeceras seguras con el JWT
+        const res = await fetch(`${window.BASE_URL}/ventas/registrar`, {
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+            headers: window.getAuthHeaders(),
             body: JSON.stringify(payload)
         });
 
         const data = await res.json();
         
+        // Manejo compatible con cualquier nomenclatura de respuesta del Stored Procedure
         if (res.ok && (data.Status === 'OK' || data.status === 'OK')) {
             mostrarNotificacion(` VENTA EXITOSA\nTicket: ${data.Comprobante || data.comprobante}`);
             form.reset();
@@ -271,10 +254,13 @@ async function procesarPago(e, form, tipo, idInputFam, idContenedorFam) {
                 document.getElementById('inputDestino').value = "1";
                 document.getElementById('inputComprobante').value = "2";
                 document.getElementById('selectorDestino')?.querySelectorAll('.seleccionado').forEach(b => b.classList.remove('seleccionado'));
+                // Click automático al favorito tras resetear
+                cargarMetodosPago();
             } else {
                 document.getElementById('inputBancoTarjeta').value = "";
                 document.getElementById('inputComprobanteTarjeta').value = "2";
                 document.getElementById('selectorBancoTarjeta')?.querySelectorAll('.seleccionado').forEach(b => b.classList.remove('seleccionado'));
+                cargarMetodosPago();
             }
         } else {
             throw new Error(data.Mensaje || data.mensaje || "No se pudo registrar la venta");

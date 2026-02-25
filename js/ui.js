@@ -3,42 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 1. GESTIÓN DE PERFIL LATERAL Y PERMISOS
     // ==========================================
-    if (typeof USUARIO_DATA !== 'undefined' && USUARIO_DATA) {
+    if (typeof window.USUARIO_DATA !== 'undefined' && window.USUARIO_DATA) {
         
-        // Elementos del DOM
         const elNombreSidebar = document.getElementById('nombreUsuarioSidebar');
         const elRolSidebar = document.getElementById('rolUsuarioSidebar');
         const elFotoPerfil = document.getElementById('fotoPerfilUsuario');
         const elIconoDefault = document.getElementById('iconoAvatarDefault');
         
-        // Elementos de Administración a ocultar/mostrar
         const itemsAdmin = document.querySelectorAll('.admin, .item-menu[data-target="vista-reportes"], .item-menu[data-target="vista-roles"], .item-menu[data-target="vista-financiero"], #btn-nav-admin');
 
-        // A. Asignar el Nombre
+        // A. Asignar el Nombre (Lectura limpia del backend estandarizado)
         if (elNombreSidebar) {
-            elNombreSidebar.textContent = USUARIO_DATA.NombreCompleto || USUARIO_DATA.nombreCompleto || USUARIO_DATA.username || 'Usuario';
+            elNombreSidebar.textContent = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.username || 'Usuario';
         }
 
         // B. Asignar el Rol, pintar el globo y ocultar/mostrar menús
         if (elRolSidebar) {
-            // Usamos la variable global ROL_USUARIO que viene de config.js
-            const rolActual = (typeof ROL_USUARIO !== 'undefined' ? ROL_USUARIO : 'CAJERO');
+            const rolActual = window.ROL_USUARIO || 'CAJERO';
             elRolSidebar.textContent = rolActual;
             elRolSidebar.className = 'rol-cajero'; // Reset de la clase base
             
-            if (rolActual === 'ADMINISTRADOR' || rolActual.includes('ADMIN')) {
-                // Es Admin: Globo amarillo y mostramos menú
+            if (rolActual === 'ADMINISTRADOR') {
                 elRolSidebar.classList.add('rol-admin');
                 
                 itemsAdmin.forEach(item => {
                     if (item.id === 'btn-nav-admin') {
-                        item.style.display = 'flex'; // Mantener el estilo flex
+                        item.style.display = 'flex'; 
                     } else {
-                        item.style.display = ''; // Restaurar display original
+                        item.style.display = ''; 
                     }
                 });
             } else {
-                // Es Cajero: Globo azul y ocultamos menú
                 elRolSidebar.classList.add('rol-cajero');
                 itemsAdmin.forEach(item => item.style.display = 'none');
             }
@@ -46,9 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // C. Espacio listo para la Foto de Perfil
         if (elFotoPerfil && elIconoDefault) {
-            // Aquí puedes poner la ruta de la foto si la traes de la base de datos
-            // Ejemplo: const rutaFoto = USUARIO_DATA.fotoRuta;
-            const rutaFoto = null; // Por ahora null para que muestre el icono
+            const rutaFoto = null; // Modificar si en el futuro agregas fotos
             
             if (rutaFoto) {
                 elFotoPerfil.src = rutaFoto;
@@ -61,16 +54,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Reloj
+    // ==========================================
+    // 2. RELOJ DEL SISTEMA
+    // ==========================================
     function actualizarReloj() {
         const ahora = new Date();
         const texto = ahora.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
         document.querySelectorAll('.fecha-hora-reloj').forEach(s => s.textContent = texto);
-        const fc = document.getElementById('fechaCierre'); if(fc) fc.textContent = ahora.toLocaleDateString('es-PE');
+        const fc = document.getElementById('fechaCierre'); 
+        if(fc) fc.textContent = ahora.toLocaleDateString('es-PE');
     }
-    setInterval(actualizarReloj, 1000); actualizarReloj();
+    setInterval(actualizarReloj, 1000); 
+    actualizarReloj();
 
-    // Navegación (Tabs)
+    // ==========================================
+    // 3. NAVEGACIÓN (TABS)
+    // ==========================================
     const btnToggle = document.getElementById('btnToggleMenu');
     const sidebar = document.getElementById('sidebar');
     const menuItems = document.querySelectorAll('.item-menu');
@@ -89,13 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 vistas.forEach(v => {
                     v.style.display = 'none'; v.classList.remove('activa');
                     if(v.id === targetId) {
-                        v.style.display = 'block'; setTimeout(() => v.classList.add('activa'), 10);
-                        // Disparar eventos de carga según la vista
-                        if(targetId === 'vista-cierre' && window.cargarDatosCierre) window.cargarDatosCierre();
-                        if(targetId === 'vista-anulacion' && window.cargarHistorial) window.cargarHistorial();
-                        if(targetId === 'vista-roles' && window.cargarUsuarios) window.cargarUsuarios();
-                        if(targetId === 'vista-financiero' && window.inicializarGraficos) window.inicializarGraficos();
-                        if(targetId === 'vista-admin-maestros' && window.cargarAdminCategorias) window.cargarAdminCategorias(); 
+                        v.style.display = 'block'; 
+                        setTimeout(() => v.classList.add('activa'), 10);
+                        
+                        // Disparar eventos de carga según la vista de forma segura
+                        if(targetId === 'vista-cierre' && typeof window.cargarDatosCierre === 'function') window.cargarDatosCierre();
+                        if(targetId === 'vista-anulacion' && typeof window.cargarHistorial === 'function') window.cargarHistorial();
+                        if(targetId === 'vista-roles' && typeof window.cargarUsuarios === 'function') window.cargarUsuarios();
+                        if(targetId === 'vista-financiero' && typeof window.inicializarGraficos === 'function') window.inicializarGraficos();
+                        if(targetId === 'vista-admin-maestros' && typeof window.cargarAdminCategorias === 'function') window.cargarAdminCategorias(); 
                     }
                 });
             }
@@ -106,30 +107,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    if(btnToggle) btnToggle.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
-        btnToggle.classList.toggle('activo'); 
-        sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open'); 
-    });
-
-    // Logout
-    const btnLogout = document.getElementById('btnCerrarSesion');
-    if(btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            if(!confirm("¿Deseas cerrar sesión del sistema?")) return;
-            localStorage.removeItem('usuarioSesion');
-            window.location.href = '../html/login.html';
+    if(btnToggle) {
+        btnToggle.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            btnToggle.classList.toggle('activo'); 
+            sidebar.classList.toggle(window.innerWidth > 768 ? 'colapsado' : 'mobile-open'); 
         });
     }
 
-    // Configuración Inicial de Inputs
+    // ==========================================
+    // 4. LOGOUT (Cierre Seguro)
+    // ==========================================
+    const btnLogout = document.getElementById('btnCerrarSesion');
+    if(btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            if(!confirm("¿Deseas cerrar sesión del sistema?")) return;
+            localStorage.removeItem('usuarioSesion');
+            // 🚀 MEJORA: .replace() borra el historial de navegación para evitar volver atrás con el botón del navegador
+            window.location.replace('../html/login.html');
+        });
+    }
+
+    // ==========================================
+    // 5. CONFIGURACIÓN INICIAL DE INPUTS
+    // ==========================================
     window.activarSelector('selectorComprobante', 'segmento', 'inputComprobante');
     window.activarSelector('selectorComprobanteTarjeta', 'segmento', 'inputComprobanteTarjeta');
     window.configurarInputAlfanumerico('numOperacion', 15); 
     window.configurarInputAlfanumerico('numOperacionTarjeta', 6);
 });
 
-// --- FUNCIONES UTILITARIAS EXPORTADAS ---
+// ==========================================
+// FUNCIONES UTILITARIAS EXPORTADAS GLOBALES
+// ==========================================
 
 window.mostrarNotificacion = function(mensaje, tipo = 'exito') {
     const toast = document.createElement('div');
@@ -143,7 +153,11 @@ window.mostrarNotificacion = function(mensaje, tipo = 'exito') {
     `;
     toast.innerHTML = `${tipo === 'error' ? '❌' : '✅'} ${mensaje}`;
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+    
+    setTimeout(() => { 
+        toast.style.opacity = '0'; 
+        setTimeout(() => toast.remove(), 500); 
+    }, 3000);
 }
 
 // Estilo de animación

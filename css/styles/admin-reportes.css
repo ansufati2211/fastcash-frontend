@@ -1,4 +1,6 @@
-
+/* =========================================================
+   GRÁFICOS Y TARJETAS SUPERIORES
+   ========================================================= */
 .grid-graficos { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
@@ -50,9 +52,7 @@
     background: var(--color-primario);
 }
 
-.card-grafico:nth-child(2) h3::before {
-    background: #2563eb; 
-}
+.card-grafico:nth-child(2) h3::before { background: #2563eb; }
 
 .canvas-wrapper { 
     flex: 1; 
@@ -82,6 +82,9 @@
 .btn-refresh-moderno:hover .icono-refresh { transform: rotate(180deg); }
 .icono-refresh { font-size: 1.1rem; transition: transform 0.5s ease; }
 
+/* =========================================================
+   CONTENEDOR DE ADMINISTRACIÓN
+   ========================================================= */
 .admin-container { 
     background: #ffffff; 
     padding: 25px; 
@@ -139,17 +142,20 @@
 }
 .btn-nuevo-registro:active, .btn-nuevo-usuario:active { transform: scale(0.98); }
 
+/* =========================================================
+   FILTROS DE REPORTES E HISTORIAL (NUEVO DISEÑO ELÁSTICO)
+   ========================================================= */
 .filtros-reporte-unificados { 
     background: #ffffff; 
-    padding: 1.5rem 2.5rem; 
-    border-radius: var(--radio-xl); 
-    box-shadow: var(--sombra-md); 
+    padding: 1.5rem 2rem; 
+    border-radius: 16px; 
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05); 
     display: flex; 
     gap: 1.5rem; 
     flex-wrap: wrap; 
-    align-items: flex-end; 
+    align-items: center; 
     margin-bottom: 2rem; 
-    border: 1px solid var(--border-color); 
+    border: 1px solid #e5e7eb; 
     opacity: 0;
     animation: fadeSlideDown 0.4s ease-out 0.1s forwards;
 }
@@ -157,46 +163,55 @@
 .grupo-filtro {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-width: 200px;
+    flex: 1 1 220px; 
+    min-width: 0; 
 }
 
 .grupo-filtro label { 
-    display: block; 
-    font-size: 0.85rem; 
-    font-weight: 600; 
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem; 
+    font-weight: 700; 
     color: var(--texto-secundario); 
-    margin-bottom: 0.5rem; 
+    margin-bottom: 0.6rem; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .grupo-filtro input[type="date"],
 .grupo-filtro select {
     width: 100%;
     padding: 12px 16px;
-    background-color: #f9fafb;
-    border: 2px solid transparent; 
-    border-radius: 12px;
+    background-color: #f8fafc;
+    border: 1px solid #e5e7eb; 
+    border-radius: 10px;
     font-size: 0.95rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--texto-principal);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     font-family: var(--font-main);
     outline: none;
-    box-shadow: none;
-}
-
-.grupo-filtro input[type="date"].input-moderno {
-    background-image: none !important; 
-    padding-right: 16px !important;
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .grupo-filtro select {
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%24%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat;
-    background-position: right 16px top 50%;
-    background-size: 10px auto;
+    background-position: right 12px center;
+    background-size: 16px auto;
     padding-right: 40px;
+}
+
+.grupo-filtro input[type="date"]:hover,
+.grupo-filtro select:hover {
+    background-color: #ffffff;
+    border-color: #d1d5db;
 }
 
 .grupo-filtro input[type="date"]:focus,
@@ -206,6 +221,9 @@
     box-shadow: 0 0 0 4px rgba(230,0,35,0.1);
 }
 
+/* =========================================================
+   TARJETAS DE DESCARGA DE REPORTES
+   ========================================================= */
 .card-reporte-accion { 
     background: #ffffff; 
     padding: 2.5rem; 
@@ -245,9 +263,7 @@
     transition: opacity 0.3s ease;
 }
 
-.card-reporte-accion:hover::before {
-    opacity: 1;
-}
+.card-reporte-accion:hover::before { opacity: 1; }
 
 .icono-grande { 
     font-size: 3rem; 
@@ -310,10 +326,11 @@
     transform: translateY(-2px); 
     filter: brightness(1.05); 
 }
-.btn-descarga-premium:active {
-    transform: scale(0.98);
-}
+.btn-descarga-premium:active { transform: scale(0.98); }
 
+/* =========================================================
+   DASHBOARD DE CIERRE DE CAJA
+   ========================================================= */
 .dashboard-cierre { 
     max-width: 1000px; 
     margin: 0 auto; 
@@ -344,14 +361,6 @@
     grid-template-columns: repeat(4, 1fr); 
     gap: 1.5rem; 
     margin-bottom: 2.5rem; 
-}
-
-@media (max-width: 1050px) {
-    .grid-stats { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 600px) {
-    .grid-stats { grid-template-columns: 1fr; }
 }
 
 .stat-card { 
@@ -397,10 +406,7 @@
     transform: rotate(-15deg);
     transition: all 0.3s ease;
 }
-.stat-card:hover::after {
-    transform: rotate(0deg) scale(1.1);
-    opacity: 0.08;
-}
+.stat-card:hover::after { transform: rotate(0deg) scale(1.1); opacity: 0.08; }
 
 .stat-icon { 
     width: 48px; 
@@ -479,6 +485,9 @@
     text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); 
 }
 
+/* =========================================================
+   TICKET Y BOTÓN DE CIERRE
+   ========================================================= */
 .area-accion-final { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
@@ -518,25 +527,37 @@
 .btn-cerrar-caja-pro:hover { transform: translateY(-5px); box-shadow: 0 20px 35px rgba(16, 185, 129, 0.5); filter: brightness(1.1); }
 .btn-cerrar-caja-pro .icon-btn { font-size: 3rem; }
 
-
+/* =========================================================
+   ANIMACIONES Y RESPONSIVIDAD
+   ========================================================= */
 @keyframes fadeSlideUp {
-    0% {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeSlideDown {
-    0% {
-        opacity: 0;
-        transform: translateY(-20px);
+    0% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1050px) {
+    .grid-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .filtros-reporte-unificados {
+        padding: 1.2rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
     }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
+    
+    .grupo-filtro {
+        flex: none;
+        width: 100%;
     }
+}
+
+@media (max-width: 600px) {
+    .grid-stats { grid-template-columns: 1fr; }
 }

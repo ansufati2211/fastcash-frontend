@@ -1,8 +1,17 @@
 // ==========================================
 // 1. CONFIGURACIÓN
 // ==========================================
-// URL solicitada por el usuario (Producción)
-const BASE_URL = 'https://fastcash-backend-production.up.railway.app/api';
+const esLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.2';
+
+const BASE_URL = esLocal 
+    ? 'http://localhost:8080/api' 
+    : 'https://fastcash-backend-production.up.railway.app/api';
+// Función para prevenir inyección XSS básica
+function sanitizarEntrada(texto) {
+    const elemento = document.createElement('div');
+    elemento.innerText = texto;
+    return elemento.innerHTML;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -19,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedUser) {
         inputUser.value = savedUser;
         if (chkRemember) chkRemember.checked = true;
-        // Opcional: Poner el foco en la contraseña automáticamente
         if (inputPass) inputPass.focus(); 
     }
 
@@ -39,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formulario.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = inputUser.value.trim();
-            const password = inputPass.value.trim();
+            const username = sanitizarEntrada(inputUser.value.trim());
+            const password = inputPass.value.trim(); 
 
             if (!username || !password) {
                 mostrarToast('Por favor complete todos los campos', 'error');
@@ -60,50 +68,56 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    // ✅ LOGIN EXITOSO
-                    
-                    // Normalizar datos: Backend envía PascalCase (UsuarioID), Frontend usa camelCase (usuarioID)
-                    // Esto es vital para que script.js pueda leer los datos correctamente.
-                    const sessionData = {
-                        usuarioID: data.UsuarioID,
-                        nombreCompleto: data.NombreCompleto,
-                        rol: data.Rol,
-                        username: data.Username
-                    };
-
-                    if (!sessionData.usuarioID) throw new Error("ID de usuario no recibido del servidor");
-
-                    // --- 2. LÓGICA RECORDAR SESIÓN (AL GUARDAR) ---
-                    if (chkRemember && chkRemember.checked) {
-                        localStorage.setItem('fastcash_saved_user', username);
-                    } else {
-                        localStorage.removeItem('fastcash_saved_user');
-                    }
-
-                    // Guardar Sesión Actual
-                    localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
-                    
-                    mostrarToast(`¡Bienvenido, ${sessionData.nombreCompleto}!`, 'success');
-                    
-                    // Animación de salida
-                    const contenedor = document.querySelector('.contenedor-login');
-                    if (contenedor) {
-                        contenedor.style.transform = 'scale(0.95)';
-                        contenedor.style.opacity = '0';
-                    }
-                    
-                    setTimeout(() => window.location.href = 'index.html', 1000);
-
-                } else {
-                    // Manejo de errores del backend
-                    throw new Error(data.message || data.error || 'Credenciales incorrectas');
+                // Si la respuesta no es OK (ej. 401, 403, 500), capturamos el error real
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || errorData.message || 'Credenciales incorrectas o servidor no disponible');
                 }
 
+                const data = await response.json();
+
+                // 🚀 LECTURA ROBUSTA: Soportamos tanto camelCase como PascalCase
+                // por si Jackson en Spring Boot decide cambiar el formato en el futuro.
+                const idLeido = data.usuarioID || data.UsuarioID;
+                const nombreLeido = data.nombreCompleto || data.NombreCompleto;
+                const rolLeido = data.rol || data.Rol;
+                const userLeido = data.username || data.Username;
+                const tokenLeido = data.token || data.Token || 'token-temporal-hasta-implementar-jwt';
+
+                if (!idLeido) {
+                    throw new Error("El servidor no devolvió un ID de usuario válido.");
+                }
+
+                // Armamos el objeto de sesión perfecto para config.js
+                const sessionData = {
+                    usuarioID: idLeido,
+                    nombreCompleto: nombreLeido,
+                    rol: rolLeido,
+                    username: userLeido,
+                    token: tokenLeido 
+                };
+
+                // --- 2. LÓGICA RECORDAR SESIÓN (AL GUARDAR) ---
+                if (chkRemember && chkRemember.checked) {
+                    localStorage.setItem('fastcash_saved_user', username);
+                } else {
+                    localStorage.removeItem('fastcash_saved_user');
+                }
+
+                localStorage.setItem('usuarioSesion', JSON.stringify(sessionData));
+                
+                mostrarToast(`¡Bienvenido, ${sessionData.nombreCompleto}!`, 'success');
+                
+                const contenedor = document.querySelector('.contenedor-login');
+                if (contenedor) {
+                    contenedor.style.transform = 'scale(0.95)';
+                    contenedor.style.opacity = '0';
+                }
+                
+                setTimeout(() => window.location.href = 'index.html', 1000);
+
             } catch (error) {
-                console.error(error);
+                console.error("Error en Login:", error);
                 mostrarToast(error.message, 'error');
                 
                 if (inputUser) inputUser.style.borderColor = 'var(--color-primario)';
@@ -114,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (inputPass) inputPass.style.borderColor = '';
                 }, 2000);
             } finally {
-                // Restaurar botón
                 if (btnLogin) {
                     btnLogin.innerHTML = textoOriginal;
                     btnLogin.disabled = false;
@@ -156,7 +169,6 @@ function mostrarToast(mensaje, tipo = 'info') {
     }, 3000);
 }
 
-// Estilos dinámicos para las animaciones
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }

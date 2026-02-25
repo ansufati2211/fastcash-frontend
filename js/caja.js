@@ -3,14 +3,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const areaTrabajo = document.querySelector('.area-trabajo');
 
     window.actualizarEstadoVisualCaja = function(estaAbierta) {
-        CAJA_ABIERTA = estaAbierta;
+        window.CAJA_ABIERTA = estaAbierta;
         if(btnAbrirCaja) btnAbrirCaja.style.display = estaAbierta ? 'none' : 'flex';
         if(areaTrabajo) { 
             if (estaAbierta) {
                 areaTrabajo.style.opacity = "1"; 
                 areaTrabajo.style.pointerEvents = "all"; 
             } else {
-                if (ROL_USUARIO.includes('ADMIN')) {
+                if (window.ROL_USUARIO === 'ADMINISTRADOR') {
                     areaTrabajo.style.opacity = "1"; 
                     areaTrabajo.style.pointerEvents = "all"; 
                 } else {
@@ -23,10 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function verificarEstadoCaja() {
         try {
-            const res = await fetch(`${BASE_URL}/caja/estado/${USUARIO_ID}`);
+            const res = await fetch(`${window.BASE_URL}/caja/estado/${window.USUARIO_ID}`, {
+                headers: window.getAuthHeaders()
+            });
+            
             if (res.ok) {
                 const data = await res.json();
-                actualizarEstadoVisualCaja(data.estado === 'ABIERTO');
+                // 🚀 OMNI-FALLBACK: estado o Estado
+                const estadoActual = data.estado || data.Estado;
+                actualizarEstadoVisualCaja(estadoActual === 'ABIERTO');
             } else {
                 actualizarEstadoVisualCaja(false);
             }
@@ -46,9 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnAbrirCaja.disabled = true;
 
             try {
-                const res = await fetch(`${BASE_URL}/caja/abrir`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ usuarioID: parseInt(USUARIO_ID), saldoInicial: 0.00 })
+                const res = await fetch(`${window.BASE_URL}/caja/abrir`, {
+                    method: 'POST', 
+                    headers: window.getAuthHeaders(),
+                    // 🚀 OMNI-FALLBACK PAYLOAD: Doble ID para asegurar
+                    body: JSON.stringify({ 
+                        usuarioID: parseInt(window.USUARIO_ID), 
+                        usuarioId: parseInt(window.USUARIO_ID), 
+                        saldoInicial: 0.00 
+                    })
                 });
 
                 if(res.ok) {
@@ -56,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarEstadoVisualCaja(true);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    throw new Error(err.mensaje || err.error || "Error al abrir caja");
+                    throw new Error(err.mensaje || err.Mensaje || err.error || "Error al abrir caja");
                 }
             } catch (error) {
                 mostrarNotificacion(" Error: " + error.message, 'error');
@@ -70,41 +81,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Lógica de Cierre e Impresión (Exportada para que UI la llame)
 window.cargarDatosCierre = function() {
-    fetch(`${window.BASE_URL}/reportes/cierre-actual/${window.USUARIO_ID}`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } })
-        .then(r => r.json())
-        .then(d => {
-            const setTxt = (id, v) => { 
-                const el = document.getElementById(id); 
-                if(el) el.textContent = `S/ ${parseFloat(v||0).toFixed(2)}`; 
-            };
-            
-            // 1. Llenar tarjetas grandes de resumen (Dashboard)
-            setTxt('totalYape', d.VentasDigital || d.ventasdigital);
-            setTxt('totalTarjeta', d.VentasTarjeta || d.ventastarjeta);
-            setTxt('totalGeneral', d.TotalVendido || d.totalvendido);
-            setTxt('totalAnulado', d.TotalAnulado || d.totalanulado);
+    fetch(`${window.BASE_URL}/reportes/cierre-actual/${window.USUARIO_ID}`, { 
+        headers: window.getAuthHeaders() 
+    })
+    .then(r => r.json())
+    .then(d => {
+        const setTxt = (id, v) => { 
+            const el = document.getElementById(id); 
+            if(el) el.textContent = `S/ ${parseFloat(v||0).toFixed(2)}`; 
+        };
+        
+        // 🚀 OMNI-FALLBACK: Lectura segura a prueba de base de datos
+        const vYape = d.ventasDigital || d.VentasDigital || d.ventasdigital || 0;
+        const vTar = d.ventasTarjeta || d.VentasTarjeta || d.ventastarjeta || 0;
+        const vTot = d.totalVendido || d.TotalVendido || d.totalvendido || 0;
+        const vAnu = d.totalAnulado || d.TotalAnulado || d.totalanulado || 0;
 
-            // 2. Llenar PREVISUALIZACIÓN DEL TICKET al instante
-            setTxt('ticketYapePrint', d.VentasDigital || d.ventasdigital);
-            setTxt('ticketTarjetaPrint', d.VentasTarjeta || d.ventastarjeta);
-            setTxt('ticketAnuladoPrint', d.TotalAnulado || d.totalanulado); 
-            setTxt('ticketTotalPrint', d.TotalVendido || d.totalvendido); 
+        // 1. Llenar tarjetas grandes de resumen (Dashboard)
+        setTxt('totalYape', vYape);
+        setTxt('totalTarjeta', vTar);
+        setTxt('totalGeneral', vTot);
+        setTxt('totalAnulado', vAnu);
 
-            // 3. Llenar Fecha, Hora y Cajero en el ticket
-            const elFecha = document.getElementById('ticketFecha');
-            if(elFecha) elFecha.textContent = new Date().toLocaleDateString('es-PE');
-            
-            const elHora = document.getElementById('ticketHora');
-            if(elHora) elHora.textContent = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-            
-            const elNombre = document.getElementById('ticketCajeroNombre');
-            if(elNombre && window.USUARIO_DATA) elNombre.textContent = (window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.username || "Cajero").toUpperCase();
+        // 2. Llenar PREVISUALIZACIÓN DEL TICKET al instante
+        setTxt('ticketYapePrint', vYape);
+        setTxt('ticketTarjetaPrint', vTar);
+        setTxt('ticketAnuladoPrint', vAnu); 
+        setTxt('ticketTotalPrint', vTot); 
 
-        }).catch(err => console.error("Error al cargar la previsualización del cierre:", err));
+        // 3. Llenar Fecha, Hora y Cajero en el ticket
+        const elFecha = document.getElementById('ticketFecha');
+        if(elFecha) elFecha.textContent = new Date().toLocaleDateString('es-PE');
+        
+        const elHora = document.getElementById('ticketHora');
+        if(elHora) elHora.textContent = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+        
+        const elNombre = document.getElementById('ticketCajeroNombre');
+        if(elNombre && window.USUARIO_DATA) {
+            const nomCajero = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.username || "CAJERO";
+            elNombre.textContent = nomCajero.toUpperCase();
+        }
+    }).catch(err => console.error("Error al cargar la previsualización del cierre:", err));
 }
 
 // ==========================================
-// 1. FUNCIÓN ORIGINAL: CIERRE RESUMIDO
+// 1. FUNCIÓN: CIERRE RESUMIDO
 // ==========================================
 window.imprimirCierre = async () => {
     if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA (RESUMEN)?\n\nEsta acción finalizará tu turno, imprimirá el ticket y cerrará tu sesión.")) return;
@@ -113,13 +134,15 @@ window.imprimirCierre = async () => {
     if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Cerrando...'; }
 
     try {
-        const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, {
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        const resReporte = await fetch(`${window.BASE_URL}/reportes/cierre-actual/${window.USUARIO_ID}`, {
+            headers: window.getAuthHeaders()
         });
         if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
         
         const data = await resReporte.json(); 
-        const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
+        
+        // 🚀 OMNI-FALLBACK: Lectura de Saldo
+        const saldoFinalEsperado = data.saldoEsperadoEnCaja || data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
 
         const setText = (id, valor) => {
             const el = document.getElementById(id);
@@ -130,34 +153,34 @@ window.imprimirCierre = async () => {
         document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
         document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
         
-        let nombreImpresion = "CAJERO";
-        try {
-            const sessionData = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
-            nombreImpresion = sessionData.NombreCompleto || sessionData.nombreCompleto || sessionData.nombrecompleto || sessionData.username || "CAJERO";
-        } catch(e) { console.error("Error leyendo nombre de sesión"); }
-
         const elNombre = document.getElementById('ticketCajeroNombre');
-        if(elNombre) elNombre.textContent = nombreImpresion.toUpperCase();
+        const nomCajero = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.username || "CAJERO";
+        if(elNombre) elNombre.textContent = nomCajero.toUpperCase();
 
-        setText('ticketYapePrint', data.VentasDigital || data.ventasdigital);
-        setText('ticketTarjetaPrint', data.VentasTarjeta || data.ventastarjeta);
-        setText('ticketAnuladoPrint', data.TotalAnulado || data.totalanulado); 
-        setText('ticketTotalPrint', data.TotalVendido || data.totalvendido); 
+        setText('ticketYapePrint', data.ventasDigital || data.VentasDigital || data.ventasdigital);
+        setText('ticketTarjetaPrint', data.ventasTarjeta || data.VentasTarjeta || data.ventastarjeta);
+        setText('ticketAnuladoPrint', data.totalAnulado || data.TotalAnulado || data.totalanulado); 
+        setText('ticketTotalPrint', data.totalVendido || data.TotalVendido || data.totalvendido); 
 
         // OCULTAR LA ZONA DE DETALLES PARA EL REPORTE RESUMIDO
         const zonaDetalles = document.getElementById('ticketZonaDetalles');
         if (zonaDetalles) zonaDetalles.style.display = 'none';
 
-        // Cerrar en Backend
-        const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
+        // 🚀 OMNI-FALLBACK PAYLOAD CIERRE
+        const resCierre = await fetch(`${window.BASE_URL}/caja/cerrar`, {
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
-            body: JSON.stringify({ usuarioID: parseInt(USUARIO_ID), saldoFinalReal: saldoFinalEsperado })
+            headers: window.getAuthHeaders(),
+            body: JSON.stringify({ 
+                usuarioID: parseInt(window.USUARIO_ID), 
+                usuarioId: parseInt(window.USUARIO_ID), 
+                saldoFinalReal: saldoFinalEsperado,
+                saldofinalreal: saldoFinalEsperado
+            })
         });
 
         if(!resCierre.ok) {
             const err = await resCierre.json();
-            throw new Error(err.Mensaje || err.error || "Error al cerrar la caja en el sistema.");
+            throw new Error(err.Mensaje || err.mensaje || err.error || "Error al cerrar la caja en el sistema.");
         }
 
         setTimeout(() => {
@@ -175,7 +198,7 @@ window.imprimirCierre = async () => {
 };
 
 // ==========================================
-// FUNCIÓN: CIERRE DETALLADO (3 COLUMNAS TICKET)
+// 2. FUNCIÓN: CIERRE DETALLADO (3 COLUMNAS TICKET)
 // ==========================================
 window.imprimirCierreDetallado = async () => {
     if(!confirm("⚠️ ¿Estás seguro de realizar el CIERRE DE CAJA (DETALLADO)?\n\nEsta acción finalizará tu turno, imprimirá el ticket con el detalle de las ventas y cerrará tu sesión.")) return;
@@ -184,43 +207,37 @@ window.imprimirCierreDetallado = async () => {
     if(btn) { btn.disabled = true; btn.innerHTML = '<span>⚙️</span> Procesando...'; }
 
     try {
-        // 1. Obtener Totales y Detalles
-        const resReporte = await fetch(`${BASE_URL}/reportes/cierre-actual/${USUARIO_ID}`, {
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        const resReporte = await fetch(`${window.BASE_URL}/reportes/cierre-actual/${window.USUARIO_ID}`, {
+            headers: window.getAuthHeaders()
         });
         
-        const resDetalle = await fetch(`${BASE_URL}/reportes/cierre-detalle/${USUARIO_ID}`, {
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        const resDetalle = await fetch(`${window.BASE_URL}/reportes/cierre-detalle/${window.USUARIO_ID}`, {
+            headers: window.getAuthHeaders()
         });
 
         if(!resReporte.ok) throw new Error("No se pudieron calcular los montos finales.");
         
         const data = await resReporte.json(); 
         const detalles = resDetalle.ok ? await resDetalle.json() : []; 
-        const saldoFinalEsperado = data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
+        const saldoFinalEsperado = data.saldoEsperadoEnCaja || data.SaldoEsperadoEnCaja || data.saldoesperadoencaja || 0;
 
         const setText = (id, valor) => {
             const el = document.getElementById(id);
             if(el) el.textContent = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
         };
 
-        // 2. Llenar Datos Generales del Ticket
+        // Llenar Datos Generales del Ticket
         document.getElementById('ticketFecha').textContent = new Date().toLocaleDateString('es-PE');
         document.getElementById('ticketHora').textContent = new Date().toLocaleTimeString('es-PE');
         
-        let nombreImpresion = "CAJERO";
-        try {
-            const sessionData = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
-            nombreImpresion = sessionData.NombreCompleto || sessionData.nombreCompleto || sessionData.nombrecompleto || sessionData.username || "CAJERO";
-        } catch(e) { console.error("Error leyendo nombre de sesión"); }
-
         const elNombre = document.getElementById('ticketCajeroNombre');
-        if(elNombre) elNombre.textContent = nombreImpresion.toUpperCase();
+        const nomCajero = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.username || "CAJERO";
+        if(elNombre) elNombre.textContent = nomCajero.toUpperCase();
 
-        setText('ticketYapePrint', data.VentasDigital || data.ventasdigital);
-        setText('ticketTarjetaPrint', data.VentasTarjeta || data.ventastarjeta);
-        setText('ticketAnuladoPrint', data.TotalAnulado || data.totalanulado); 
-        setText('ticketTotalPrint', data.TotalVendido || data.totalvendido); 
+        setText('ticketYapePrint', data.ventasDigital || data.VentasDigital || data.ventasdigital);
+        setText('ticketTarjetaPrint', data.ventasTarjeta || data.VentasTarjeta || data.ventastarjeta);
+        setText('ticketAnuladoPrint', data.totalAnulado || data.TotalAnulado || data.totalanulado); 
+        setText('ticketTotalPrint', data.totalVendido || data.TotalVendido || data.totalvendido); 
 
         // 3. Llenar la Tabla de 3 Columnas
         const zonaDetalles = document.getElementById('ticketZonaDetalles');
@@ -234,25 +251,23 @@ window.imprimirCierreDetallado = async () => {
                 tbodyDetalles.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 5px 0;">Sin transacciones</td></tr>';
             } else {
                 detalles.forEach(d => {
-                    const fechaStr = d.fechaemision || d.FechaEmision;
-                    const formaPago = (d.formapago || d.FormaPago || '').toUpperCase();
-                    const entidad = (d.entidadbancaria || d.EntidadBancaria || '-').toUpperCase();
-                    const numOp = d.numerooperacion || d.NumeroOperacion || '-';
-                    const monto = parseFloat(d.montopagado || d.MontoPagado || 0).toFixed(2);
+                    // 🚀 OMNI-FALLBACK: Tabla de detalles
+                    const fechaStr = d.fechaemision || d.fechaEmision || d.FechaEmision;
+                    const formaPago = (d.formapago || d.formaPago || d.FormaPago || '').toUpperCase();
+                    const entidad = (d.entidadbancaria || d.entidadBancaria || d.EntidadBancaria || '-').toUpperCase();
+                    const numOp = d.numerooperacion || d.numeroOperacion || d.NumeroOperacion || '-';
+                    const monto = parseFloat(d.montopagado || d.montoPagado || d.MontoPagado || 0).toFixed(2);
                     
                     const horaFormateada = new Date(fechaStr).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
-                    // LOGICA PARA COMPRIMIR LA COLUMNA CENTRAL (OP/REF)
                     let infoOperacion = '';
                     if (formaPago === 'EFECTIVO') {
                         infoOperacion = 'EFECTIVO';
                     } else {
-                        // Si es Tarjeta usamos el banco (ej. VISA), si es digital usamos la forma de pago (ej. YAPE)
                         let prefijo = (formaPago === 'TARJETA' && entidad !== '-') ? entidad : formaPago;
                         infoOperacion = `${prefijo}: ${numOp}`;
                     }
 
-                    // vertical-align: top asegura alineación perfecta en ticketera térmica
                     tbodyDetalles.innerHTML += `
                         <tr>
                             <td style="padding: 2px 0; vertical-align: top;">${horaFormateada}</td>
@@ -264,19 +279,23 @@ window.imprimirCierreDetallado = async () => {
             }
         }
 
-        // 4. Cerrar en Backend
-        const resCierre = await fetch(`${BASE_URL}/caja/cerrar`, {
+        // 🚀 OMNI-FALLBACK PAYLOAD CIERRE
+        const resCierre = await fetch(`${window.BASE_URL}/caja/cerrar`, {
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
-            body: JSON.stringify({ usuarioID: parseInt(USUARIO_ID), saldoFinalReal: saldoFinalEsperado })
+            headers: window.getAuthHeaders(),
+            body: JSON.stringify({ 
+                usuarioID: parseInt(window.USUARIO_ID), 
+                usuarioId: parseInt(window.USUARIO_ID), 
+                saldoFinalReal: saldoFinalEsperado,
+                saldofinalreal: saldoFinalEsperado
+            })
         });
 
         if(!resCierre.ok) {
             const err = await resCierre.json();
-            throw new Error(err.Mensaje || err.error || "Error al cerrar la caja en el sistema.");
+            throw new Error(err.Mensaje || err.mensaje || err.error || "Error al cerrar la caja en el sistema.");
         }
 
-        // 5. Imprimir y salir
         setTimeout(() => {
             window.print(); 
             mostrarNotificacion(" CAJA CERRADA CORRECTAMENTE.\n\nSe cerrará la sesión ahora.");

@@ -8,10 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. HISTORIAL DE VENTAS Y ANULACIONES
 // ==========================================
 window.cargarFiltroHistorial = async function() {
-    if (!window.ROL_USUARIO || !window.ROL_USUARIO.includes('ADMIN')) return;
+    if (!window.ROL_USUARIO || window.ROL_USUARIO !== 'ADMINISTRADOR') return;
     
     try {
-        const res = await fetch(`${window.BASE_URL}/admin/usuarios`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
+        const res = await fetch(`${window.BASE_URL}/admin/usuarios`, { 
+            headers: window.getAuthHeaders() 
+        });
+        
         if(res.ok) {
             const usuarios = await res.json();
             const select = document.getElementById('filtroUsuarioHistorial');
@@ -21,10 +24,10 @@ window.cargarFiltroHistorial = async function() {
             if(select) {
                 select.innerHTML = '<option value="">-- Ver Todos --</option>';
                 usuarios.forEach(u => {
-                    // CORRECCIÓN: Detección robusta del nombre y el ID
-                    const uid = u.UsuarioID || u.usuarioid || u.usuarioId || u.id;
-                    const nombre = u.NombreCompleto || u.nombrecompleto || u.nombreCompleto || u.Username || u.username;
-                    if(uid && nombre) select.innerHTML += `<option value="${uid}">${nombre}</option>`;
+                    // 🚀 OMNI-FALLBACK: Lectura garantizada de IDs y Nombres
+                    const uid = u.usuarioId || u.usuarioID || u.UsuarioID || u.usuarioid || u.id;
+                    const nombre = u.nombreCompleto || u.NombreCompleto || u.nombrecompleto || u.username || u.Username;
+                    if(uid !== undefined && nombre) select.innerHTML += `<option value="${uid}">${nombre}</option>`;
                 });
             }
         }
@@ -43,7 +46,7 @@ window.cargarHistorial = async function() {
         let url = `${window.BASE_URL}/ventas/historial/${window.USUARIO_ID}?_=${new Date().getTime()}`;
         if(filtroID && filtroID !== "undefined") url += `&filtro=${filtroID}`;
 
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: window.getAuthHeaders() });
         if(!res.ok) throw new Error("Error cargando historial");
 
         const ventas = await res.json();
@@ -53,15 +56,19 @@ window.cargarHistorial = async function() {
             cuerpoTabla.innerHTML = '<tr><td colspan="8" style="text-align:center;">📭 No hay ventas hoy.</td></tr>';
         } else {
             ventas.forEach(v => {
-                const fechaEmision = v.FechaEmision || v.fechaemision;
-                const estado = v.Estado || v.estado;
+                // 🚀 OMNI-FALLBACK EXTREMO PARA LAS TABLAS SQL
+                const fechaEmision = v.fechaemision || v.FechaEmision || v.fechaEmision;
+                const estado = v.estado || v.Estado;
                 const fecha = new Date(fechaEmision).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 const esAnulado = estado === 'ANULADO';
-                const refOp = v.RefOperacion || v.refoperacion || v.Comprobante || v.comprobante;
+                const refOp = v.refoperacion || v.RefOperacion || v.comprobante || v.Comprobante || '-';
                 
-                // --- CORRECCIÓN: Detección segura del método de pago ---
-                let formaPagoRaw = v.FormaPago || v.formapago || v.MetodoPago || v.metodopago || '';
-                let formaPagoStr = String(formaPagoRaw).toUpperCase().trim();
+                const cajero = v.cajero || v.Cajero || 'Sistema';
+                const familia = v.familia || v.Familia || 'Varios';
+                const monto = parseFloat(v.importetotal || v.ImporteTotal || v.importeTotal || v.monto || v.Monto || 0).toFixed(2);
+                const vID = v.ventaid || v.VentaID || v.ventaID || v.ventaId || v.id;
+                
+                let formaPagoStr = String(v.formapago || v.FormaPago || v.formaPago || v.metodopago || v.MetodoPago || '').toUpperCase().trim();
 
                 let badgeTipo = '💵 EFECTIVO';
                 if (formaPagoStr === 'QR' || formaPagoStr === 'YAPE' || formaPagoStr === 'PLIN') {
@@ -74,15 +81,15 @@ window.cargarHistorial = async function() {
                 
                 const fila = `
                     <tr style="${esAnulado ? 'opacity: 0.6; background: #fff5f5;' : ''}">
-                        <td style="font-weight:bold; color:#444;">${v.Cajero || v.cajero}</td>
+                        <td style="font-weight:bold; color:#444;">${cajero}</td>
                         <td class="col-tipo">${badgeTipo}</td>
-                        <td>${v.Familia || v.familia || 'Varios'}</td>
+                        <td>${familia}</td>
                         <td><div style="font-size:0.85rem; font-weight:bold;">${refOp}</div></td>
-                        <td class="dato-monto">S/ ${parseFloat(v.ImporteTotal || v.importetotal).toFixed(2)}</td>
+                        <td class="dato-monto">S/ ${monto}</td>
                         <td>${fecha}</td>
                         <td><span class="badge-estado ${esAnulado ? 'anulado' : 'completado'}">${estado}</span></td>
                         <td>
-                            <button class="btn-tabla-anular" onclick="solicitarAnulacion(${v.VentaID || v.ventaid})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
+                            <button class="btn-tabla-anular" onclick="solicitarAnulacion(${vID})" ${esAnulado ? 'disabled' : ''}>🚫 Anular</button>
                         </td>
                     </tr>`;
                 cuerpoTabla.insertAdjacentHTML('beforeend', fila);
@@ -99,8 +106,16 @@ window.solicitarAnulacion = async (ventaId) => {
 
     try {
         const res = await fetch(`${window.BASE_URL}/ventas/anular`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.TOKEN}` },
-            body: JSON.stringify({ ventaID: ventaId, usuarioID: parseInt(window.USUARIO_ID), motivo: "Anulación Manual" })
+            method: 'POST', 
+            headers: window.getAuthHeaders(), 
+            // 🚀 OMNI-FALLBACK PAYLOAD: Duplicamos IDs para asegurar la lectura en Java
+            body: JSON.stringify({ 
+                ventaID: parseInt(ventaId), 
+                ventaId: parseInt(ventaId), 
+                usuarioID: parseInt(window.USUARIO_ID), 
+                usuarioId: parseInt(window.USUARIO_ID), 
+                motivo: "Anulación Manual" 
+            })
         });
 
         if (res.ok) { 
@@ -108,7 +123,7 @@ window.solicitarAnulacion = async (ventaId) => {
             cargarHistorial(); 
         } else { 
             const err = await res.json(); 
-            mostrarNotificacion(" Error: " + (err.error || "Fallo anulación"), 'error'); 
+            mostrarNotificacion(" Error: " + (err.error || err.Mensaje || err.mensaje || "Fallo anulación"), 'error'); 
         }
     } catch (e) { mostrarNotificacion(" Error de red", 'error'); }
 };
@@ -123,17 +138,17 @@ window.cargarFiltroUsuarios = async function() {
     if(contenedor) contenedor.style.display = 'block'; 
 
     try {
-        const res = await fetch(`${window.BASE_URL}/admin/usuarios`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
+        const res = await fetch(`${window.BASE_URL}/admin/usuarios`, { headers: window.getAuthHeaders() });
         if(res.ok) {
             const usuarios = await res.json();
             select.innerHTML = '<option value="">-- Todos los Cajeros --</option>';
             
             usuarios.forEach(u => {
-                // CORRECCIÓN: Detección robusta para la pestaña de Reportes también
-                const uid = u.UsuarioID || u.usuarioid || u.usuarioId || u.id;
-                const nombre = u.NombreCompleto || u.nombrecompleto || u.nombreCompleto || u.Username || u.username;
+                // 🚀 OMNI-FALLBACK
+                const uid = u.usuarioId || u.usuarioID || u.UsuarioID || u.usuarioid || u.id;
+                const nombre = u.nombreCompleto || u.NombreCompleto || u.nombrecompleto || u.username || u.Username;
                 
-                if (uid !== undefined && uid !== null && nombre) {
+                if (uid !== undefined && nombre) {
                     select.innerHTML += `<option value="${uid}">${nombre}</option>`;
                 }
             });
@@ -153,7 +168,7 @@ window.generarReporte = async (tipo) => {
     const rol = window.ROL_USUARIO || '';
     const myId = window.USUARIO_ID;
 
-    if (rol === 'ADMINISTRADOR' || rol.includes('ADMIN')) {
+    if (rol === 'ADMINISTRADOR') {
         if (usuarioFiltro && usuarioFiltro !== "" && usuarioFiltro !== "undefined") {
             params.append('usuarioID', usuarioFiltro);
         }
@@ -168,7 +183,7 @@ window.generarReporte = async (tipo) => {
 
     try {
         const urlFinal = `${window.BASE_URL}${endpoint}?${params.toString()}`;
-        const res = await fetch(urlFinal, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
+        const res = await fetch(urlFinal, { headers: window.getAuthHeaders() });
         
         if (!res.ok) {
             const errorText = await res.text();
@@ -185,7 +200,8 @@ window.generarReporte = async (tipo) => {
 
         let totalGeneral = 0;
         data.forEach(row => {
-            const monto = row["Monto Total"] || row["totalvendido"] || row["TotalVendido"] || row["ImporteTotal"] || row["Monto"] || 0;
+            // 🚀 OMNI-FALLBACK SUMATORIA: Atrapa cualquier nombre que SQL le asigne a la columna de dinero
+            const monto = row["Monto Total"] || row["TotalVendido"] || row["totalvendido"] || row["ImporteTotal"] || row["importetotal"] || row["Monto"] || row["monto"] || 0;
             totalGeneral += parseFloat(monto);
         });
 
@@ -198,10 +214,12 @@ window.generarReporte = async (tipo) => {
         const sCeldaData = { border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }, alignment: { horizontal: "center", vertical: "center" } };
         const sMoneda = { border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }, alignment: { horizontal: "right", vertical: "center" }, numFmt: '"S/" #,##0.00' };
 
+        const nombreGenerador = window.USUARIO_DATA ? (window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || 'Sistema') : 'Sistema';
+
         const wsData = [
             ["REPORTE OFICIAL - TIENDA ROJAS"], 
             [`📅 Rango: ${inicio} al ${fin}`],  
-            [`👤 Generado por: ${(window.USUARIO_DATA ? window.USUARIO_DATA.NombreCompleto : 'Sistema')}`], 
+            [`👤 Generado por: ${nombreGenerador}`], 
             [`💰 MONTO TOTAL DEL REPORTE: S/ ${totalGeneral.toFixed(2)}`], 
             [""], 
             Object.keys(data[0]) 
@@ -261,30 +279,25 @@ window.generarReporte = async (tipo) => {
         }
         ws['!cols'] = colWidths;
 
-XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+        XLSX.utils.book_append_sheet(wb, ws, "Reporte");
             
-            // --- LÓGICA DE NOMBRE DEL ARCHIVO CON FECHAS (FORMATO YYYY-MM-DD) ---
-            // 1. Obtener la fecha de hoy asegurando el formato Año-Mes-Día
-            const hoy = new Date();
-            const year = hoy.getFullYear();
-            const month = String(hoy.getMonth() + 1).padStart(2, '0'); // +1 porque los meses van de 0 a 11
-            const day = String(hoy.getDate()).padStart(2, '0');
-            let fechaHoyFormato = `${year}-${month}-${day}`; 
-            
-            let nombreExportacion = `Reporte_${tipo}_${fechaHoyFormato}.xlsx`;
+        const hoy = new Date();
+        const year = hoy.getFullYear();
+        const month = String(hoy.getMonth() + 1).padStart(2, '0'); 
+        const day = String(hoy.getDate()).padStart(2, '0');
+        let fechaHoyFormato = `${year}-${month}-${day}`; 
+        
+        let nombreExportacion = `Reporte_${tipo}_${fechaHoyFormato}.xlsx`;
 
-            if (inicio !== 'Hoy' && fin !== 'Hoy') {
-                if (inicio === fin) {
-                    // Si es un solo día específico
-                    nombreExportacion = `Reporte_${tipo}_${inicio}.xlsx`;
-                } else {
-                    // Si es un rango de fechas
-                    nombreExportacion = `Reporte_${tipo}_${inicio}_al_${fin}.xlsx`;
-                }
+        if (inicio !== 'Hoy' && fin !== 'Hoy') {
+            if (inicio === fin) {
+                nombreExportacion = `Reporte_${tipo}_${inicio}.xlsx`;
+            } else {
+                nombreExportacion = `Reporte_${tipo}_${inicio}_al_${fin}.xlsx`;
             }
+        }
 
-            // Descargar con el nuevo nombre
-            XLSX.writeFile(wb, nombreExportacion);
+        XLSX.writeFile(wb, nombreExportacion);
 
         if(btn) { btn.innerHTML = '<span></span> ¡Listo!'; setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000); }
 
@@ -311,7 +324,7 @@ window.inicializarGraficos = async () => {
     const rol = window.ROL_USUARIO || '';
     const myId = window.USUARIO_ID;
 
-    if (rol.includes('ADMIN')) {
+    if (rol === 'ADMINISTRADOR') {
         if(userDash && userDash !== "" && userDash !== "undefined") {
             params.append('usuarioID', userDash);
         }
@@ -320,7 +333,10 @@ window.inicializarGraficos = async () => {
     }
 
     try {
-        const res = await fetch(`${window.BASE_URL}/reportes/graficos-hoy?${params.toString()}`, { headers: { 'Authorization': `Bearer ${window.TOKEN}` } });
+        const res = await fetch(`${window.BASE_URL}/reportes/graficos-hoy?${params.toString()}`, { 
+            headers: window.getAuthHeaders() 
+        });
+        
         if(!res.ok) return;
         const data = await res.json(); 
 
@@ -332,9 +348,9 @@ window.inicializarGraficos = async () => {
             chartPastel = new Chart(ctxP, {
                 type: 'doughnut',
                 data: { 
-                    labels: data.categorias.map(i => i.label), 
+                    labels: data.categorias.map(i => i.label || i.Label || i.categoria), 
                     datasets: [{ 
-                        data: data.categorias.map(i => i.value), 
+                        data: data.categorias.map(i => i.value || i.Value || i.monto || i.total), 
                         backgroundColor: palette,
                         borderWidth: 0, 
                         hoverOffset: 15 
@@ -363,10 +379,10 @@ window.inicializarGraficos = async () => {
             chartBarras = new Chart(ctxB, {
                 type: 'bar',
                 data: { 
-                    labels: data.pagos.map(i => i.label), 
+                    labels: data.pagos.map(i => i.label || i.Label || i.formaPago || i.formapago), 
                     datasets: [{ 
                         label: 'Ingresos (S/)', 
-                        data: data.pagos.map(i => i.value), 
+                        data: data.pagos.map(i => i.value || i.Value || i.monto || i.total), 
                         backgroundColor: gradientBlue, 
                         borderRadius: 8,
                         borderSkipped: false,
