@@ -86,22 +86,64 @@
 .ticket-oculto { display: none; }
 
 @media print {
-    @page { margin: 0; size: auto; }
-    html, body { margin: 0 !important; padding: 0 !important; height: 100vh !important; overflow: hidden !important; background: #fff !important; }
-    body * { visibility: hidden; height: 0; }
-    
-    #ticketImpresion, #ticketImpresion * { visibility: visible !important; height: auto !important; }
-    
-    #ticketImpresion {
-        display: block !important; position: fixed !important; left: 0 !important; top: 0 !important;
-        width: 100% !important; margin: 0 !important; padding: 5px !important;
-        background-color: white !important; color: black !important;
-        font-family: 'Courier New', Courier, monospace !important;
-        font-size: 12px !important; text-align: center;
-        box-shadow: none !important; mask-image: none !important;
+    @page { 
+        margin: 0; 
+        size: auto; 
     }
     
-    #areaImpresion, #areaImpresion * { visibility: visible; }
-    #areaImpresion { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
-    .btn, .sidebar, .header { display: none !important; }
+    html, body { 
+        margin: 0 !important; 
+        padding: 0 !important; 
+        background: #fff !important; 
+        color: black !important;
+    }
+
+    .sidebar, 
+    .header-sistema, 
+    .btn-hamburguesa,
+    .botones-cierre, 
+    .ticket-visual-header,
+    .grid-stats,
+    .header-dashboard { 
+        display: none !important; 
+    }
+
+    .contenedor-derecho, 
+    .area-trabajo, 
+    #vista-cierre, 
+    .dashboard-cierre, 
+    .area-accion-final, 
+    .ticket-preview-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        position: static !important;
+    }
+
+
+    #ticketImpresion, #ticketImpresion * {
+        visibility: visible !important;
+    }
+
+    #ticketImpresion {
+        display: block !important;
+        position: absolute !important; 
+        left: 0 !important; 
+        top: 0 !important;
+        width: 100% !important; 
+        margin: 0 !important; 
+        padding: 0 !important; 
+        background-color: white !important; 
+        color: black !important;
+        box-shadow: none !important; 
+        border: none !important;
+    }
+
+    #ticketImpresion .ticket-header h3 {
+        margin-top: 0.5rem !important;
+        padding-top: 0.5rem !important;
+        line-height: 1 !important;
+    }
 }
