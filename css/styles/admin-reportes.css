@@ -448,36 +448,12 @@
 .stat-card.digital .stat-icon { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); color: white; }
 .stat-card.digital .stat-icon img { filter: brightness(0) invert(1); } 
 .stat-card.digital .stat-trend { color: #3b82f6; }
-.stat-card.digital::after {content: ''; /* Obligatorio para que exista el elemento */
-    position: absolute;
-    right: -15px;
-    bottom: -15px;
-    width: 100px;
-    height: 100px;
-    background-image: url('../img/icon/codigo-qr-icon.png'); /* Verifica los dos puntos .. */
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.1; /* Para que se vea sutil como el de anulados */
-    filter: brightness(0) invert(1); /* Lo vuelve blanco para que resalte en el azul */
-    transform: rotate(-15deg);
-    z-index: 0;}
+.stat-card.digital::after { background-image: url('../img/icon/codigo-qr-icon.png'); }
 
 .stat-card.card .stat-icon { background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); color: white; }
 .stat-card.card .stat-icon img { filter: brightness(0) invert(1); }
 .stat-card.card .stat-trend { color: #a855f7; }
-.stat-card.card::after {content: ''; 
-    position: absolute;
-    right: -15px;
-    bottom: -15px;
-    width: 100px;
-    height: 100px;
-    background-image: url('../img/icon/tarjeta-icon.png'); 
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.1; 
-    filter: brightness(0) invert(1);
-    transform: rotate(-15deg);
-    z-index: 0; }
+.stat-card.card::after { background-image: url('../img/icon/tarjeta-icon.png'); }
 
 .stat-card.danger { background: linear-gradient(to bottom, #ffffff, #fff5f5); border-color: #fecaca; }
 .stat-card.danger .stat-icon { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); color: white; }
