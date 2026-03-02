@@ -446,12 +446,16 @@
 }
 
 .stat-card.digital .stat-icon { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); color: white; }
-.stat-card.digital .stat-icon img { filter: brightness(0) invert(1); } 
+.stat-card.digital .stat-icon img {width: 30px; 
+    height: 30px;
+    object-fit: contain;} 
 .stat-card.digital .stat-trend { color: #3b82f6; }
 .stat-card.digital::after { background-image: url('/img/icon/codigo-qr-icon.png'); }
 
 .stat-card.card .stat-icon { background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); color: white; }
-.stat-card.card .stat-icon img { filter: brightness(0) invert(1); }
+.stat-card.card .stat-icon img { width: 30px; 
+    height: 30px;
+    object-fit: contain;}
 .stat-card.card .stat-trend { color: #a855f7; }
 .stat-card.card::after { background-image: url('/img/icon/tarjeta-icon.png'); }
 
