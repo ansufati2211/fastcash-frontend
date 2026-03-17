@@ -1,13 +1,18 @@
 const BANCOS_POR_DEFECTO_USUARIO = {
     3: "BCP", 
-    5: "BCP", 
+    5: "BCP",
+    6: "BBVA", 
     9: "BCP", 
     10: "BCP",
     6: "BBVA", 
     11: "BBVA",  
     12: "BBVA", 
     13: "BBVA", 
-    14: "BBVA"
+    14: "BBVA",
+    15: "BBVA",
+    16: "BBVA",
+    17: "Plin",
+    18: "Plin"
 };
 
 const MAPA_ICONOS_VENTAS = {
