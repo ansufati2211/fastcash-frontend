@@ -268,3 +268,11 @@ body[data-theme="dark"] .menu-temas { background: #1f2937; }
         line-height: 1 !important; 
     }
 }
+
+.logo-ticket {
+        width: 110px !important; 
+        height: auto !important;
+        margin: 9px auto 3PX !important; 
+        display: block !important;
+        filter: grayscale(100%) contrast(1.5) brightness(1.2) !important; 
+    }

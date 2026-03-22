@@ -264,7 +264,17 @@ window.imprimirCierreDetallado = async () => {
                     if (formaPago === 'EFECTIVO') {
                         infoOperacion = 'EFECTIVO';
                     } else {
-                        let prefijo = (formaPago === 'TARJETA' && entidad !== '-') ? entidad : formaPago;
+                        let prefijo = formaPago;
+                        
+                        // Si es Tarjeta usamos el banco (ej. VISA)
+                        if (formaPago === 'TARJETA' && entidad !== '-') {
+                            prefijo = entidad;
+                        } 
+                        // Si es QR/YAPE/PLIN le sumamos el nombre de la entidad (ej. QR BCP)
+                        else if (formaPago === 'QR' || formaPago === 'YAPE' || formaPago === 'PLIN') {
+                            prefijo = `QR ${entidad !== '-' ? entidad : ''}`.trim(); 
+                        }
+                        
                         infoOperacion = `${prefijo}: ${numOp}`;
                     }
 

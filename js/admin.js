@@ -116,11 +116,13 @@ window.editarUsuario = async (idUsuario) => {
         document.getElementById('turnoUsuario').value = turnoId;
         document.getElementById('tituloModalUsuario').textContent = "Editar Usuario";
         
-        const rolSelect = document.getElementById('rolUsuario');
+const rolSelect = document.getElementById('rolUsuario');
         if (rolData && String(rolData).toUpperCase().includes('ADMIN')) {
             rolSelect.value = "1";
+            if(rolSelect.selectedIndex === -1) rolSelect.value = "Administrador"; // Fallback
         } else {
             rolSelect.value = "2";
+            if(rolSelect.selectedIndex === -1) rolSelect.value = "Cajero"; // Fallback
         }
 
         const selEstado = document.getElementById('estadoUsuario');
@@ -163,11 +165,14 @@ async function guardarUsuario(e) {
 
     // 🚀 OMNI-FALLBACK PAYLOAD: Duplicamos las variables clave para asegurar 
     // que el DTO de Spring Boot las atrape sin importar si usa camelCase o PascalCase.
+let rawRol = document.getElementById('rolUsuario').value;
+    let rolParseado = (rawRol === "1" || String(rawRol).toUpperCase() === "ADMINISTRADOR") ? 1 : 2;
+
     const payload = { 
         nombreCompleto: document.getElementById('nombreUsuario').value,
         username: document.getElementById('usernameUsuario').value,
-        rolId: parseInt(document.getElementById('rolUsuario').value),
-        rolID: parseInt(document.getElementById('rolUsuario').value),
+        rolId: rolParseado,    // <--- AHORA USA EL VALOR CORREGIDO
+        rolID: rolParseado,    // <--- DUPLICADO POR SEGURIDAD PARA EL BACKEND
         turnoId: parseInt(document.getElementById('turnoUsuario').value),
         turnoID: parseInt(document.getElementById('turnoUsuario').value)
     };
