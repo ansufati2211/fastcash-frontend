@@ -255,11 +255,13 @@ body[data-theme="dark"] .menu-temas { background: #1f2937; }
         max-width: 100% !important; 
         margin: 0 !important;
         margin-top: -12px !important; 
-        padding: 0 !important;      
+        padding: 5px 6mm 10px 3mm !important;
+        box-sizing: border-box !important;   
         box-shadow: none !important; 
         border: none !important;
         background: white !important;
     }
+
 
     .ticket-paper .ticket-header,
     .ticket-paper .ticket-header h3 {
