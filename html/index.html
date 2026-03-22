@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="/img/img/LogoYapeRojas.png" type="image/png">
+    <link rel="shortcut icon" href="../img/img/LogoYapeRojas.png" type="image/png">
     <title>Sistema de Caja - Rojas Super</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,12 +30,12 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-contenedor">
-                <img src="/img/img/LogoYapeRojas.png" class="logo-sistema" alt="Rojas Super">
+                <img src="../img/img/LogoYapeRojas.png" class="logo-sistema" alt="Rojas Super">
             </div>
             
             <div class="perfil-caja">
                 <div class="avatar-placeholder">
-                    <img src="/img/icon/mujer.png" alt="Foto" id="fotoPerfilUsuario" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                    <img src="../img/icon/mujer.png" alt="Foto" id="fotoPerfilUsuario" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                 </div>
                 
                 <div class="info-usuario-sidebar">
@@ -49,19 +49,19 @@
             <li class="titulo-seccion-menu">OPERACIONES</li>
             <li class="item-menu activo" data-target="vista-yape">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/codigo-qr-icon.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/codigo-qr-icon.png" class="icon-foto"></div>
                     <span class="texto-menu">Venta Yape/Plin</span>
                 </a>
             </li>
             <li class="item-menu" data-target="vista-tarjeta">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/tarjeta-icon.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/tarjeta-icon.png" class="icon-foto"></div>
                     <span class="texto-menu">Venta Tarjeta</span>
                 </a>
             </li>
             <li class="item-menu" data-target="vista-anulacion">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/anular-icon.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/anular-icon.png" class="icon-foto"></div>
                     <span class="texto-menu">Historial / Anular</span>
                 </a>
             </li>
@@ -70,32 +70,32 @@
             
             <li class="item-menu admin" id="btn-nav-admin" style="display: none;" data-target="vista-admin-maestros">
                 <a href="#" onclick="mostrarSeccionAdmin()"> 
-                    <div class="icono-wrapper"><img src="/img/icon/configuracion-web.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/configuracion-web.png" class="icon-foto"></div>
                     <span class="texto-menu">Configuración</span>
                 </a>
             </li>
             <li class="item-menu admin" data-target="vista-reportes">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/reporte-icon.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/reporte-icon.png" class="icon-foto"></div>
                     <span class="texto-menu">Reportes Excel</span>
                 </a>
             </li>
             <li class="item-menu admin" data-target="vista-roles">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/agregar-usuario.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/agregar-usuario.png" class="icon-foto"></div>
                     <span class="texto-menu">Usuarios & Turnos</span>
                 </a>
             </li>
             <li class="item-menu admin" data-target="vista-financiero">
                 <a href="#">
-                    <div class="icono-wrapper"><img src="/img/icon/grafico.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/grafico.png" class="icon-foto"></div>
                     <span class="texto-menu">Gráficos Dashboard</span>
                 </a>
             </li>
             
             <li class="item-menu cierre" data-target="vista-cierre">
                 <a href="#" class="btn-cierre-sidebar">
-                    <div class="icono-wrapper"><img src="/img/icon/cierreTurno-icon.png" class="icon-foto"></div>
+                    <div class="icono-wrapper"><img src="../img/icon/cierreTurno-icon.png" class="icon-foto"></div>
                     <span class="texto-menu">Cierre de Caja</span>
                 </a>
             </li>
@@ -445,7 +445,7 @@
         <div class="grid-stats">
             <div class="stat-card digital">
                 <div class="stat-icon">
-                    <img src="/img/icon/codigo-qr-icon.png" alt="QR" onerror="this.innerText='📱'">
+                    <img src="../img/icon/codigo-qr-icon.png" alt="QR" onerror="this.style.display='none'; this.parentElement.innerHTML='📱'">
                 </div>
                 <div class="stat-info">
                     <span class="stat-label">Billeteras Digitales</span>
@@ -456,7 +456,7 @@
 
             <div class="stat-card card">
                 <div class="stat-icon">
-                    <img src="/img/icon/tarjeta-icon.png" alt="Card" onerror="this.innerText='💳'">
+                    <img src="../img/icon/tarjeta-icon.png" alt="Card" onerror="this.style.display='none'; this.parentElement.innerHTML='💳'">
                 </div>
                 <div class="stat-info">
                     <span class="stat-label">Cobros con Tarjeta</span>
@@ -490,7 +490,7 @@
 
                 <div id="ticketImpresion" class="ticket-paper">
                     <div class="ticket-header">
-                        <img src="../img/img/LogoYapeRojas.png" class="logo-ticket" alt="Logo Rojas Ya">
+                    <img src="../img/img/LogoYapeRojas.png" class="logo-ticket" alt="Logo Rojas Ya">
                         <h3>ROJAS SUPER NV</h3>
                         <p>RUC: 20606916061</p>
                         <p>MZA-A23 LT.13 A.H MARIA REICHE</p>
@@ -656,13 +656,13 @@
     <script src="/js/script.js"></script>
   -->
 
-    <script src="/js/config.js"></script>
+    <script src="../js/config.js"></script>
 
-    <script src="/js/ui.js"></script>
-    <script src="/js/caja.js"></script>
-    <script src="/js/ventas.js"></script>
-    <script src="/js/reportes.js"></script>
-    <script src="/js/admin.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/caja.js"></script>
+    <script src="../js/ventas.js"></script>
+    <script src="../js/reportes.js"></script>
+    <script src="../js/admin.js"></script>
 
 </body>
 
