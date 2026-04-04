@@ -92,11 +92,11 @@ window.cargarDatosCierre = function() {
         };
         
         // 🚀 OMNI-FALLBACK: Ahora lee "ventasQR" y "ventasTransferencia"
-        const vYape = d.ventasQR || d.VentasQR || d.ventasqr || 0;
+        const vYape = d.ventasDigital || d.VentasDigital || d.ventasdigital || 0;
         const vTar = d.ventasTarjeta || d.VentasTarjeta || d.ventastarjeta || 0;
-        const vTransf = d.ventasTransferencia || d.VentasTransferencia || d.ventastransferencia || 0;
         const vTot = d.totalVendido || d.TotalVendido || d.totalvendido || 0;
         const vAnu = d.totalAnulado || d.TotalAnulado || d.totalanulado || 0;
+
 
         // 1. Llenar tarjetas grandes de resumen (Dashboard)
         setTxt('totalYape', vYape);
@@ -107,7 +107,6 @@ window.cargarDatosCierre = function() {
         // 2. Llenar PREVISUALIZACIÓN DEL TICKET al instante
         setTxt('ticketYapePrint', vYape);
         setTxt('ticketTarjetaPrint', vTar);
-        setTxt('ticketTransferPrint', vTransf); // <-- Agregado para transferencias
         setTxt('ticketAnuladoPrint', vAnu); 
         setTxt('ticketTotalPrint', vTot); 
 
@@ -159,9 +158,8 @@ window.imprimirCierre = async () => {
         const nomCajero = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.username || "CAJERO";
         if(elNombre) elNombre.textContent = nomCajero.toUpperCase();
 
-        setText('ticketYapePrint', data.ventasQR || data.VentasQR || data.ventasqr);
+        setText('ticketYapePrint', data.ventasDigital || data.VentasDigital || data.ventasdigital);
         setText('ticketTarjetaPrint', data.ventasTarjeta || data.VentasTarjeta || data.ventastarjeta);
-        setText('ticketTransferPrint', data.ventasTransferencia || data.VentasTransferencia || data.ventastransferencia);
         setText('ticketAnuladoPrint', data.totalAnulado || data.TotalAnulado || data.totalanulado); 
         setText('ticketTotalPrint', data.totalVendido || data.TotalVendido || data.totalvendido);
 
@@ -252,9 +250,8 @@ window.imprimirCierreDetallado = async () => {
         const nomCajero = window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || window.USUARIO_DATA.username || "CAJERO";
         if(elNombre) elNombre.textContent = nomCajero.toUpperCase();
 
-        setText('ticketYapePrint', data.ventasQR || data.VentasQR || data.ventasqr);
+        setText('ticketYapePrint', data.ventasDigital || data.VentasDigital || data.ventasdigital);
         setText('ticketTarjetaPrint', data.ventasTarjeta || data.VentasTarjeta || data.ventastarjeta);
-        setText('ticketTransferPrint', data.ventasTransferencia || data.VentasTransferencia || data.ventastransferencia);
         setText('ticketAnuladoPrint', data.totalAnulado || data.TotalAnulado || data.totalanulado); 
         setText('ticketTotalPrint', data.totalVendido || data.TotalVendido || data.totalvendido);
 
@@ -287,11 +284,10 @@ window.imprimirCierreDetallado = async () => {
                         let prefijo = formaPago;
                         
                         if (formaPago === 'TARJETA' && entidad !== '-') {
-                            prefijo = entidad; // Muestra VISA, MASTERCARD, etc.
-                        } else if (formaPago === 'TRANSFERENCIA') {
-                            prefijo = 'TRANSF'; // Abreviatura solicitada
-                        } else if (formaPago === 'QR' || formaPago === 'YAPE' || formaPago === 'PLIN') {
-                            // 👇 NUEVO: Agrega el nombre del banco (BCP, BBVA) junto a la palabra QR
+                            prefijo = entidad;
+                        } 
+                        // Si es QR/YAPE/PLIN le sumamos el nombre de la entidad (ej. QR BCP)
+                        else if (formaPago === 'QR' || formaPago === 'YAPE' || formaPago === 'PLIN') {
                             prefijo = `QR ${entidad !== '-' ? entidad : ''}`.trim(); 
                         }
                         
