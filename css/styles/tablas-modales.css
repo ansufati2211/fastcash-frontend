@@ -136,13 +136,14 @@
     letter-spacing: 0.5px;
     display: inline-block;
 }
-.badge-estado.completado { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+.badge-estado.completado { background-color: #22c55e; color: #ffffff; border: none; width: 6rem; height: 2rem; text-align: center;}
 .badge-estado.anulado { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 .btn-tabla-anular { 
-    background-color: white; 
-    border: 1px solid #ef4444; 
-    color: #ef4444; 
+    background-color: #ef4444; 
+    border:none;
+    color: hsl(0, 0%, 100%); 
     padding: 8px 16px; 
     border-radius: 8px; 
     font-family: var(--font-main); 
@@ -151,17 +152,19 @@
     cursor: pointer; 
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
     display: inline-flex; 
-    align-items: center; 
+    align-items: center;
+    text-align: center; 
     gap: 6px; 
     white-space: nowrap; 
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1); 
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+    width: 6rem; height: 2rem; 
 }
 .btn-tabla-anular:hover { 
-    background-color: #ef4444; 
+    background-color: #e44b4b; 
     color: white; 
     transform: translateY(-2px); 
-    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.25); 
 }
+
 .btn-tabla-anular:active { transform: scale(0.95); }
 .btn-tabla-anular:disabled { border-color: #e5e7eb; color: #9ca3af; background-color: #f9fafb; cursor: not-allowed; transform: none; box-shadow: none; }
 

@@ -319,8 +319,10 @@
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    gap: 10px; 
+    gap: 10px;
+    margin-bottom: 0.5rem; 
 }
+
 .btn-descarga-premium:hover { 
     box-shadow: 0 10px 20px rgba(230, 0, 35, 0.35); 
     transform: translateY(-2px); 

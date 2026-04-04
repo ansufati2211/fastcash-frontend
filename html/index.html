@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
 
     <link rel="stylesheet" href="../css/styles/base.css">
@@ -23,7 +24,7 @@
     <link rel="stylesheet" href="../css/styles/admin-reportes.css">
     <link rel="stylesheet" href="../css/styles/media-queries.css">
 
-    <!-- <link rel="stylesheet" href="/css/styles.css"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -77,7 +78,7 @@
             <li class="item-menu admin" data-target="vista-reportes">
                 <a href="#">
                     <div class="icono-wrapper"><img src="../img/icon/reporte-icon.png" class="icon-foto"></div>
-                    <span class="texto-menu">Reportes Excel</span>
+                    <span class="texto-menu">Reportes</span>
                 </a>
             </li>
             <li class="item-menu admin" data-target="vista-roles">
@@ -114,7 +115,7 @@
     
     <div class="selector-tema-wrapper">
         <button class="btn-tema" id="btnSelectorTema" title="Cambiar Tema">
-            <span id="iconoTemaActual">🎨</span>
+            <span id="iconoTemaActual"><i class="fa-solid fa-palette"></i></span>
         </button>
         <div class="menu-temas" id="menuTemasOpciones">
             <button class="opcion-tema" data-theme="light"><span class="color-dot light"></span> Modo Claro</button>
@@ -131,10 +132,10 @@
                 </div>
                 
                 <button class="btn-abrir-caja" id="btnAbrirCaja" style="display: none;">
-                    📥 Abrir Caja
+                    <span class="icono-btn"><i class="fa-solid fa-box-open"></i></span> Abrir Caja
                 </button>
                 <button class="btn-cerrar-sesion" id="btnCerrarSesion">
-                    <span class="icono-btn">🚪</span> Salir
+                    <span class="icono-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i></span> Cerrar Sesión
                 </button>
             </div>
         </header>
@@ -146,7 +147,7 @@
                     
                     <div class="panel-categorias-pro">
                         <div class="cabecera-simple">
-                            <h3>🛍️ ¿Qué vendiste?</h3>
+                            <h3><i class="fa-solid fa-bag-shopping"></i> ¿Qué Vendiste?</h3>
                         </div>
                         <div class="grid-familias-moderna" id="selectorFamilia">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
@@ -158,7 +159,7 @@
                         <form id="formYape" class="form-grid-pro">
                             
                             <div class="col-monto">
-                                <h2 class="titulo-pago">📱 Pago Digital</h2>
+                                <h2 class="titulo-pago"><i class="fa-solid fa-mobile-screen-button"></i> Pago Digital</h2>
                                 <div class="input-hero">
                                     <span class="moneda">S/</span>
                                     <input type="number" id="monto" placeholder="0.00" step="0.01" required>
@@ -198,7 +199,7 @@
                     
                     <div class="panel-categorias-pro">
                         <div class="cabecera-simple">
-                            <h3>💳 Venta con Tarjeta</h3>
+                            <h3><i class="fa-regular fa-credit-card"></i> Venta con Tarjeta</h3>
                         </div>
                         <div class="grid-familias-moderna" id="selectorFamiliaTarjeta">
                             <p style="text-align:center; width:100%; color:#666;">Cargando familias...</p>
@@ -210,7 +211,7 @@
                         <form id="formTarjeta" class="form-grid-pro">
                             
                             <div class="col-monto">
-                                <h2 class="titulo-pago" style="color:#2563eb;">💳 Pago Tarjeta</h2>
+                                <h2 class="titulo-pago" style="color:#2563eb;"><i class="fa-regular fa-credit-card"></i> Pago Tarjeta</h2>
                                 <div class="input-hero">
                                     <span class="moneda">S/</span>
                                     <input type="number" id="montoTarjeta" placeholder="0.00" step="0.01" required>
@@ -251,7 +252,7 @@
 
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
-                            <h2>🚫 Historial de Ventas (Hoy)</h2>
+                            <h2><i class="fa-solid fa-ban" style="color: #ef4444;"></i> Historial de Ventas (Hoy)</h2>
                             <p>Supervisión y Anulaciones en tiempo real.</p>
                         </div>
                         <div class="controles-derecha" style="display: flex; align-items: center; gap: 10px;">
@@ -264,7 +265,7 @@
                             </div>
 
                             <button class="btn-refresh-moderno" onclick="cargarHistorial()">
-                                <span class="icono-refresh">🔄</span> Refrescar
+                                <span class="icono-refresh"><i class="fa-solid fa-rotate-right"></i></span> Refrescar
                             </button>
                         </div>
                     </div>
@@ -292,15 +293,15 @@
                 <div class="contenedor-tabla-registro">
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
-                            <h2>⚙️ Configuración del Sistema</h2>
+                            <h2><i class="fa-solid fa-gear"></i> Configuración del Sistema</h2>
                             <p>Gestiona Categorías y Entidades Financieras</p>
                         </div>
                     </div>
 
                     <div class="admin-container">
                         <div class="admin-tabs" style="margin-bottom: 20px;">
-                            <button onclick="cargarAdminCategorias()" class="btn-tab">📦 Categorías</button>
-                            <button onclick="cargarAdminEntidades()" class="btn-tab">🏦 Bancos y Billeteras</button>
+                            <button onclick="cargarAdminCategorias()" class="btn-tab"><i class="fa-solid fa-box"></i> Categorías</button>
+                            <button onclick="cargarAdminEntidades()" class="btn-tab"><i class="fa-solid fa-building-columns"></i> Bancos y Billeteras</button>
                         </div>
                         <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
 
@@ -317,22 +318,22 @@
                     style="background: transparent; box-shadow: none; border: none; padding: 0;">
 
                     <div class="titulo-seccion" style="margin-bottom: 1.5rem;">
-                        <h2>📊 Centro de Reportes</h2>
-                        <p>Genera y descarga información histórica en Excel Profesional.</p>
+                        <h2><i class="fa-solid fa-chart-column"></i> Centro de Reportes</h2>
+                        <p>Genera y descarga información histórica en Excel y PDF Profesional.</p>
                     </div>
 
                     <div class="filtros-reporte-unificados">
                         <div class="grupo-filtro">
-                            <label>📅 Fecha Inicio</label>
+                            <label><i class="fa-regular fa-calendar-days"></i> Fecha Inicio</label>
                             <input type="date" id="fechaInicio" class="input-moderno">
                         </div>
                         <div class="grupo-filtro">
-                            <label>📅 Fecha Fin</label>
+                            <label><i class="fa-regular fa-calendar-days"></i> Fecha Fin</label>
                             <input type="date" id="fechaFin" class="input-moderno">
                         </div>
 
                         <div class="grupo-filtro" id="contenedorFiltroUsuario" style="display: none; flex-grow: 1;">
-                            <label>👤 Filtrar por Cajero</label>
+                            <label><i class="fa-regular fa-user"></i> Filtrar por Cajero</label>
                             <select id="filtroUsuarioReporte" class="input-moderno">
                                 <option value="">-- Todos los Cajeros --</option>
                             </select>
@@ -343,26 +344,32 @@
                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
 
                         <div class="card-reporte-accion">
-                            <div class="icono-grande">🧾</div>
+                            <div class="icono-grande"><i class="fa-solid fa-file-invoice"></i></div>
                             <h3>Reporte de Ventas Detallado</h3>
                             <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
                                 Exporta cada transacción individual incluyendo método de pago (Yape/Tarjeta), número de
                                 operación y productos.
                             </p>
                             <button class="btn-descarga-premium" onclick="generarReporte('GENERAL')">
-                                <span>📥</span> Descargar Excel
+                                <span><i class="fa-solid fa-download"></i></span> Descargar Excel
+                            </button>
+                            <button class="btn-descarga-premium" onclick="generarReportePDF('GENERAL')" style="flex: 1; background-color: #ef4444; border-color: #dc2626;">
+                                    <span><i class="fa-solid fa-file-pdf"></i></span> Descargar PDF
                             </button>
                         </div>
 
                         <div class="card-reporte-accion">
-                            <div class="icono-grande">📦</div>
+                            <div class="icono-grande"><i class="fa-solid fa-box-archive"></i></div>
                             <h3>Historial de Cierres de Caja</h3>
                             <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">
                                 Visualiza aperturas y cierres de turno, montos iniciales, finales y cuadres de caja por
                                 usuario.
                             </p>
                             <button class="btn-descarga-premium" onclick="generarReporte('CAJAS')">
-                                <span>📥</span> Descargar Excel
+                                <span><i class="fa-solid fa-download"></i></span> Descargar Excel
+                            </button>
+                            <button class="btn-descarga-premium" onclick="generarReportePDF('CAJAS')" style="flex: 1; background-color: #ef4444; border-color: #dc2626;">
+                                    <span><i class="fa-solid fa-file-pdf"></i></span> Descargar PDF
                             </button>
                         </div>
 
@@ -374,7 +381,7 @@
                 <div class="contenedor-tabla-registro">
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
-                            <h2>👥 Gestión de Usuarios</h2>
+                            <h2><i class="fa-solid fa-users"></i> Gestión de Usuarios</h2>
                             <p>Crea y administra accesos.</p>
                         </div>
                         <button class="btn-nuevo-usuario"
@@ -406,10 +413,10 @@
 
                     <div class="cabecera-tabla">
                         <div class="titulo-seccion">
-                            <h2>📈 Dashboard Financiero (Hoy)</h2>
+                            <h2><i class="fa-solid fa-chart-line"></i> Dashboard Financiero (Hoy)</h2>
                         </div>
                         <button class="btn-refresh-moderno" onclick="inicializarGraficos()">
-                            <span class="icono-refresh">🔄</span> Actualizar Datos
+                            <span class="icono-refresh"><i class="fa-solid fa-rotate-right"></i></span> Actualizar Datos
                         </button>
                     </div>
 
@@ -431,14 +438,14 @@
 
         <header class="header-dashboard">
             <div class="titulo-area">
-                <div class="icono-header">🏁</div>
+                <div class="icono-header"><i class="fa-solid fa-flag-checkered"></i></div>
                 <div>
                     <h2>Cierre de Turno</h2>
                     <p>Resumen de operaciones del día</p>
                 </div>
             </div>
             <div class="chip-fecha">
-                📅 <span id="fechaCierre">--/--/----</span>
+                <i class="fa-regular fa-calendar-days"></i> <span id="fechaCierre">--/--/----</span>
             </div>
         </header>
 
@@ -466,7 +473,7 @@
             </div>
 
             <div class="stat-card danger">
-                <div class="stat-icon">🚫</div>
+                <div class="stat-icon"><i class="fa-solid fa-ban"></i></div>
                 <div class="stat-info">
                     <span class="stat-label">Operaciones Anuladas</span>
                     <h3 class="stat-value" id="totalAnulado">S/ 0.00</h3>
@@ -475,7 +482,7 @@
             </div>
 
             <div class="stat-card total-highlight">
-                <div class="stat-icon">💰</div>
+                <div class="stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
                 <div class="stat-info">
                     <span class="stat-label">Venta Total Real</span>
                     <h1 class="stat-value-big" id="totalGeneral">S/ 0.00</h1>
@@ -486,7 +493,7 @@
 
         <div class="area-accion-final">
             <div class="ticket-preview-wrapper">
-                <div class="ticket-visual-header">📄 Previsualización de Impresión</div>
+                <div class="ticket-visual-header"><i class="fa-regular fa-file-lines"></i> Previsualización de Impresión</div>
 
                 <div id="ticketImpresion" class="ticket-paper">
                     <div class="ticket-header">
@@ -539,12 +546,12 @@
             <div class="botones-cierre" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; justify-content: center; width: 100%;">
                 
                 <button class="btn-imprimir-cierre btn-cerrar-caja-pro" onclick="imprimirCierre()" style="flex: 1; min-width: 250px;">
-                    <span class="icon-btn">🖨️</span>
+                    <span class="icon-btn"><i class="fa-solid fa-print"></i></span>
                     <span>CERRAR CAJA (RESUMEN)</span>
                 </button>
 
                 <button class="btn-imprimir-cierre-detallado btn-cerrar-caja-pro" onclick="imprimirCierreDetallado()" style="flex: 1; min-width: 250px; background-color: #374151; border-color: #1f2937;">
-                    <span class="icon-btn">🧾</span>
+                    <span class="icon-btn"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                     <span>CERRAR CAJA (DETALLADO)</span>
                 </button>
 

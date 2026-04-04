@@ -179,7 +179,7 @@ window.generarReporte = async (tipo) => {
     let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
     const btn = document.querySelector(`button[onclick="generarReporte('${tipo}')"]`) || (event ? event.target.closest('button') : null);
     const txtOriginal = btn ? btn.innerHTML : '';
-    if (btn) { btn.innerHTML = '<span>⚙️</span> Procesando...'; btn.disabled = true; }
+    if (btn) { btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin"></i></span> Procesando...'; btn.disabled = true; }
 
     try {
         const urlFinal = `${window.BASE_URL}${endpoint}?${params.toString()}`;
@@ -234,6 +234,9 @@ window.generarReporte = async (tipo) => {
         ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }, { s: { r: 3, c: 0 }, e: { r: 3, c: 2 } }];
         ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 5, c: 0 }, e: { r: range.e.r, c: lastCol } }) };
 
+        // SOLUCIÓN: Identificación segura de tipos de datos para no corromper Excel
+        const headers = Object.keys(data[0]); 
+
         for (let R = range.s.r; R <= range.e.r; ++R) {
             for (let C = range.s.c; C <= range.e.c; ++C) {
                 const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
@@ -247,34 +250,33 @@ window.generarReporte = async (tipo) => {
                 else if (R === 5) ws[cellAddress].s = sHeaderTabla;
                 else if (R > 5) {
                     const valor = ws[cellAddress].v;
-                    if (typeof valor === 'number' || (typeof valor === 'string' && valor.includes('.'))) {
-                        ws[cellAddress].s = sMoneda; ws[cellAddress].t = 'n';
+                    const headerName = (headers[C] || "").toUpperCase();
+                    
+                    // Solo convierte a número si el nombre de la columna es de dinero
+                    if (headerName.includes("MONTO") || headerName.includes("TOTAL") || headerName.includes("VENDIDO") || headerName.includes("ANULADO")) {
+                        ws[cellAddress].t = 'n';
+                        ws[cellAddress].v = parseFloat(valor) || 0;
+                        ws[cellAddress].s = sMoneda;
                     } else {
                         ws[cellAddress].s = sCeldaData;
+                        ws[cellAddress].t = 's'; // Asegura que todo lo demás sea texto seguro (evita que S.A.C. corrompa el Excel)
                     }
                 }
             }
         }
 
+        // SOLUCIÓN COLUMNAS: Cálculo dinámico de ancho universal
         const colWidths = [];
-        const headers = Object.keys(data[0]);
         for (let C = range.s.c; C <= range.e.c; ++C) {
-            const headerName = (headers[C] || "").toUpperCase();
             let maxWidth = 15;
-            if (headerName.includes("TICKET") || headerName.includes("SISTEMA")) maxWidth = 25; 
-            else if (headerName.includes("METODO") || headerName.includes("PAGO")) maxWidth = 25;
-            else if (headerName.includes("MONTO") || headerName.includes("TOTAL")) maxWidth = 20;
-            else if (headerName.includes("FECHA") || headerName.includes("HORA")) maxWidth = 20;
-            else if (headerName.includes("CAJERO") || headerName.includes("CLIENTE")) maxWidth = 30;
-            
-            for (let R = 5; R <= range.e.r; ++R) { 
+            for (let R = range.s.r; R <= range.e.r; ++R) { 
                 const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
-                if (cell) {
-                    const len = (cell.v ? cell.v.toString().length : 0);
+                if (cell && cell.v) {
+                    const len = cell.v.toString().length;
                     if (len > maxWidth) maxWidth = len;
                 }
             }
-            if (maxWidth > 50) maxWidth = 50;
+            if (maxWidth > 40) maxWidth = 40; 
             colWidths.push({ wch: maxWidth + 2 });
         }
         ws['!cols'] = colWidths;
@@ -299,7 +301,7 @@ window.generarReporte = async (tipo) => {
 
         XLSX.writeFile(wb, nombreExportacion);
 
-        if(btn) { btn.innerHTML = '<span></span> ¡Listo!'; setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000); }
+        if(btn) { btn.innerHTML = '<span><i class="fa-solid fa-check"></i></span> ¡Listo!'; setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000); }
 
     } catch (e) {
         console.error(e); mostrarNotificacion(" Error: " + e.message, 'error');
@@ -404,4 +406,159 @@ window.inicializarGraficos = async () => {
             });
         }
     } catch (e) { console.error("Error gráficos", e); }
+};
+
+// ==========================================
+// 4. REPORTES PDF
+// ==========================================
+window.generarReportePDF = async (tipo) => {
+    const inicio = document.getElementById('fechaInicio').value || 'Hoy';
+    const fin = document.getElementById('fechaFin').value || inicio;
+    const usuarioFiltro = document.getElementById('filtroUsuarioReporte')?.value;
+
+    const params = new URLSearchParams();
+    if (inicio !== 'Hoy') params.append('inicio', inicio);
+    if (fin !== 'Hoy') params.append('fin', fin);
+
+    const rol = window.ROL_USUARIO || '';
+    const myId = window.USUARIO_ID;
+
+    if (rol === 'ADMINISTRADOR') {
+        if (usuarioFiltro && usuarioFiltro !== "" && usuarioFiltro !== "undefined") {
+            params.append('usuarioID', usuarioFiltro);
+        }
+    } else {
+        if (myId) params.append('usuarioID', myId);
+    }
+
+    let endpoint = (tipo === 'CAJAS') ? '/reportes/cajas' : '/reportes/ventas';
+    const btn = event ? event.target.closest('button') : null;
+    const txtOriginal = btn ? btn.innerHTML : '';
+    
+    if (btn) { btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin"></i></span> Generando...'; btn.disabled = true; }
+
+    try {
+        const urlFinal = `${window.BASE_URL}${endpoint}?${params.toString()}`;
+        const res = await fetch(urlFinal, { headers: window.getAuthHeaders() });
+        
+        if (!res.ok) throw new Error("Error del servidor");
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+            mostrarNotificacion("⚠️ Sin datos para exportar a PDF.", 'error');
+            if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
+            return;
+        }
+
+        // 1. Crear el contenedor virtual para el PDF
+        const container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.fontFamily = 'Arial, sans-serif';
+
+        const titulo = document.createElement('h2');
+        titulo.style.textAlign = 'center';
+        titulo.style.color = '#B91C1C';
+        titulo.innerText = `REPORTE OFICIAL - ${tipo === 'CAJAS' ? 'CIERRES DE CAJA' : 'VENTAS'}`;
+        container.appendChild(titulo);
+
+        const nombreGenerador = window.USUARIO_DATA ? (window.USUARIO_DATA.nombreCompleto || window.USUARIO_DATA.NombreCompleto || 'Sistema') : 'Sistema';
+        
+        const subtitulo = document.createElement('p');
+        subtitulo.style.textAlign = 'center';
+        subtitulo.style.fontSize = '12px';
+        subtitulo.style.color = '#333';
+        subtitulo.innerText = `Rango: ${inicio} al ${fin} | Generado por: ${nombreGenerador}`;
+        container.appendChild(subtitulo);
+
+        // 2. Crear tabla
+        const tabla = document.createElement('table');
+        tabla.style.width = '100%';
+        tabla.style.borderCollapse = 'collapse';
+        tabla.style.marginTop = '20px';
+        tabla.style.fontSize = '9px'; // Letra pequeña para que quepan las columnas
+
+        // Cabeceras
+        const thead = document.createElement('thead');
+        const trHead = document.createElement('tr');
+        const headers = Object.keys(data[0]);
+        
+        headers.forEach(h => {
+            const th = document.createElement('th');
+            th.innerText = h.toUpperCase();
+            th.style.border = '1px solid #000';
+            th.style.backgroundColor = '#1E293B';
+            th.style.color = '#FFF';
+            th.style.padding = '6px 4px';
+            th.style.textAlign = 'center';
+            trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+        tabla.appendChild(thead);
+
+        // Cuerpo
+        const tbody = document.createElement('tbody');
+        let sumaFinal = 0;
+
+        data.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            // Color intercalado para mejor lectura
+            if (index % 2 !== 0) tr.style.backgroundColor = '#f8fafc';
+
+            headers.forEach(h => {
+                const td = document.createElement('td');
+                td.style.border = '1px solid #cbd5e1';
+                td.style.padding = '5px 4px';
+                
+                let valor = row[h];
+                const headerName = h.toUpperCase();
+                
+                // Formatear dinero
+                if (headerName.includes("MONTO") || headerName.includes("TOTAL") || headerName.includes("VENDIDO") || headerName.includes("ANULADO")) {
+                    td.innerText = `S/ ${parseFloat(valor || 0).toFixed(2)}`;
+                    td.style.textAlign = 'right';
+                } else {
+                    td.innerText = valor || '-';
+                    td.style.textAlign = 'center';
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+
+            // Calcular total final universalmente
+            const monto = row["Monto Total"] || row["TotalVendido"] || row["totalvendido"] || row["ImporteTotal"] || row["importetotal"] || row["Monto"] || row["monto"] || 0;
+            sumaFinal += parseFloat(monto);
+        });
+        
+        tabla.appendChild(tbody);
+        container.appendChild(tabla);
+
+        // Total
+        const totalText = document.createElement('h3');
+        totalText.style.textAlign = 'right';
+        totalText.style.marginTop = '15px';
+        totalText.style.color = '#1E293B';
+        totalText.innerText = `TOTAL GENERAL: S/ ${sumaFinal.toFixed(2)}`;
+        container.appendChild(totalText);
+
+        // 3. Generar el PDF
+        const opt = {
+            margin:       0.3,
+            filename:     `Reporte_${tipo}_${inicio}_al_${fin}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' } // Horizontal para que entren las columnas
+        };
+
+        await html2pdf().set(opt).from(container).save();
+
+        if(btn) { 
+            btn.innerHTML = '<span><i class="fa-solid fa-check"></i></span> ¡Descargado!'; 
+            setTimeout(() => { btn.innerHTML = txtOriginal; btn.disabled = false; }, 2000); 
+        }
+
+    } catch (e) {
+        console.error(e); 
+        mostrarNotificacion(" Error generando PDF: " + e.message, 'error');
+        if(btn) { btn.innerHTML = txtOriginal; btn.disabled = false; }
+    }
 };
